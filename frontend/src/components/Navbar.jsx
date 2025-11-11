@@ -17,7 +17,13 @@ export default function Navbar() {
   };
 
   useEffect(() => {
-    // Fetch branding to display dynamic dealer name
+    // Only fetch branding after authentication to avoid pre-login 401 noise
+    if (!isAuthenticated) {
+      // Ensure fallback title before login
+      setDealerName('TMR Trading Lanka (Pvt) Ltd');
+      return;
+    }
+
     (async () => {
       try {
         const branding = await apiClient.get('/api/branding');
@@ -28,7 +34,7 @@ export default function Navbar() {
         // Ignore errors; keep default dealer name
       }
     })();
-  }, []);
+  }, [isAuthenticated]);
 
   const handleLogout = async (e) => {
     e.preventDefault();

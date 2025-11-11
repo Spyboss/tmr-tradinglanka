@@ -37,6 +37,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - No new dependencies introduced.
 - Keeps compatibility with existing MongoDB data and existing CORS configuration.
 
+## [x.x.x] - 2025-11-11 - 🔇 Pre-login 401 Noise Reduction
+
+### Changed
+- Frontend Navbar now fetches branding only after authentication. The effect depends on `isAuthenticated` and retains the default title `"TMR Trading Lanka (Pvt) Ltd"` when unauthenticated.
+- Prevents unauthorized `/api/branding` calls before login on Cloudflare Pages, reducing 401 "No token provided" noise in logs.
+
+### Notes
+- No production routes removed; backend `GET /api/branding` remains authenticated-only.
+- No database schema changes.
+- No new dependencies; uses existing `apiClient` and `AuthContext` patterns.
+- Fully compatible with existing MongoDB data and deployment setups.
+
 ## [2.0.7] - 2025-11-10 - 🚀 Production Readiness & Deployment Checklist
 
 ### Added
