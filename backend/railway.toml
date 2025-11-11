@@ -20,6 +20,7 @@ health_check_interval_seconds = 10
 NODE_ENV = "production"
 PORT = "8080"
 CORS_ORIGINS = "https://tmr-production.up.railway.app,https://tmr-tradinglanka.pages.dev"
+ALLOW_NO_ORIGIN = "true"
 DB_PATH = "./data/bills.db"
 MONGODB_DB_NAME = "tmr"
 TEMPLATES_DIR = "./templates"

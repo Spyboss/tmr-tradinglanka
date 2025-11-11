@@ -10,7 +10,7 @@ export default function Navbar() {
   const { user, isAuthenticated, logout, loading } = useAuth();
   const { isDarkMode, toggleTheme } = useTheme(); // Use theme context
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const [dealerName, setDealerName] = useState('TMR Trading Lanka');
+  const [dealerName, setDealerName] = useState('TMR Trading Lanka (Pvt) Ltd');
 
   const toggleUserMenu = () => {
     setUserMenuOpen(!userMenuOpen);

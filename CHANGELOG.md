@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated UI and documentation branding from "Gunawardhana Motors" to "TMR Trading Lanka" (Navbar default, Inventory Report, README files, docs).
 - Updated backend Dockerfile embedded PDF header brand line to "TMR TRADING LANKA (PVT) LTD, EMBILIPITIYA".
 - Frontend package name renamed from `gunawardhana-motors-frontend` to `tmr-tradinglanka-frontend`.
+- Railway deployment config: set `ALLOW_NO_ORIGIN=true` in `backend/railway.toml` to ensure platform health probes succeed without `Origin` headers.
 
 ### Notes
 - No production routes removed and no database schema changes.
