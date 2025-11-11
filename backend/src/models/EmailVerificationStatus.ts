@@ -17,6 +17,6 @@ const EmailVerificationStatusSchema = new Schema<IEmailVerificationStatus>({
   versionKey: false
 });
 
-EmailVerificationStatusSchema.index({ user: 1 }, { unique: true });
+// Unique index already declared on the field; avoid duplicate index definitions
 
 export default mongoose.model<IEmailVerificationStatus>('EmailVerificationStatus', EmailVerificationStatusSchema);

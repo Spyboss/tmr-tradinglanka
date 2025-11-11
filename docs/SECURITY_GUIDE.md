@@ -72,7 +72,7 @@ PORT=8080
 ```bash
 # API Configuration (these are safe to be public)
 VITE_API_URL=https://your-backend-url.railway.app
-VITE_APP_NAME=Bill Generator
+VITE_APP_NAME=TMR Trading Lanka (Pvt) Ltd
 VITE_APP_VERSION=1.0.0
 ```
 

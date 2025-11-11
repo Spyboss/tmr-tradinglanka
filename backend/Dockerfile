@@ -516,7 +516,7 @@ const pdfService = require("./services/pdfService");\n\
 \n\
 // Root route\n\
 app.get("/", (req, res) => {\n\
-  res.json({ message: "Bill Generator API" });\n\
+  res.json({ message: "TMR Trading Lanka (Pvt) Ltd API" });\n\
 });\n\
 \n\
 // Get all bills\n\

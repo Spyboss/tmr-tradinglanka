@@ -507,3 +507,30 @@ Notes:
 - No database schema changes; fully compatible with existing MongoDB data.
 - Resend configuration reminder: set `EMAIL_PROVIDER=resend`, provide `RESEND_API_KEY`, and a valid `EMAIL_FROM` (e.g., `Name <email@yourdomain.com>` on a verified domain). Use `onboarding@resend.dev` for quick testing only.
 - Controllers continue to avoid email enumeration: verification endpoints log failures but reply with a generic success message.
+ 
+## [x.x.x] - 2025-11-11 - 🛠️ Resend integration fix, DB name, and branding
+
+### Fixed
+- Resend send API usage corrected to destructure `{ data, error }`:
+  - `backend/src/services/mailer.service.ts` now handles Resend responses properly, returning failures with informative messages when `error` is present and success with `data.id` when available.
+- Safer default sender for Resend:
+  - Default `EMAIL_FROM` changed to `TMR Trading Lanka <onboarding@resend.dev>` to avoid domain verification errors during testing; override with your verified domain in production.
+- Atlas default database name avoided:
+  - `backend/src/config/database.ts` sets `dbName` to `MONGODB_DB_NAME` (default `tmr`) so Mongoose no longer connects to `test` implicitly.
+- Duplicate index warning resolved:
+  - `backend/src/models/EmailVerificationStatus.ts` removed redundant `schema.index({ user: 1 }, { unique: true })` because `unique: true` on the field already creates the index.
+- Branding string updates:
+  - `backend/src/server.ts` root message now: `TMR Trading Lanka (Pvt) Ltd API is running`.
+  - `frontend/index.html` title set to `TMR Trading Lanka (Pvt) Ltd`.
+  - `docs/SECURITY_GUIDE.md` `VITE_APP_NAME` updated accordingly.
+  - `backend/Dockerfile` inline server message updated.
+
+### Root Causes
+- Resend SDK returns `{ data, error }`; accessing `result.id` skipped the `data` envelope and produced "Unknown Resend error" logs even when an error message existed.
+- MongoDB Atlas defaults to `test` when no db name is given in the URI; `mongoose.connect()` without `dbName` inherits that default.
+- Mongoose warns when defining the same index twice (field-level `unique: true` and `schema.index()` for the same key).
+
+### Compatibility Notes
+- No production routes removed or renamed; configuration-only changes.
+- No schema changes; existing MongoDB data remains compatible.
+- For reliable email delivery, verify your sender domain in Resend and set `EMAIL_FROM` to your verified address.

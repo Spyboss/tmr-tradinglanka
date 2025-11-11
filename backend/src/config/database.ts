@@ -37,6 +37,8 @@ export const connectToDatabase = async (): Promise<Db> => {
 
 // MongoDB connection options for Mongoose
 const mongooseOptions: mongoose.ConnectOptions = {
+  // Explicitly set database name to avoid Atlas default 'test'
+  dbName: DB_NAME,
   // Only build indexes automatically in development
   autoIndex: process.env.NODE_ENV === 'development',
   serverSelectionTimeoutMS: 5000, // Keep trying to send operations for 5 seconds
