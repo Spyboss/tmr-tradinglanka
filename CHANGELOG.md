@@ -5,6 +5,25 @@ All notable changes to the TMR Trading Lanka Business Management System will be 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [x.x.x] - 2025-11-11 - 🖼️ Favicon & Manifest Installation
+
+### Added
+- Installed website icons and manifest links in the frontend:
+  - Added `<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">`.
+  - Added `<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">`.
+  - Added `<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">`.
+  - Added `<link rel="manifest" href="/site.webmanifest">`.
+  - Removed Vite default SVG icon link to ensure new icons are used.
+
+### Files
+- `frontend/index.html` — inserted link tags in `<head>`.
+- `frontend/public/` — contains icon assets and `site.webmanifest` served at root (`/`).
+
+### Notes
+- No new dependencies; uses Vite `public` folder which serves files at `/`.
+- No backend changes and no schema modifications.
+- Compatible with existing deployments. Browsers may cache favicons; hard-refresh if the old tab icon persists.
+
 ## [x.x.x] - 2025-11-11 - 🏷️ Brand & Package Rename
 
 ### Changed
