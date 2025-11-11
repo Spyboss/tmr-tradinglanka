@@ -443,7 +443,7 @@ const InventoryReport = () => {
         {/* Header Section */}
         <div className="report-header text-center mb-8 print:mb-6">
           <div className="company-logo-section mb-4">
-            <Title level={1} className="company-name !mb-1">Gunawardhana Motors</Title>
+            <Title level={1} className="company-name !mb-1">TMR Trading Lanka</Title>
             <Text className="company-subtitle">Premium Electric Vehicle Solutions</Text>
           </div>
           <Divider className="!my-4" />
@@ -679,7 +679,7 @@ const InventoryReport = () => {
           <Divider />
           <div className="footer-content">
             <Text type="secondary">
-              This report was generated automatically by the Gunawardhana Motors Inventory Management System
+              This report was generated automatically by the TMR Trading Lanka Inventory Management System
             </Text>
             <br />
             <Text type="secondary" style={{ fontSize: '12px' }}>

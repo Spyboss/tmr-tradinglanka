@@ -88,7 +88,7 @@ exports.generatePDF = async (bill) => {\n\
       doc.fontSize(18).text("TMR TRADING LANKA (PVT) LTD", { align: "center" });\n\
       doc.fillColor("#000000"); // Back to black text\n\
       doc.fontSize(11).moveDown(0.5);\n\
-      doc.font("Helvetica-Bold").text("GUNAWARDANA MOTORS, EMBILIPITIYA", { align: "left" });\n\
+      doc.font("Helvetica-Bold").text("TMR TRADING LANKA (PVT) LTD, EMBILIPITIYA", { align: "left" });\n\
       doc.text("AUTHORIZED DEALER - EMBILIPITIYA", { align: "left" });\n\
       \n\
       // Bill Number and Date - At the top right\n\

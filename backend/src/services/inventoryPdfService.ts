@@ -53,14 +53,14 @@ export const generateInventoryPDF = async (inventoryData: InventoryData): Promis
         try {
           const b = await Branding.findOne({}).lean();
           return {
-            dealerName: b?.dealerName || 'Gunawardhana Motors',
+            dealerName: b?.dealerName || 'TMR Trading Lanka',
             primaryColor: b?.primaryColor || '#1e90ff',
             addressLine1: b?.addressLine1 || '',
             addressLine2: b?.addressLine2 || ''
           };
         } catch {
           return {
-            dealerName: 'Gunawardhana Motors',
+            dealerName: 'TMR Trading Lanka',
             primaryColor: '#1e90ff',
             addressLine1: '',
             addressLine2: ''

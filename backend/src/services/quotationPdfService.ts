@@ -74,7 +74,7 @@ export const generateQuotationPDF = async (quotation: IQuotation): Promise<Buffe
         try {
           const b = await Branding.findOne({}).lean();
           return {
-            dealerName: b?.dealerName || 'Gunawardana Motors',
+            dealerName: b?.dealerName || 'TMR Trading Lanka',
             brandPartner: b?.brandPartner || 'TMR Trading Lanka Pvt Ltd',
             primaryColor: b?.primaryColor || '#1e90ff',
             addressLine1: b?.addressLine1 || '',
@@ -82,7 +82,7 @@ export const generateQuotationPDF = async (quotation: IQuotation): Promise<Buffe
           };
         } catch {
           return {
-            dealerName: 'Gunawardana Motors',
+            dealerName: 'TMR Trading Lanka',
             brandPartner: 'TMR Trading Lanka Pvt Ltd',
             primaryColor: '#1e90ff',
             addressLine1: '',

@@ -1,4 +1,4 @@
-# 🏍️ Gunawardana Motors Business Management System
+# 🏍️ TMR Trading Lanka Business Management System
 
 <div align="center">
 
@@ -181,7 +181,7 @@ PORT=8080
 
 ```env
 VITE_API_URL=https://tmr-production.up.railway.app
-VITE_APP_NAME=Gunawardhana Motors
+VITE_APP_NAME=TMR Trading Lanka
 ```
 </details>
 
@@ -223,7 +223,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🙏 Acknowledgments
 
-- Built with ❤️ for Gunawardhana Motors
+- Built with ❤️ for TMR Trading Lanka
 - Special thanks to the open-source community
 - Powered by modern web technologies
 

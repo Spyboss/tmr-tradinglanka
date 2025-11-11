@@ -1,6 +1,6 @@
-# 🚀 Gunawardhana Motors Backend API
+# 🚀 TMR Trading Lanka Backend API
 
-**Enterprise-grade backend API for the Gunawardhana Motors Business Management System**
+**Enterprise-grade backend API for the TMR Trading Lanka Business Management System**
 
 [![Node.js](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg)](https://nodejs.org/)
 [![TypeScript](https://img.shields.io/badge/typescript-5.8.3-blue.svg)](https://www.typescriptlang.org/)
@@ -9,7 +9,7 @@
 
 ## 🌟 Overview
 
-This is the backend API that powers the Gunawardhana Motors Business Management System. Built with modern technologies and enterprise-grade security, it provides a robust foundation for managing sales, inventory, quotations, and user operations.
+This is the backend API that powers the TMR Trading Lanka Business Management System. Built with modern technologies and enterprise-grade security, it provides a robust foundation for managing sales, inventory, quotations, and user operations.
 
 ## ✨ Key Features
 
@@ -98,7 +98,7 @@ The backend requires the following environment variables. Copy `backend/.env.exa
 | `VERIFICATION_TOKEN_TTL_MINUTES` | No | Token expiration in minutes. Default `30`. |
 | `PUBLIC_BASE_URL` | No | Frontend base URL used to build verification links. Default `https://tmr-tradinglanka.pages.dev`. |
 | `EMAIL_PROVIDER` | No | Mailer provider: `resend` or `console`. Default `console`. |
-| `EMAIL_FROM` | No | From address for emails. Default `Gunawardhana Motors <no-reply@gunawardanamotors.lk>`. |
+| `EMAIL_FROM` | No | From address for emails. Default `TMR Trading Lanka <no-reply@gunawardanamotors.lk>`. |
 | `RESEND_API_KEY` | No | API key for Resend provider. |
 
 ### Quick Start Recap

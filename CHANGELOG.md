@@ -1,9 +1,22 @@
 # 📝 Changelog
 
-All notable changes to the Gunawardhana Motors Business Management System will be documented in this file.
+All notable changes to the TMR Trading Lanka Business Management System will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [x.x.x] - 2025-11-11 - 🏷️ Brand & Package Rename
+
+### Changed
+- Backend package name renamed from `gunawardhana-motors-api` to `tmr-tradinglanka-api`.
+- Updated UI and documentation branding from "Gunawardhana Motors" to "TMR Trading Lanka" (Navbar default, Inventory Report, README files, docs).
+- Updated backend Dockerfile embedded PDF header brand line to "TMR TRADING LANKA (PVT) LTD, EMBILIPITIYA".
+- Frontend package name renamed from `gunawardhana-motors-frontend` to `tmr-tradinglanka-frontend`.
+
+### Notes
+- No production routes removed and no database schema changes.
+- No new dependencies introduced.
+- Fully compatible with existing MongoDB data and configurations.
 
 ## [2.0.7] - 2025-11-10 - 🚀 Production Readiness & Deployment Checklist
 
@@ -33,7 +46,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
  - Frontend Profile page: new "Branding" tab with logo URL preview and bill PDF preview button; integrates `GET /api/branding` and `PUT /api/branding`.
 
 ### Changed
-- Frontend Navbar title now reads `dealerName` from `GET /api/branding` for dynamic branding; falls back gracefully to "Gunawardhana Motors" if unavailable or unauthenticated.
+- Frontend Navbar title now reads `dealerName` from `GET /api/branding` for dynamic branding; falls back gracefully to "TMR Trading Lanka" if unavailable or unauthenticated.
 - Quotation PDF header now uses branding (dealerName, brandPartner, address lines, primaryColor) instead of hardcoded text.
 - Inventory PDF header and signature/footer now use branding (dealerName, address lines, primaryColor) and remove hardcoded contact line.
 

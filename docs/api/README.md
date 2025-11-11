@@ -1,6 +1,6 @@
 # 📋 API Reference
 
-**Complete API documentation for the Gunawardhana Motors Business Management System**
+**Complete API documentation for the TMR Trading Lanka Business Management System**
 
 ## 🌐 Base URL
 

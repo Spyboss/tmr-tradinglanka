@@ -1,6 +1,6 @@
 # 🗄️ Data Models Documentation
 
-This directory contains comprehensive documentation for all data models used in the Gunawardhana Motors Business Management System.
+This directory contains comprehensive documentation for all data models used in the TMR Trading Lanka Business Management System.
 
 ## 📋 Available Models
 

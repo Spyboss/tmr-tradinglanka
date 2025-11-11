@@ -1,8 +1,8 @@
 {
-  "name": "gunawardhana-motors-frontend",
+  "name": "tmr-tradinglanka-frontend",
   "private": true,
   "version": "2.0.0",
-  "description": "Modern React frontend for Gunawardhana Motors Business Management System",
+  "description": "Modern React frontend for TMR Trading Lanka Business Management System",
   "author": "Uminda Herath <contact@uhadev.com> (https://uhadev.com)",
   "license": "MIT",
   "keywords": [

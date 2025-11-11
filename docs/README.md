@@ -1,6 +1,6 @@
-# 📚 Gunawardhana Motors Documentation
+# 📚 TMR Trading Lanka Documentation
 
-**Comprehensive documentation for the Gunawardhana Motors Business Management System**
+**Comprehensive documentation for the TMR Trading Lanka Business Management System**
 
 ## 🗂️ Documentation Structure
 
@@ -50,7 +50,7 @@ Documentation of business processes and operational procedures.
 
 ## 📋 System Overview
 
-The Gunawardhana Motors Business Management System powers end-to-end dealership operations in production. The platform combines:
+The TMR Trading Lanka Business Management System powers end-to-end dealership operations in production. The platform combines:
 
 - **Sales Management** – Orchestrates bill creation, approval, and settlement with guardrails that enforce payment rules and downstream notifications.
 - **Inventory Control** – Synchronizes live stock counts from floor entries, inbound shipments, and sales deductions, keeping data consistent across devices.

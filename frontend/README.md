@@ -1,6 +1,6 @@
-# 🎨 Gunawardhana Motors Frontend
+# 🎨 TMR Trading Lanka Frontend
 
-**Modern React frontend for the Gunawardhana Motors Business Management System**
+**Modern React frontend for the TMR Trading Lanka Business Management System**
 
 [![React](https://img.shields.io/badge/react-18.2.0-blue.svg)](https://reactjs.org/)
 [![Vite](https://img.shields.io/badge/vite-5.1.4-purple.svg)](https://vitejs.dev/)
@@ -119,7 +119,7 @@ The frontend is deployed on Cloudflare Pages with automatic deployments from Git
 **Environment Variables:**
 ```env
 VITE_API_URL=https://tmr-production.up.railway.app
-VITE_APP_NAME=Gunawardhana Motors
+VITE_APP_NAME=TMR Trading Lanka
 ```
 
 ### Performance Optimizations

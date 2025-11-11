@@ -8,7 +8,7 @@ export interface MailRequest {
 }
 
 const EMAIL_PROVIDER = (process.env.EMAIL_PROVIDER ?? 'console').toLowerCase();
-const EMAIL_FROM = process.env.EMAIL_FROM ?? 'Gunawardhana Motors <no-reply@gunawardanamotors.lk>';
+const EMAIL_FROM = process.env.EMAIL_FROM ?? 'TMR Trading Lanka <no-reply@gunawardanamotors.lk>';
 
 export const sendMail = async ({ to, subject, html, text }: MailRequest): Promise<{ success: boolean; id?: string; error?: string }> => {
   if (EMAIL_PROVIDER === 'resend') {
