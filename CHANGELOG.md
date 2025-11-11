@@ -490,3 +490,20 @@ Notes:
 - Existing data in MongoDB remains compatible; no schema changes.
 - Did not modify any production routes or add new dependencies.
 - Left historical references in previous changelog entries intact for auditability.
+## [x.x.x] - 2025-11-11 - ✉️ Mailer Fallback Semantics & Branding Preview Auth
+
+### Changed
+- Backend mailer fallback now returns failure when provider is not active:
+  - `backend/src/services/mailer.service.ts`: when `EMAIL_PROVIDER !== 'resend'` or `RESEND_API_KEY` is missing, `sendMail()` returns `{ success: false, error: "Email provider '<mode>' not sending; fallback mode" }` and logs the condition. Previously it incorrectly returned `{ success: true }`, masking configuration issues.
+- Frontend branding PDF preview switched to the PDF-specific endpoint and client:
+  - `frontend/src/components/user/BrandingSettings.jsx`: changed preview fetch from `GET /api/bills/preview` to `GET /api/bills/preview/pdf`, ensuring the PDF Axios instance applies `responseType: 'blob'`, `Accept: application/pdf`, extended timeout, and explicit `Authorization` header.
+
+### Root Cause
+- Mailer fallback signaling success caused upstream handlers to treat emails as sent even when no provider was active, reducing the usefulness of error logs and observability during verification flows.
+- Preview requests without the `/pdf` path did not consistently use the blob/PDF-aware Axios client, leading to occasional auth header or timeout inconsistencies for large PDFs.
+
+### Notes
+- No production routes removed or renamed; only semantics and client usage improved.
+- No database schema changes; fully compatible with existing MongoDB data.
+- Resend configuration reminder: set `EMAIL_PROVIDER=resend`, provide `RESEND_API_KEY`, and a valid `EMAIL_FROM` (e.g., `Name <email@yourdomain.com>` on a verified domain). Use `onboarding@resend.dev` for quick testing only.
+- Controllers continue to avoid email enumeration: verification endpoints log failures but reply with a generic success message.

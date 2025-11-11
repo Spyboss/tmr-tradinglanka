@@ -36,10 +36,11 @@ export const sendMail = async ({ to, subject, html, text }: MailRequest): Promis
     }
   }
 
-  // Console fallback: log the message, do not fail requests
+  // Console or other fallback: log the message, but indicate failure so callers
+  // can record or surface that email sending is not configured.
   const mode = EMAIL_PROVIDER;
   logger.info(`[mailer:${mode}] to=${to} subject="${subject}"`);
   if (text) logger.debug(`[mailer:${mode}] text=${text}`);
   if (html) logger.debug(`[mailer:${mode}] html length=${html.length}`);
-  return { success: true };
+  return { success: false, error: `Email provider '${mode}' not sending; fallback mode` };
 };

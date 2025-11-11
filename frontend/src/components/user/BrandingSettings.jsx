@@ -71,8 +71,8 @@ export default function BrandingSettings() {
 
   const generatePreview = async () => {
     try {
-      // Request PDF preview; treat as blob response
-      const blob = await apiClient.get('/api/bills/preview', { responseType: 'blob' });
+      // Use /preview/pdf to engage ApiClient's auth-aware PDF handler
+      const blob = await apiClient.get('/api/bills/preview/pdf');
       const url = URL.createObjectURL(blob);
       setPreviewUrl(url);
       message.success('Preview generated');

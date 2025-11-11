@@ -4,6 +4,9 @@ import User, { UserRole } from '../models/User.js';
 import logger from '../utils/logger.js';
 import { isVerificationEnabled } from './verification.service.js';
 
+// Frontend base URL used to guide users to the verification page
+const PUBLIC_BASE_URL = (process.env.PUBLIC_BASE_URL ?? 'https://tmr-tradinglanka.pages.dev').replace(/\/$/, '');
+
 // Flag gating and legacy cutoff (ISO 8601 string). No schema changes.
 const EMAIL_VERIFICATION_ENFORCE = (process.env.EMAIL_VERIFICATION_ENFORCE ?? 'false').toLowerCase() === 'true';
 const CUTOFF_ISO = process.env.EMAIL_VERIFICATION_ENFORCE_CUTOFF_ISO;
@@ -67,10 +70,12 @@ export const enforceVerification = async (
       return;
     }
 
-    // Friendly 403 response
+    // Friendly 403 response aligned with frontend interceptor expectations
     res.status(403).json({
       message: 'Email verification required',
-      code: 'EMAIL_VERIFICATION_REQUIRED',
+      code: 'EMAIL_NOT_VERIFIED',
+      friendly: true,
+      verifyUrl: `${PUBLIC_BASE_URL}/verify`,
       enabled: true
     });
   } catch (error) {
