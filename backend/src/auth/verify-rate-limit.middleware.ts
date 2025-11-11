@@ -38,7 +38,14 @@ export const verifyRateLimit = async (req: Request, res: Response, next: NextFun
     const retryAfter = Math.ceil(limiterRes.msBeforeNext / 1000) || 60;
     res.set('Retry-After', String(retryAfter));
     logger.warn(`Verification rate limit exceeded for ${clientIp}`);
-    // Soft enforcement: log and continue (keeps behavior non-blocking)
+    // Enforce 429 in production; remain soft in non-production
+    if ((process.env.NODE_ENV || 'development') === 'production') {
+      res.status(429).json({
+        message: 'Too many verification attempts - please try again later',
+        retryAfter
+      });
+      return;
+    }
     next();
   }
 };

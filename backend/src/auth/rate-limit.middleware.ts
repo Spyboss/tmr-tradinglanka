@@ -135,15 +135,14 @@ export const apiRateLimit = async (req: Request, res: Response, next: NextFuncti
     res.set('Retry-After', String(retryAfter));
 
     logger.warn(`Rate limit exceeded for ${clientIp} (key: ${rateKey}) on ${req.method} ${req.path}`);
-
-    // Instead of returning 429, just log and continue (temporary measure)
-    // This prevents legitimate users from being blocked
-    // res.status(429).json({
-    //   message: 'Too many requests - please try again later',
-    //   retryAfter
-    // });
-
-    // For now, just log and continue
+    // Enforce 429 in production; remain soft in non-production
+    if ((process.env.NODE_ENV || 'development') === 'production') {
+      res.status(429).json({
+        message: 'Too many requests - please try again later',
+        retryAfter
+      });
+      return;
+    }
     next();
   }
 };
@@ -193,15 +192,14 @@ export const loginRateLimit = async (req: Request, res: Response, next: NextFunc
     res.set('Retry-After', String(retryAfter));
 
     logger.warn(`Login rate limit exceeded for ${clientIp}`);
-
-    // Instead of returning 429, just log and continue (temporary measure)
-    // This prevents legitimate users from being blocked
-    // res.status(429).json({
-    //   message: 'Too many login attempts - please try again later',
-    //   retryAfter
-    // });
-
-    // For now, just log and continue
+    // Enforce 429 in production; remain soft in non-production
+    if ((process.env.NODE_ENV || 'development') === 'production') {
+      res.status(429).json({
+        message: 'Too many login attempts - please try again later',
+        retryAfter
+      });
+      return;
+    }
     next();
   }
 };
@@ -246,15 +244,14 @@ export const registrationRateLimit = async (req: Request, res: Response, next: N
     res.set('Retry-After', String(retryAfter));
 
     logger.warn(`Registration rate limit exceeded for ${clientIp} (key: ${rateKey})`);
-
-    // Instead of returning 429, just log and continue (temporary measure)
-    // This prevents legitimate users from being blocked
-    // res.status(429).json({
-    //   message: 'Too many registration attempts - please try again later',
-    //   retryAfter
-    // });
-
-    // For now, just log and continue
+    // Enforce 429 in production; remain soft in non-production
+    if ((process.env.NODE_ENV || 'development') === 'production') {
+      res.status(429).json({
+        message: 'Too many registration attempts - please try again later',
+        retryAfter
+      });
+      return;
+    }
     next();
   }
 };

@@ -110,7 +110,8 @@ export const sanitizeRequestParams = (req: Request, res: Response, next: NextFun
   req.params = sanitize(req.params);
 
   // Only sanitize the body if it's not a multipart form (file upload)
-  if (req.body && req.headers['content-type'] !== 'multipart/form-data') {
+  const contentType = (req.headers['content-type'] || '').toLowerCase();
+  if (req.body && !contentType.startsWith('multipart/form-data')) {
     req.body = sanitize(req.body);
   }
 

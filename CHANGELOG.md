@@ -249,6 +249,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Runtime behavior unchanged; fix targets TypeScript type resolution in monorepo workspaces.
     - Consider running `npm dedupe` at the repo root to reduce duplicate packages.
 
+## [x.x.x] - 2025-11-11 - 🔒 Security Hardening (rate limits, uploads, PDF logo)
+
+### Changed
+- Enforce `429 Too Many Requests` in production for rate limit violations:
+  - General API (`apiLimiter`), Login (`loginLimiter`), Registration (`registrationLimiter`), and Verification (`verifyLimiter`).
+- Improve `multipart/form-data` detection in security middleware to correctly skip body sanitization when a `boundary` parameter is present.
+- Harden remote logo fetching in PDF generation:
+  - Accept only 2xx responses with `content-type: image/*`.
+  - Cap logo buffer size at `1 MB` and apply `5 s` request timeout.
+
+### Files
+- `backend/src/auth/rate-limit.middleware.ts`
+- `backend/src/auth/verify-rate-limit.middleware.ts`
+- `backend/src/middleware/security-middleware.ts`
+- `backend/src/services/pdfService.ts`
+
+### Notes
+- No production routes removed; no database schema changes.
+- No new dependencies introduced.
+- Compatible with existing MongoDB data.
+- See `docs/security-audit-report.md` for detailed context and recommendations.
+
 ## [x.x.x] - 2025-11-10 - 🔒 **Env validation + remove hardcoded URI (no behavior change)**
 
 ### Changed

@@ -484,16 +484,46 @@ const loadBranding = async (): Promise<{
   }
 };
 
-// Fetch remote logo into a Buffer without adding new dependencies
+// Fetch remote logo into a Buffer with size and time safeguards
 const loadLogoBuffer = async (url?: string): Promise<Buffer | undefined> => {
   if (!url || !(url.startsWith('http://') || url.startsWith('https://'))) return undefined;
+  const MAX_LOGO_BYTES = 1 * 1024 * 1024; // 1MB cap
+  const REQUEST_TIMEOUT_MS = 5000; // 5s timeout
+
   return new Promise((resolve) => {
     try {
-      https.get(url, (res) => {
+      const req = https.get(url, (res) => {
+        // Only accept OK responses and image content-types
+        const statusOk = res.statusCode && res.statusCode >= 200 && res.statusCode < 300;
+        const ct = (res.headers['content-type'] || '').toLowerCase();
+        const isImage = ct.startsWith('image/');
+        if (!statusOk || !isImage) {
+          try { res.destroy(); } catch {}
+          resolve(undefined);
+          return;
+        }
+
         const chunks: Buffer[] = [];
-        res.on('data', (c) => chunks.push(Buffer.isBuffer(c) ? c : Buffer.from(c)));
+        let total = 0;
+        res.on('data', (c) => {
+          const buf = Buffer.isBuffer(c) ? c : Buffer.from(c);
+          total += buf.length;
+          if (total > MAX_LOGO_BYTES) {
+            try { res.destroy(); } catch {}
+            resolve(undefined);
+            return;
+          }
+          chunks.push(buf);
+        });
         res.on('end', () => resolve(Buffer.concat(chunks)));
-      }).on('error', () => resolve(undefined));
+        res.on('error', () => resolve(undefined));
+      });
+
+      req.setTimeout(REQUEST_TIMEOUT_MS, () => {
+        try { req.destroy(); } catch {}
+        resolve(undefined);
+      });
+      req.on('error', () => resolve(undefined));
     } catch {
       resolve(undefined);
     }
