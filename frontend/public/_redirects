@@ -1,1 +1,5 @@
-/* /index.html 200 
+## Proxy API requests to Railway backend
+/api/* https://tmr-tradinglanka-api-production.up.railway.app/api/:splat 200
+
+## SPA fallback
+/* /index.html 200

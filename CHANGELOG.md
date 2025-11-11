@@ -19,6 +19,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - No new dependencies introduced.
 - Fully compatible with existing MongoDB data and configurations.
 
+## [x.x.x] - 2025-11-11 - 🌐 Cloudflare Pages API Proxy
+
+### Changed
+- Added Cloudflare Pages proxy rule to `frontend/public/_redirects`:
+  - `/api/* https://tmr-tradinglanka-api-production.up.railway.app/api/:splat 200`
+  - Ensures the frontend can call a relative `/api` path and have it transparently proxied to the Railway backend.
+
+### Guidance
+- Frontend environment:
+  - If proxy is present, set `VITE_API_URL=/api` in Cloudflare Pages → Environment Variables.
+  - If you prefer no proxy, set `VITE_API_URL=https://tmr-tradinglanka-api-production.up.railway.app/api` and keep `CORS_ORIGINS` including your Pages domain.
+- Order matters: the `/api/*` rule must appear above the SPA catch‑all `/* /index.html 200`.
+
+### Notes
+- No production routes removed and no database schema changes.
+- No new dependencies introduced.
+- Keeps compatibility with existing MongoDB data and existing CORS configuration.
+
 ## [2.0.7] - 2025-11-10 - 🚀 Production Readiness & Deployment Checklist
 
 ### Added
