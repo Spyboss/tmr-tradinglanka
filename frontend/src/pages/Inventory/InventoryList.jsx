@@ -213,16 +213,16 @@ const InventoryList = () => {
       </div>
 
       <div className="bg-white dark:bg-gray-800 dark:border dark:border-gray-700 p-4 sm:p-6 rounded-lg shadow mb-6">
-        <div className="flex flex-wrap gap-4 mb-4">
+        <div className="flex flex-wrap gap-3 sm:gap-4 mb-4">
           <Input.Search
             placeholder="Search motor or chassis number"
             onSearch={handleSearch}
-            style={{ width: 300 }}
+            className="w-full sm:w-72"
             allowClear
           />
           <Select
             placeholder="Filter by status"
-            style={{ width: 200 }}
+            className="w-full sm:w-52"
             onChange={handleStatusFilter}
             allowClear
           >
@@ -234,6 +234,7 @@ const InventoryList = () => {
           <Button 
             icon={<ReloadOutlined />} 
             onClick={fetchInventory}
+            className="w-full sm:w-auto"
           >
             Refresh
           </Button>

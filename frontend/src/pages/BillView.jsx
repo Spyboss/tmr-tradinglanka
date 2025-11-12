@@ -237,7 +237,7 @@ const BillView = () => {
   }
 
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6 dark:bg-slate-900 min-h-screen">
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl font-semibold">Bill #{bill._id || bill.id}</h1>
@@ -250,7 +250,7 @@ const BillView = () => {
             />
           </div>
         </div>
-        <div className="flex space-x-2">
+        <div className="flex flex-col sm:flex-row gap-2">
           <Button 
             icon={<EyeOutlined />}
             onClick={handlePreviewPDF}
@@ -302,8 +302,8 @@ const BillView = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card title="Bill Details" className="mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+        <Card title="Bill Details" className="mb-6 dark:bg-slate-800">
           <Descriptions bordered column={1}>
             <Descriptions.Item label="Bill Number">{bill.billNumber || bill.bill_number || bill._id || bill.id}</Descriptions.Item>
             <Descriptions.Item label="Bill Date">{formatDate(bill.billDate || bill.bill_date || bill.createdAt)}</Descriptions.Item>
@@ -324,7 +324,7 @@ const BillView = () => {
           </Descriptions>
         </Card>
 
-        <Card title="Customer Information" className="mb-6">
+        <Card title="Customer Information" className="mb-6 dark:bg-slate-800">
           <Descriptions bordered column={1}>
             <Descriptions.Item label="Name">{bill.customerName || bill.customer_name}</Descriptions.Item>
             <Descriptions.Item label="NIC">{bill.customerNIC || bill.customer_nic}</Descriptions.Item>
@@ -332,7 +332,7 @@ const BillView = () => {
           </Descriptions>
         </Card>
 
-        <Card title="Vehicle Information" className="mb-6">
+        <Card title="Vehicle Information" className="mb-6 dark:bg-slate-800">
           <Descriptions bordered column={1}>
             <Descriptions.Item label="Model">{bill.bikeModel || bill.model_name}</Descriptions.Item>
             <Descriptions.Item label="Type">
@@ -343,7 +343,7 @@ const BillView = () => {
           </Descriptions>
         </Card>
 
-        <Card title="Payment Information" className="mb-6">
+        <Card title="Payment Information" className="mb-6 dark:bg-slate-800">
           <Descriptions bordered column={1}>
             <Descriptions.Item label="Bike Price">{formatAmount(bill.bikePrice || bill.bike_price)}</Descriptions.Item>
             {!(bill.isEbicycle || bill.is_ebicycle) && (bill.billType === 'cash' || bill.bill_type === 'cash') && (
@@ -364,7 +364,7 @@ const BillView = () => {
         </Card>
         </div>
 
-      <div className="mt-6 flex space-x-4">
+      <div className="mt-6 flex flex-col sm:flex-row gap-3">
         {bill.status !== 'completed' && (
           <Button
             type="primary"
@@ -429,7 +429,7 @@ const BillView = () => {
           </Button>,
         ]}
       >
-        <div className="h-[700px]">
+        <div className="h-[70vh] sm:h-[700px]">
           <iframe 
             id="pdf-preview-frame"
             src={previewUrl} 
