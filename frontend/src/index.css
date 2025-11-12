@@ -334,8 +334,14 @@
 }
 
 @layer base {
+  html, body {
+    @apply h-full overflow-x-hidden bg-gray-50;
+  }
   body {
     @apply text-gray-900 antialiased;
+  }
+  .dark body {
+    background-color: #0f172a !important; /* slate-900 */
   }
 }
 
