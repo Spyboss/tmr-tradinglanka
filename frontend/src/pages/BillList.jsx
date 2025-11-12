@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import apiClient from '../config/apiClient'
-import { Table, Tag, Button, Space, Popconfirm, message, Spin, Input, Badge, Select } from 'antd'
+import { Table, Tag, Button, Space, Popconfirm, message, Spin, Input, Badge, Select, Skeleton, Card } from 'antd'
 import { PlusOutlined, SearchOutlined, DownloadOutlined, EyeOutlined, EditOutlined, DeleteOutlined, FileExcelOutlined } from '@ant-design/icons'
 
 const BillList = () => {
@@ -361,7 +361,7 @@ const BillList = () => {
   }
 
   return (
-    <div className="p-6 dark:bg-slate-900 min-h-full">
+    <div className="p-4 sm:p-6 dark:bg-slate-900 min-h-full">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Bills</h1>
         <div className="flex space-x-3">
@@ -396,23 +396,56 @@ const BillList = () => {
         </div>
       </div>
 
-      {loading ? (
-        <div className="flex justify-center p-12">
-          <Spin size="large" />
-        </div>
-      ) : (
-        <Table
-          rowKey="_id"
-          dataSource={bills.filter(filterBills)}
-          columns={columns}
-          pagination={{ pageSize: 10 }}
-          className="bg-white dark:bg-gray-800 rounded-lg shadow dark:border dark:border-gray-700"
-          onRow={(record) => ({
-            onClick: () => navigate(`/bills/${record._id}`),
-            style: { cursor: 'pointer' }
-          })}
-        />
-      )}
+      <div className="hidden md:block">
+        {loading ? (
+          <div className="flex justify-center p-12">
+            <Spin size="large" />
+          </div>
+        ) : (
+          <Table
+            rowKey="_id"
+            dataSource={bills.filter(filterBills)}
+            columns={columns}
+            pagination={{ pageSize: 10 }}
+            className="bg-white dark:bg-gray-800 rounded-lg shadow dark:border dark:border-gray-700"
+            onRow={(record) => ({
+              onClick: () => navigate(`/bills/${record._id}`),
+              style: { cursor: 'pointer' }
+            })}
+          />
+        )}
+      </div>
+
+      <div className="md:hidden space-y-3">
+        {loading ? (
+          Array.from({ length: 4 }).map((_, i) => (
+            <Card key={i} className="dark:bg-slate-800">
+              <Skeleton active paragraph={{ rows: 2 }} />
+            </Card>
+          ))
+        ) : (
+          bills.filter(filterBills).map((bill) => (
+            <div key={bill._id} className="bg-white dark:bg-slate-800 rounded-lg shadow p-4">
+              <div className="flex justify-between items-center">
+                <div>
+                  <div className="text-sm text-gray-500 dark:text-gray-400">{bill.billNumber || bill.bill_number || bill._id.substring(0,8)}</div>
+                  <div className="text-base font-medium text-gray-900 dark:text-gray-100">{bill.customerName || bill.customer_name}</div>
+                </div>
+                {getBillTypeTag(bill)}
+              </div>
+              <div className="mt-2 flex justify-between text-sm text-gray-600 dark:text-gray-300">
+                <span>{formatAmount(bill.totalAmount)}</span>
+                <span>{formatDate(bill.billDate || bill.createdAt)}</span>
+              </div>
+              <div className="mt-3 flex justify-end gap-2">
+                <Button size="small" onClick={() => handlePreviewPDF(bill._id)}>Preview</Button>
+                <Button size="small" onClick={() => navigate(`/bills/${bill._id}/edit`)}>Edit</Button>
+                <Button size="small" onClick={() => handleDownloadPDF(bill._id)}>PDF</Button>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
     </div>
   )
 }

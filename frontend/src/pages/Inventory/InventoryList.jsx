@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Button, Input, Select, Tag, Space, Spin, Tooltip, Modal, message } from 'antd';
+import { Table, Button, Input, Select, Tag, Space, Spin, Tooltip, Modal, message, Skeleton, Card } from 'antd';
 import { SearchOutlined, PlusOutlined, ExportOutlined, ReloadOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import { Link, useNavigate } from 'react-router-dom';
 import { getInventory, deleteInventory } from '../../services/inventoryService';
@@ -186,7 +186,7 @@ const InventoryList = () => {
   ];
 
   return (
-    <div className="p-6 dark:bg-slate-900 min-h-screen"> {/* Ensure full page dark background */}
+    <div className="p-4 sm:p-6 dark:bg-slate-900 min-h-screen">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Bike Inventory</h1>
         <Space>
@@ -212,7 +212,7 @@ const InventoryList = () => {
         </Space>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 dark:border dark:border-gray-700 p-6 rounded-lg shadow mb-6">
+      <div className="bg-white dark:bg-gray-800 dark:border dark:border-gray-700 p-4 sm:p-6 rounded-lg shadow mb-6">
         <div className="flex flex-wrap gap-4 mb-4">
           <Input.Search
             placeholder="Search motor or chassis number"
@@ -239,18 +239,52 @@ const InventoryList = () => {
           </Button>
         </div>
 
-        <Table
-          columns={columns}
-          dataSource={inventory}
-          rowKey="_id"
-          pagination={{
-            ...pagination,
-            showSizeChanger: true,
-            showTotal: (total) => `Total ${total} items`
-          }}
-          loading={loading}
-          onChange={handleTableChange}
-        />
+        <div className="hidden md:block">
+          <Table
+            columns={columns}
+            dataSource={inventory}
+            rowKey="_id"
+            pagination={{
+              ...pagination,
+              showSizeChanger: true,
+              showTotal: (total) => `Total ${total} items`
+            }}
+            loading={loading}
+            onChange={handleTableChange}
+          />
+        </div>
+
+        <div className="md:hidden space-y-3">
+          {loading ? (
+            Array.from({ length: 4 }).map((_, i) => (
+              <Card key={i} className="dark:bg-slate-800">
+                <Skeleton active paragraph={{ rows: 2 }} />
+              </Card>
+            ))
+          ) : (
+            inventory.map((item) => (
+              <div key={item._id} className="bg-white dark:bg-slate-800 rounded-lg shadow p-4">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400">{item.bikeModelId?.name || 'N/A'}</div>
+                    <div className="text-base font-medium text-gray-900 dark:text-gray-100">{item.chassisNumber}</div>
+                  </div>
+                  <Tag color={statusColors[item.status] || 'default'}>{(item.status || '').toUpperCase()}</Tag>
+                </div>
+                <div className="mt-2 text-sm text-gray-600 dark:text-gray-300">
+                  <div className="flex justify-between"><span>Motor</span><span>{item.motorNumber}</span></div>
+                  <div className="flex justify-between"><span>Date</span><span>{item.dateAdded ? format(new Date(item.dateAdded), 'dd/MM/yyyy') : 'N/A'}</span></div>
+                </div>
+                <div className="mt-3 flex justify-end gap-2">
+                  <Button size="small" onClick={() => navigate(`/inventory/edit/${item._id}`)}>Edit</Button>
+                  {item.status !== 'sold' && (
+                    <Button size="small" danger onClick={() => showDeleteModal(item)}>Delete</Button>
+                  )}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
       </div>
 
       <Modal

@@ -221,7 +221,7 @@ const QuotationGenerator = () => {
   ];
 
   return (
-    <div className="max-w-6xl mx-auto p-6 dark:bg-slate-800 rounded-lg shadow-lg">
+    <div className="max-w-6xl mx-auto p-4 sm:p-6 dark:bg-slate-800 rounded-lg shadow-lg">
       <h1 className="text-2xl font-semibold mb-6 text-gray-900 dark:text-gray-100">Generate New Quotation</h1>
 
       <Form
@@ -234,7 +234,7 @@ const QuotationGenerator = () => {
           remarks: 'Payment should be made within 7 days of invoice date.'
         }}
       >
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
           {/* Left Column */}
           <div>
             <Card title="Document Details" className="mb-6">
@@ -367,13 +367,15 @@ const QuotationGenerator = () => {
 
         {/* Items Section */}
         <Card title="Items" className="mb-6">
-          <Table
-            dataSource={items}
-            columns={itemColumns}
-            pagination={false}
-            rowKey={(record, index) => index}
-            className="mb-4"
-          />
+          <div className="overflow-x-auto">
+            <Table
+              dataSource={items}
+              columns={itemColumns}
+              pagination={false}
+              rowKey={(record, index) => index}
+              className="mb-4 min-w-[640px]"
+            />
+          </div>
 
           <div className="flex justify-between items-center mb-4">
             <Button
@@ -391,17 +393,9 @@ const QuotationGenerator = () => {
         </Card>
 
         {/* Action Buttons */}
-        <div className="flex justify-end space-x-4">
-          <Button onClick={handlePreview} icon={<EyeOutlined />}>
-            Preview
-          </Button>
-          <Button
-            type="primary"
-            htmlType="submit"
-            loading={loading}
-          >
-            Generate Quotation
-          </Button>
+        <div className="flex flex-col sm:flex-row justify-end gap-3 sm:gap-4">
+          <Button onClick={handlePreview} icon={<EyeOutlined />}>Preview</Button>
+          <Button type="primary" htmlType="submit" loading={loading}>Generate Quotation</Button>
         </div>
       </Form>
 
