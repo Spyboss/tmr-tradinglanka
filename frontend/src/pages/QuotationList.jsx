@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Button, Space, Input, Select, Tag, Popconfirm, message, Modal } from 'antd';
+import { Table, Button, Space, Input, Select, Tag, Popconfirm, message, Modal, Skeleton, Card } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, DownloadOutlined, EyeOutlined, SearchOutlined, FileTextOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import apiClient from '../config/apiClient';
@@ -262,7 +262,7 @@ const QuotationList = () => {
   ];
 
   return (
-    <div className="p-6 dark:bg-slate-900 min-h-full">
+    <div className="p-4 sm:p-6 dark:bg-slate-900 min-h-full">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Quotations & Invoices</h1>
         <Button
@@ -309,22 +309,57 @@ const QuotationList = () => {
         </Button>
       </div>
 
-      {/* Table */}
-      <Table
-        columns={columns}
-        dataSource={quotations}
-        loading={loading}
-        pagination={{
-          ...pagination,
-          showSizeChanger: true,
-          showQuickJumper: true,
-          showTotal: (total, range) =>
-            `${range[0]}-${range[1]} of ${total} quotations`,
-        }}
-        onChange={handleTableChange}
-        rowKey="_id"
-        scroll={{ x: 1200 }}
-      />
+      <div className="hidden md:block">
+        <Table
+          columns={columns}
+          dataSource={quotations}
+          loading={loading}
+          pagination={{
+            ...pagination,
+            showSizeChanger: true,
+            showQuickJumper: true,
+            showTotal: (total, range) =>
+              `${range[0]}-${range[1]} of ${total} quotations`,
+          }}
+          onChange={handleTableChange}
+          rowKey="_id"
+          scroll={{ x: 1200 }}
+        />
+      </div>
+
+      <div className="md:hidden space-y-3">
+        {loading ? (
+          Array.from({ length: 4 }).map((_, i) => (
+            <Card key={i} className="dark:bg-slate-800">
+              <Skeleton active paragraph={{ rows: 2 }} />
+            </Card>
+          ))
+        ) : (
+          quotations.map((q) => (
+            <div key={q._id} className="bg-white dark:bg-slate-800 rounded-lg shadow p-4">
+              <div className="flex justify-between items-center">
+                <div>
+                  <div className="text-sm text-gray-500 dark:text-gray-400">#{q.quotationNumber}</div>
+                  <div className="text-base font-medium text-gray-900 dark:text-gray-100">{q.customerName}</div>
+                </div>
+                <Tag color={getStatusColor(q.status)}>{(q.status || '').toUpperCase()}</Tag>
+              </div>
+              <div className="mt-2 flex justify-between text-sm text-gray-600 dark:text-gray-300">
+                <span>{q.type?.toUpperCase()}</span>
+                <span>{q.totalAmount?.toLocaleString()} LKR</span>
+              </div>
+              <div className="mt-3 flex justify-end gap-2">
+                <Button size="small" onClick={() => navigate(`/quotations/${q._id}`)}>View</Button>
+                <Button size="small" onClick={() => navigate(`/quotations/${q._id}/edit`)}>Edit</Button>
+                <Button size="small" onClick={() => handleDownloadPDF(q._id, q.quotationNumber)}>PDF</Button>
+                {q.type === 'quotation' && q.status !== 'converted' && (
+                  <Button size="small" onClick={() => handleConvertToInvoice(q._id)}>Convert</Button>
+                )}
+              </div>
+            </div>
+          ))
+        )}
+      </div>
     </div>
   );
 };

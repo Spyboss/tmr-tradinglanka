@@ -254,14 +254,14 @@ setBikeModels(response.data)
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-6 sm:py-8">
       <div className="mb-6">
         <h1 className="text-2xl font-bold">Create New Bill</h1>
       </div>
 
-      <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-md p-6">
+      <form onSubmit={handleSubmit} className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-4 sm:p-6">
         <div className="mb-6">
-          <label className="block text-gray-700 font-medium mb-2">Bill Type</label>
+          <label className="label">Bill Type</label>
           <div className="flex space-x-4">
             <label className="inline-flex items-center">
               <input
@@ -299,39 +299,38 @@ setBikeModels(response.data)
           </div>
         </div>
 
-        {/* Customer Information Section */}
         <div className="mb-6">
           <h2 className="text-lg font-semibold mb-4 pb-2 border-b">Customer Information</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
             <div>
-              <label className="block text-gray-700 font-medium mb-2">Name</label>
+              <label className="label">Name</label>
               <input
                 type="text"
                 name="customer_name"
                 value={formData.customer_name}
                 onChange={handleInputChange}
-                className="form-input w-full rounded-md border-gray-300"
+                className="input w-full"
                 required
               />
             </div>
             <div>
-              <label className="block text-gray-700 font-medium mb-2">NIC</label>
+              <label className="label">NIC</label>
               <input
                 type="text"
                 name="customer_nic"
                 value={formData.customer_nic}
                 onChange={handleInputChange}
-                className="form-input w-full rounded-md border-gray-300"
+                className="input w-full"
                 required
               />
             </div>
             <div className="md:col-span-2">
-              <label className="block text-gray-700 font-medium mb-2">Address</label>
+              <label className="label">Address</label>
               <textarea
                 name="customer_address"
                 value={formData.customer_address}
                 onChange={handleInputChange}
-                className="form-textarea w-full rounded-md border-gray-300"
+                className="input w-full"
                 rows="2"
                 required
               />
@@ -339,17 +338,16 @@ setBikeModels(response.data)
           </div>
         </div>
 
-        {/* Vehicle Information Section */}
         <div className="mb-6">
           <h2 className="text-lg font-semibold mb-4 pb-2 border-b">Vehicle Information</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
             <div>
-              <label className="block text-gray-700 font-medium mb-2">Bike Model</label>
+              <label className="label">Bike Model</label>
               <select
                 name="model_name"
                 value={formData.model_name}
                 onChange={handleInputChange}
-                className="form-select w-full rounded-md border-gray-300"
+                className="input w-full"
                 required
               >
                 <option value="">Select Bike Model</option>
@@ -361,48 +359,47 @@ setBikeModels(response.data)
               </select>
             </div>
             <div>
-              <label className="block text-gray-700 font-medium mb-2">Price</label>
+              <label className="label">Price</label>
               <input
                 type="number"
                 name="bike_price"
                 value={formData.bike_price}
                 onChange={handleInputChange}
-                className="form-input w-full rounded-md border-gray-300 bg-gray-100"
+                className="input w-full bg-gray-100 dark:bg-gray-700"
                 readOnly
               />
             </div>
             <div>
-              <label className="block text-gray-700 font-medium mb-2">Motor Number</label>
+              <label className="label">Motor Number</label>
               <input
                 type="text"
                 name="motor_number"
                 value={formData.motor_number}
                 onChange={handleInputChange}
-                className="form-input w-full rounded-md border-gray-300"
+                className="input w-full"
                 required
               />
             </div>
             <div>
-              <label className="block text-gray-700 font-medium mb-2">Chassis Number</label>
+              <label className="label">Chassis Number</label>
               <input
                 type="text"
                 name="chassis_number"
                 value={formData.chassis_number}
                 onChange={handleInputChange}
-                className="form-input w-full rounded-md border-gray-300"
+                className="input w-full"
                 required
               />
             </div>
           </div>
         </div>
 
-        {/* Payment Information Section */}
         <div className="mb-6">
           <h2 className="text-lg font-semibold mb-4 pb-2 border-b">Payment Information</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
             {(formData.bill_type === 'leasing' || formData.bill_type === 'advancement') && (
               <div>
-                <label className="block text-gray-700 font-medium mb-2">
+                <label className="label">
                   {formData.bill_type === 'advancement' ? 'Advancement Amount' : 'Down Payment'}
                 </label>
                 <input
@@ -410,7 +407,7 @@ setBikeModels(response.data)
                   name="down_payment"
                   value={formData.down_payment}
                   onChange={handleInputChange}
-                  className="form-input w-full rounded-md border-gray-300"
+                  className="input w-full"
                   required={formData.bill_type === 'leasing' || formData.bill_type === 'advancement'}
                 />
               </div>
@@ -419,23 +416,23 @@ setBikeModels(response.data)
             {formData.bill_type === 'advancement' && (
               <>
                 <div>
-                  <label className="block text-gray-700 font-medium mb-2">Balance Amount</label>
+                  <label className="label">Balance Amount</label>
                   <input
                     type="number"
                     name="balance_amount"
                     value={formData.balance_amount}
-                    className="form-input w-full rounded-md border-gray-300 bg-gray-100"
+                    className="input w-full bg-gray-100 dark:bg-gray-700"
                     readOnly
                   />
                 </div>
                 <div>
-                  <label className="block text-gray-700 font-medium mb-2">Estimated Delivery Date</label>
+                  <label className="label">Estimated Delivery Date</label>
                   <input
                     type="date"
                     name="estimated_delivery_date"
                     value={formData.estimated_delivery_date}
                     onChange={handleInputChange}
-                    className="form-input w-full rounded-md border-gray-300"
+                    className="input w-full"
                     required={formData.bill_type === 'advancement'}
                   />
                 </div>
@@ -443,13 +440,13 @@ setBikeModels(response.data)
             )}
 
             <div>
-              <label className="block text-gray-700 font-medium mb-2">Total Amount</label>
+              <label className="label">Total Amount</label>
               <div>
                 <input
                   type="number"
                   name="total_amount"
                   value={formData.total_amount}
-                  className="form-input w-full rounded-md border-gray-300 bg-gray-100"
+                  className="input w-full bg-gray-100 dark:bg-gray-700"
                   readOnly
                 />
                 {/* Show RMV charges for non-e-bicycles and non-advancement bills */}
@@ -475,18 +472,18 @@ setBikeModels(response.data)
           </div>
         </div>
 
-        <div className="flex justify-end space-x-4">
+        <div className="flex flex-col sm:flex-row justify-end gap-3 sm:gap-4">
           <button
             type="button"
             onClick={handlePreviewPDF}
-            className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            className="btn"
           >
             Preview Bill
           </button>
           <button
             type="submit"
             disabled={submitting || loading}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+            className="btn btn-primary disabled:opacity-50"
           >
             {submitting ? 'Creating...' : 'Create Bill'}
           </button>
