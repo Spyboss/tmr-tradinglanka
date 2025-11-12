@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext'; // Import useTheme
@@ -10,10 +10,16 @@ export default function Navbar() {
   const { user, isAuthenticated, logout, loading } = useAuth();
   const { isDarkMode, toggleTheme } = useTheme(); // Use theme context
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [dealerName, setDealerName] = useState('TMR Trading Lanka (Pvt) Ltd');
+  const menuButtonRef = useRef(null);
 
   const toggleUserMenu = () => {
     setUserMenuOpen(!userMenuOpen);
+  };
+
+  const togglePrimaryMenu = () => {
+    setMenuOpen((prev) => !prev);
   };
 
   useEffect(() => {
@@ -36,6 +42,19 @@ export default function Navbar() {
     })();
   }, [isAuthenticated]);
 
+  useEffect(() => {
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setMenuOpen(false);
+        setUserMenuOpen(false);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, []);
+
   const handleLogout = async (e) => {
     e.preventDefault();
     await logout();
@@ -51,8 +70,21 @@ export default function Navbar() {
       <div className="container mx-auto px-4">
         <div className="flex justify-between h-16">
           <div className="flex">
-            <div className="flex-shrink-0 flex items-center">
-                <Link to="/" className="text-xl font-bold text-blue-600 dark:text-blue-400">
+            <div className="flex-shrink-0 flex items-center min-w-0">
+                <button
+                  ref={menuButtonRef}
+                  type="button"
+                  onClick={togglePrimaryMenu}
+                  aria-controls="primary-navigation"
+                  aria-expanded={menuOpen}
+                  aria-label={menuOpen ? 'Close navigation' : 'Open navigation'}
+                  className="sm:hidden mr-2 p-2 rounded-md text-gray-700 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-300 dark:hover:text-white dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-gray-800"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
+                  </svg>
+                </button>
+                <Link to="/" className="text-xl font-bold text-blue-600 dark:text-blue-400 truncate max-w-[60vw] sm:max-w-none">
                   {dealerName}
                 </Link>
             </div>
@@ -262,13 +294,13 @@ export default function Navbar() {
             )}
           </div>
 
-          {/* Mobile menu button */}
-          <div className="sm:hidden flex items-center">
-             {/* Mobile Theme Toggle Button */}
-             <button
-              onClick={toggleTheme}
-              className="mr-2 p-2 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700 focus:outline-none"
-              aria-label="Toggle theme"
+          {/* Mobile controls */}
+          <div className="sm:hidden flex items-center flex-shrink-0">
+            {/* Mobile Theme Toggle Button */}
+            <button
+             onClick={toggleTheme}
+             className="mr-2 p-2 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700 focus:outline-none"
+             aria-label="Toggle theme"
             >
               {isDarkMode ? (
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -285,6 +317,9 @@ export default function Navbar() {
                 type="button"
                 className="bg-white dark:bg-gray-800 rounded-full flex text-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-gray-800"
                 onClick={toggleUserMenu}
+                aria-haspopup="menu"
+                aria-expanded={userMenuOpen}
+                aria-label={userMenuOpen ? 'Close user menu' : 'Open user menu'}
               >
                 <span className="sr-only">Open menu</span>
                 <div className="h-8 w-8 rounded-full bg-blue-200 dark:bg-blue-700 flex items-center justify-center">
@@ -418,6 +453,60 @@ export default function Navbar() {
             >
               Sign out
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Mobile primary navigation */}
+      {menuOpen && (
+        <div className="sm:hidden border-t border-gray-200 dark:border-gray-700 pt-2 pb-3 bg-white dark:bg-gray-800" id="primary-navigation">
+          <div className="px-4 space-y-1">
+            <Link
+              to="/"
+              className="block px-4 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-300 dark:hover:text-white dark:hover:bg-gray-700 focus:outline-none"
+              onClick={() => setMenuOpen(false)}
+            >
+              Dashboard
+            </Link>
+            {isAuthenticated && (
+              <>
+                <Link
+                  to="/bills"
+                  className="block px-4 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-300 dark:hover:text-white dark:hover:bg-gray-700 focus:outline-none"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  Bills
+                </Link>
+                <Link
+                  to="/bills/new"
+                  className="block px-4 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-300 dark:hover:text-white dark:hover:bg-gray-700 focus:outline-none"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  Create Bill
+                </Link>
+                <Link
+                  to="/inventory"
+                  className="block px-4 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-300 dark:hover:text-white dark:hover:bg-gray-700 focus:outline-none"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  Inventory
+                </Link>
+                <Link
+                  to="/quotations"
+                  className="block px-4 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-300 dark:hover:text-white dark:hover:bg-gray-700 focus:outline-none"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  Quotations
+                </Link>
+                <Link
+                  to="/admin/bike-models"
+                  className="block px-4 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-300 dark:hover:text-white dark:hover:bg-gray-700 focus:outline-none"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  Manage Models
+                </Link>
+              </>
+            )}
           </div>
         </div>
       )}
