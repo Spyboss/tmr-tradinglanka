@@ -193,6 +193,23 @@ const BillGenerator = () => {
         isAdvancePayment: isAdvancePayment,
       };
 
+      try {
+        const branding = await apiClient.get('/api/branding');
+        const thankYou = 'Thank you for your business!';
+        const footerCombined = branding?.footerNote
+          ? `${thankYou}\n${branding.footerNote}`
+          : thankYou;
+        billData.branding = {
+          dealerName: branding?.dealerName,
+          logoUrl: branding?.logoUrl,
+          footerNote: footerCombined,
+          brandPartner: branding?.brandPartner,
+          addressLine1: branding?.addressLine1,
+          addressLine2: branding?.addressLine2,
+          primaryColor: branding?.primaryColor,
+        };
+      } catch (_) {}
+
       // Set vehicle type
       if (selectedModel.is_tricycle) {
         billData.vehicleType = 'E-TRICYCLE';
