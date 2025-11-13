@@ -48,6 +48,8 @@ export const generatePDF = async (bill: any): Promise<Buffer> => {
 /**
  * Generate the header section of the bill
  */
+const COMPANY_BRAND = process.env.COMPANY_BRAND || 'TMR TRADING LANKA (Pvt) Ltd';
+
 const generateHeader = (doc: PDFKit.PDFDocument, branding: any, logoBuffer?: Buffer): void => {
   try {
     // Include remote logo if available
@@ -58,17 +60,25 @@ const generateHeader = (doc: PDFKit.PDFDocument, branding: any, logoBuffer?: Buf
         // Continue without logo
       }
     }
-    
+    // Line 1: Company brand (fixed)
     doc
       .fillColor('#444444')
       .fontSize(22)
       .font('Helvetica-Bold')
-      .text(branding?.dealerName || 'TMR Trading Lanka (Pvt) Ltd', 130, 55, { width: 400 })
+      .text(COMPANY_BRAND, 130, 55, { width: 400 })
+      // Line 2: Dealer name
       .font('Helvetica')
       .fontSize(12)
-      .text(branding?.brandPartner || branding?.addressLine1 || '', 130, 85, { width: 400 })
+      .text(branding?.dealerName || '', 130, 85, { width: 400 })
+      // Line 3: Address line 1
       .fontSize(11)
-      .text(branding?.addressLine2 || '', 130, 105, { width: 400 })
+      .text(branding?.addressLine1 || '', 130, 105, { width: 400 })
+      // Optional: Brand partner
+      .fontSize(10)
+      .text(branding?.brandPartner || '', 130, 120, { width: 400 })
+      // Optional: Address line 2
+      .fontSize(10)
+      .text(branding?.addressLine2 || '', 130, 135, { width: 400 })
       .moveDown();
   } catch (error) {
     // If there's an error, fall back to text-only header
@@ -77,12 +87,16 @@ const generateHeader = (doc: PDFKit.PDFDocument, branding: any, logoBuffer?: Buf
       .fillColor('#444444')
       .fontSize(22)
       .font('Helvetica-Bold')
-      .text(branding?.dealerName || 'TMR Trading Lanka (Pvt) Ltd', 50, 45, { align: 'center' })
+      .text(COMPANY_BRAND, 50, 45, { align: 'center' })
       .font('Helvetica')
       .fontSize(12)
-      .text(branding?.brandPartner || branding?.addressLine1 || '', 50, 75, { align: 'center' })
+      .text(branding?.dealerName || '', 50, 75, { align: 'center' })
       .fontSize(11)
-      .text(branding?.addressLine2 || '', 50, 95, { align: 'center' })
+      .text(branding?.addressLine1 || '', 50, 95, { align: 'center' })
+      .fontSize(10)
+      .text(branding?.brandPartner || '', 50, 110, { align: 'center' })
+      .fontSize(10)
+      .text(branding?.addressLine2 || '', 50, 125, { align: 'center' })
       .moveDown();
   }
 };
