@@ -15,10 +15,12 @@ export default function Navbar() {
   const menuButtonRef = useRef(null);
 
   const toggleUserMenu = () => {
+    setMenuOpen(false);
     setUserMenuOpen(!userMenuOpen);
   };
 
   const togglePrimaryMenu = () => {
+    setUserMenuOpen(false);
     setMenuOpen((prev) => !prev);
   };
 
@@ -359,7 +361,7 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* Mobile user menu */}
+      {/* Mobile user menu - profile only */}
       {userMenuOpen && (
         <div className="sm:hidden border-t border-gray-200 dark:border-gray-700 pt-4 pb-3 px-4 bg-white dark:bg-gray-800">
           <div className="flex items-center px-4">
@@ -376,54 +378,9 @@ export default function Navbar() {
             </div>
           </div>
           <div className="px-4 py-2">
-            {/* Mobile verification badge */}
             <VerificationBadge className="cursor-pointer" hideWhenDisabled={false} />
           </div>
           <div className="mt-3 space-y-1">
-            <Link
-              to="/"
-              className="block px-4 py-2 text-base font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100 dark:text-gray-300 dark:hover:text-white dark:hover:bg-gray-700"
-              onClick={() => setUserMenuOpen(false)}
-            >
-              Dashboard
-            </Link>
-            <Link
-              to="/bills"
-              className="block px-4 py-2 text-base font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100 dark:text-gray-300 dark:hover:text-white dark:hover:bg-gray-700"
-              onClick={() => setUserMenuOpen(false)}
-            >
-              Bills
-            </Link>
-            <Link
-              to="/bills/new"
-              className="block px-4 py-2 text-base font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100 dark:text-gray-300 dark:hover:text-white dark:hover:bg-gray-700"
-              onClick={() => setUserMenuOpen(false)}
-            >
-              Create Bill
-            </Link>
-            <Link
-              to="/inventory"
-              className="block px-4 py-2 text-base font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100 dark:text-gray-300 dark:hover:text-white dark:hover:bg-gray-700"
-              onClick={() => setUserMenuOpen(false)}
-            >
-              Inventory
-            </Link>
-            <Link
-              to="/quotations"
-              className="block px-4 py-2 text-base font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100 dark:text-gray-300 dark:hover:text-white dark:hover:bg-gray-700"
-              onClick={() => setUserMenuOpen(false)}
-            >
-              Quotations
-            </Link>
-            {/* Mobile Menu Link for Bike Models Management */}
-            <Link
-              to="/admin/bike-models"
-              className="block px-4 py-2 text-base font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100 dark:text-gray-300 dark:hover:text-white dark:hover:bg-gray-700"
-              onClick={() => setUserMenuOpen(false)}
-            >
-              Manage Models
-            </Link>
-            <div className="border-t border-gray-200 dark:border-gray-700 my-2"></div>
             <Link
               to="/profile"
               className="block px-4 py-2 text-base font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100 dark:text-gray-300 dark:hover:text-white dark:hover:bg-gray-700"
@@ -438,8 +395,6 @@ export default function Navbar() {
             >
               Settings
             </Link>
-
-            {/* Mobile Verify Email entry */}
             <Link
               to="/verify"
               className="block px-4 py-2 text-base font-medium text-yellow-800 hover:text-yellow-900 hover:bg-yellow-50 dark:text-yellow-300 dark:hover:text-yellow-200 dark:hover:bg-yellow-700"
