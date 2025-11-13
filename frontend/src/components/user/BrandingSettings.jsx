@@ -71,8 +71,35 @@ export default function BrandingSettings() {
 
   const generatePreview = async () => {
     try {
-      // Use /preview/pdf to engage ApiClient's auth-aware PDF handler
-      const blob = await apiClient.get('/api/bills/preview/pdf');
+      const branding = await apiClient.get('/api/branding');
+      const thankYou = 'Thank you for your business!';
+      const footerCombined = branding?.footerNote
+        ? `${thankYou}\n${branding.footerNote}`
+        : thankYou;
+
+      const payload = {
+        id: 'PREVIEW',
+        bill_type: 'CASH',
+        bill_date: new Date().toISOString(),
+        customer_name: 'Preview Customer',
+        customer_nic: 'N/A',
+        customer_address: branding?.addressLine1 || '',
+        model_name: 'Preview Model',
+        bike_price: 0,
+        total_amount: 0,
+        rmv_charge: 0,
+        branding: {
+          dealerName: branding?.dealerName,
+          logoUrl: branding?.logoUrl,
+          footerNote: footerCombined,
+          brandPartner: branding?.brandPartner,
+          addressLine1: branding?.addressLine1,
+          addressLine2: branding?.addressLine2,
+          primaryColor: branding?.primaryColor,
+        },
+      };
+
+      const blob = await apiClient.get(`/api/bills/preview/pdf?formData=${encodeURIComponent(JSON.stringify(payload))}`);
       const url = URL.createObjectURL(blob);
       setPreviewUrl(url);
       message.success('Preview generated');

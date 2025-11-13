@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import toast from 'react-hot-toast'
-import api from '../config/api'
+import apiClient from '../config/apiClient'
 
 export default function BillForm() {
   const navigate = useNavigate()
@@ -182,13 +182,25 @@ setBikeModels(response.data)
         balance_amount: formData.balance_amount || 0
       };
 
-      // Generate preview PDF
-      const response = await api.get(`/bills/preview/pdf?formData=${encodeURIComponent(JSON.stringify(previewData))}`, {
-        responseType: 'blob'
-      });
+      try {
+        const branding = await apiClient.get('/api/branding');
+        const thankYou = 'Thank you for your business!';
+        const footerCombined = branding?.footerNote
+          ? `${thankYou}\n${branding.footerNote}`
+          : thankYou;
+        previewData.branding = {
+          dealerName: branding?.dealerName,
+          logoUrl: branding?.logoUrl,
+          footerNote: footerCombined,
+          brandPartner: branding?.brandPartner,
+          addressLine1: branding?.addressLine1,
+          addressLine2: branding?.addressLine2,
+          primaryColor: branding?.primaryColor,
+        };
+      } catch (_) {}
 
-      // Create and open preview in new window
-      const blob = new Blob([response.data], { type: 'application/pdf' });
+      // Generate preview PDF
+      const blob = await apiClient.get(`/api/bills/preview/pdf?formData=${encodeURIComponent(JSON.stringify(previewData))}`);
       const url = window.URL.createObjectURL(blob);
       window.open(url, '_blank');
     } catch (error) {
