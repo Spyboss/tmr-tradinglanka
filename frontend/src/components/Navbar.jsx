@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext'; // Import useTheme
 import VerificationBadge from './VerificationBadge';
+import { getVerificationStatus } from '../services/verification';
 import apiClient from '../config/apiClient';
 
 export default function Navbar() {
@@ -13,6 +14,7 @@ export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [dealerName, setDealerName] = useState('TMR Trading Lanka (Pvt) Ltd');
   const menuButtonRef = useRef(null);
+  const [verification, setVerification] = useState(null);
 
   const toggleUserMenu = () => {
     setMenuOpen(false);
@@ -38,6 +40,8 @@ export default function Navbar() {
         if (branding && branding.dealerName) {
           setDealerName(branding.dealerName);
         }
+        const v = await getVerificationStatus();
+        setVerification(v);
       } catch (_) {
         // Ignore errors; keep default dealer name
       }
@@ -184,10 +188,7 @@ export default function Navbar() {
               )}
             </button>
 
-            {/* Verification Badge shown when logged in */}
-            {isAuthenticated && (
-              <VerificationBadge className="mr-4 cursor-pointer" hideWhenDisabled={false} />
-            )}
+            {/* Removed top-level verification badge for subtle UX */}
 
             {isAuthenticated ? (
               <div className="ml-3 relative">
@@ -230,10 +231,14 @@ export default function Navbar() {
                       Signed in as <span className="font-semibold">{user?.email}</span>
                     </div>
 
-                    {/* Inline verification status badge */}
-                    <div className="px-4 py-2">
-                      <VerificationBadge className="cursor-pointer" hideWhenDisabled={false} />
-                    </div>
+                    {verification?.verified && (
+                      <div className="px-4 py-2 text-sm text-gray-700 dark:text-gray-200">
+                        <span className="inline-flex items-center gap-1 text-emerald-500">
+                          <svg className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-7.25 7.25a1 1 0 01-1.414 0l-3.5-3.5a1 1 0 011.414-1.414l2.793 2.793 6.543-6.543a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
+                          Verified
+                        </span>
+                      </div>
+                    )}
 
                     <Link
                       to="/profile"
@@ -251,14 +256,15 @@ export default function Navbar() {
                       Settings
                     </Link>
 
-                    {/* Prominent Verify Email link */}
-                    <Link
-                      to="/verify"
-                      className="block px-4 py-2 text-sm text-yellow-800 hover:bg-yellow-50 dark:text-yellow-300 dark:hover:bg-yellow-700"
-                      onClick={() => setUserMenuOpen(false)}
-                    >
-                      Verify Email
-                    </Link>
+                    {verification?.enabled && !verification?.verified && (
+                      <Link
+                        to="/verify"
+                        className="block px-4 py-2 text-sm text-yellow-800 hover:bg-yellow-50 dark:text-yellow-300 dark:hover:bg-yellow-700"
+                        onClick={() => setUserMenuOpen(false)}
+                      >
+                        Verify Email
+                      </Link>
+                    )}
 
                     <button
                       className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-600"
@@ -377,9 +383,14 @@ export default function Navbar() {
               <div className="text-sm font-medium text-gray-500 dark:text-gray-400">{user?.role}</div>
             </div>
           </div>
-          <div className="px-4 py-2">
-            <VerificationBadge className="cursor-pointer" hideWhenDisabled={false} />
-          </div>
+          {verification?.verified && (
+            <div className="px-4 py-2 text-sm text-gray-700 dark:text-gray-200">
+              <span className="inline-flex items-center gap-1 text-emerald-500">
+                <svg className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-7.25 7.25a1 1 0 01-1.414 0l-3.5-3.5a1 1 0 011.414-1.414l2.793 2.793 6.543-6.543a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
+                Verified
+              </span>
+            </div>
+          )}
           <div className="mt-3 space-y-1">
             <Link
               to="/profile"
@@ -395,13 +406,15 @@ export default function Navbar() {
             >
               Settings
             </Link>
-            <Link
-              to="/verify"
-              className="block px-4 py-2 text-base font-medium text-yellow-800 hover:text-yellow-900 hover:bg-yellow-50 dark:text-yellow-300 dark:hover:text-yellow-200 dark:hover:bg-yellow-700"
-              onClick={() => setUserMenuOpen(false)}
-            >
-              Verify Email
-            </Link>
+            {verification?.enabled && !verification?.verified && (
+              <Link
+                to="/verify"
+                className="block px-4 py-2 text-base font-medium text-yellow-800 hover:text-yellow-900 hover:bg-yellow-50 dark:text-yellow-300 dark:hover:text-yellow-200 dark:hover:bg-yellow-700"
+                onClick={() => setUserMenuOpen(false)}
+              >
+                Verify Email
+              </Link>
+            )}
             <button
               className="w-full text-left block px-4 py-2 text-base font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100 dark:text-gray-300 dark:hover:text-white dark:hover:bg-gray-700"
               onClick={handleLogout}
