@@ -2,6 +2,7 @@ import PDFDocument from 'pdfkit';
 import { Readable } from 'stream';
 import Branding from '../models/Branding.js';
 import https from 'https';
+import http from 'http';
 
 /**
  * Generate a PDF for a bill
@@ -439,23 +440,24 @@ const generateInvoiceTable = (doc: PDFKit.PDFDocument, bill: any): void => {
  * Generate footer section
  */
 const generateFooter = (doc: PDFKit.PDFDocument, branding?: any): void => {
+  // Always show thank you line
   doc
     .fontSize(10)
-    .text(
-      branding?.footerNote || 'Thank you for your business!',
-      50,
-      700,
-      { align: 'center', width: 500 }
-    );
-    
-  doc
-    .fontSize(9)
-    .text(
-      branding?.addressLine2 || '',
-      50,
-      725,
-      { align: 'center', width: 500 }
-    );
+    .text('Thank you for your business!', 50, 700, { align: 'center', width: 500 });
+
+  // If a footer note is provided, render it beneath the thank you line
+  if (branding?.footerNote) {
+    doc
+      .fontSize(9)
+      .text(branding.footerNote, 50, 715, { align: 'center', width: 500 });
+  }
+
+  // Address line (optional) below
+  if (branding?.addressLine2) {
+    doc
+      .fontSize(9)
+      .text(branding.addressLine2, 50, 730, { align: 'center', width: 500 });
+  }
 };
 
 // Load branding document with safe defaults
@@ -492,7 +494,8 @@ const loadLogoBuffer = async (url?: string): Promise<Buffer | undefined> => {
 
   return new Promise((resolve) => {
     try {
-      const req = https.get(url, (res) => {
+      const client = url.startsWith('https://') ? https : http;
+      const req = client.get(url, (res) => {
         // Only accept OK responses and image content-types
         const statusOk = res.statusCode && res.statusCode >= 200 && res.statusCode < 300;
         const ct = (res.headers['content-type'] || '').toLowerCase();
