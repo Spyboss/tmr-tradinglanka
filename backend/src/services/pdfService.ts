@@ -216,7 +216,7 @@ const generateCustomerInformation = (doc: PDFKit.PDFDocument, bill: any): void =
 const generateInvoiceTable = (doc: PDFKit.PDFDocument, bill: any): void => {
   // Get the Y position after customer and vehicle details
   let y = (doc as any)._lastDetailY || 320;
-  y += 30;
+  y += 18;
   
   doc
     .fontSize(14)
