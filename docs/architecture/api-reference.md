@@ -50,6 +50,9 @@ All endpoints are prefixed with `/api`. JSON responses follow a consistent shape
 | GET | `/api/bills/preview` | Authenticated | Download sample PDF using mock data. |
 | POST | `/api/bills/preview` | Authenticated | Render PDF using request body bill payload. |
 
+> Contract note
+> Bill JSON uses camelCase keys (e.g., `bikeModel`, `bikePrice`, `billType`, `totalAmount`). Legacy snake_case keys are not accepted for updates.
+
 **Bill Payload Snippet**
 
 ```json

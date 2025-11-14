@@ -6,6 +6,9 @@ All notable changes to this project are documented in this file. The format foll
 ### Added
 - Comprehensive documentation overhaul covering business context, architecture, setup, operations, and roadmap.
 - Sample `.env.example` files for backend and frontend workspaces.
+### Changed
+- Standardized bill UI payloads to camelCase to match backend schema; removed snake_case fallbacks in frontend forms, generators, lists, and views.
+- Added backend contract test for `PUT /api/bills/:id` to enforce camelCase update payloads.
 
 ## [2.0.0] - 2024-11-01
 ### Added
