@@ -30,9 +30,9 @@ const BillEdit = () => {
   // Set selected model when both bill and bike models are loaded
   useEffect(() => {
     if (bill && bikeModels.length > 0) {
-      const modelName = bill.model_name || bill.bikeModel;
+      const modelName = bill.bikeModel;
       if (modelName) {
-        const model = bikeModels.find(m => m.model_name === modelName);
+        const model = bikeModels.find(m => m.name === modelName);
         console.log('Found matching model for bill:', model);
         setSelectedModel(model);
       }
@@ -54,32 +54,27 @@ const BillEdit = () => {
       console.log('Bill data received:', data);
       setBill(data);
 
-      // Set bill type from either field name format
-      const billTypeValue = (data.bill_type || data.billType || 'cash').toLowerCase();
-      setBillType(billTypeValue);
-      setIsAdvancePayment(
-        billTypeValue === 'advance' ||
-        billTypeValue === 'advancement'
-      );
+      // Set bill type and advance flag from API (camelCase)
+      const apiBillType = (data.billType || 'cash').toLowerCase();
+      setBillType(data.isAdvancePayment ? 'advance' : apiBillType);
+      setIsAdvancePayment(Boolean(data.isAdvancePayment));
 
       // Format dates for the form and map field names correctly
       const formValues = {
-        // Map API field names to form field names
-        model_name: data.model_name || data.bikeModel,
-        bill_type: billTypeValue,
-        customer_name: data.customer_name || data.customerName,
-        customer_nic: data.customer_nic || data.customerNIC,
-        customer_address: data.customer_address || data.customerAddress,
-        motor_number: data.motor_number || data.motorNumber,
-        chassis_number: data.chassis_number || data.chassisNumber,
-        bike_price: data.bike_price || data.bikePrice,
-        down_payment: data.down_payment || data.downPayment,
-        total_amount: data.total_amount || data.totalAmount,
-        balance_amount: data.balance_amount || data.balanceAmount,
+        bikeModel: data.bikeModel,
+        billType: data.isAdvancePayment ? 'advance' : apiBillType,
+        customerName: data.customerName,
+        customerNIC: data.customerNIC,
+        customerAddress: data.customerAddress,
+        motorNumber: data.motorNumber,
+        chassisNumber: data.chassisNumber,
+        bikePrice: data.bikePrice,
+        downPayment: data.downPayment,
+        totalAmount: data.totalAmount,
+        balanceAmount: data.balanceAmount,
 
-        // Format dates properly
-        bill_date: data.bill_date || data.billDate ? moment(data.bill_date || data.billDate) : null,
-        estimated_delivery_date: data.estimated_delivery_date || data.estimatedDeliveryDate ? moment(data.estimated_delivery_date || data.estimatedDeliveryDate) : null,
+        billDate: data.billDate ? moment(data.billDate) : null,
+        estimatedDeliveryDate: data.estimatedDeliveryDate ? moment(data.estimatedDeliveryDate) : null,
       };
 
       console.log('Setting form values:', formValues);
@@ -112,7 +107,8 @@ const BillEdit = () => {
 
     if (model && model.price) {
       form.setFieldsValue({
-        bike_price: model.price
+        bikePrice: model.price,
+        bikeModel: model.name
       });
     }
   };
@@ -123,10 +119,10 @@ const BillEdit = () => {
       console.log('Submitting bill update with values:', values);
 
       // Get the selected model's price if bike_price is missing
-      const bikePrice = values.bike_price || (selectedModel ? selectedModel.price : 0);
+      const bikePrice = values.bikePrice || (selectedModel ? selectedModel.price : 0);
 
       // Is this an e-bicycle?
-      const modelString = String(values.model_name || '').trim();
+      const modelString = String(values.bikeModel || '').trim();
       const isEbicycle =
         selectedModel?.is_ebicycle ||
         modelString.toUpperCase().includes('COLA5') ||
@@ -135,35 +131,43 @@ const BillEdit = () => {
         modelString.toLowerCase().includes('x01');
 
       // Normalize bill type
-      const normalizedBillType = billType === 'advancement' ? 'advance' : billType;
+      const normalizedBillType = billType;
 
       // Prepare data for update
+      const submitBillType = normalizedBillType === 'advance' ? 'cash' : normalizedBillType;
+
       const updateData = {
-        ...values,
-        bike_price: bikePrice,
-        bill_type: normalizedBillType,
-        is_ebicycle: isEbicycle,
-        vehicle_type: isEbicycle ? 'E-Bicycle' : 'Bicycle',
-        bill_date: values.bill_date ? values.bill_date.toISOString() : new Date().toISOString(),
-        estimated_delivery_date: values.estimated_delivery_date ? values.estimated_delivery_date.toISOString() : null
+        bikeModel: values.bikeModel,
+        billType: submitBillType,
+        customerName: values.customerName,
+        customerNIC: values.customerNIC,
+        customerAddress: values.customerAddress,
+        motorNumber: values.motorNumber,
+        chassisNumber: values.chassisNumber,
+        bikePrice: bikePrice,
+        billDate: values.billDate ? values.billDate.toISOString() : new Date().toISOString(),
+        estimatedDeliveryDate: values.estimatedDeliveryDate ? values.estimatedDeliveryDate.toISOString() : null,
+        isEbicycle: isEbicycle,
+        isAdvancePayment: normalizedBillType === 'advance'
       };
 
       // Calculate total amount based on bill type and model
-      if (normalizedBillType === 'cash') {
-        updateData.total_amount = isEbicycle
+      if (submitBillType === 'cash') {
+        updateData.totalAmount = isEbicycle
           ? parseFloat(bikePrice)
           : parseFloat(bikePrice) + 13000;
-      } else if (normalizedBillType === 'leasing') {
-        // For leasing, ensure down_payment is properly set
-        const downPayment = parseFloat(values.down_payment || 0);
-        updateData.total_amount = downPayment;
-        updateData.down_payment = downPayment;
-      } else if (normalizedBillType === 'advance') {
-        // For advance payments
-        updateData.total_amount = parseFloat(bikePrice);
-        const downPayment = parseFloat(values.down_payment || 0);
-        updateData.down_payment = downPayment;
-        updateData.balance_amount = updateData.total_amount - downPayment;
+      } else if (submitBillType === 'leasing') {
+        const downPayment = parseFloat(values.downPayment || 0);
+        updateData.totalAmount = downPayment;
+        updateData.downPayment = downPayment;
+      }
+
+      if (normalizedBillType === 'advance') {
+        updateData.totalAmount = parseFloat(bikePrice);
+        const downPayment = parseFloat(values.downPayment || 0);
+        updateData.downPayment = downPayment;
+        updateData.advanceAmount = downPayment;
+        updateData.balanceAmount = updateData.totalAmount - downPayment;
       }
 
       console.log('Sending update data:', updateData);
@@ -215,7 +219,7 @@ const BillEdit = () => {
           onFinish={handleSubmit}
         >
           <Form.Item
-            name="model_name"
+            name="bikeModel"
             label="Bike Model"
             rules={[{ required: true, message: 'Please select a bike model' }]}
           >
@@ -230,14 +234,14 @@ const BillEdit = () => {
           </Form.Item>
 
           <Form.Item
-            name="bill_type"
+            name="billType"
             label="Bill Type"
           >
             <Select
               value={billType}
               onChange={(value) => {
                 setBillType(value);
-                form.setFieldsValue({ bill_type: value });
+                form.setFieldsValue({ billType: value });
               }}
               disabled={selectedModel?.is_ebicycle && billType === 'leasing'}
               options={[
@@ -250,7 +254,7 @@ const BillEdit = () => {
 
           {billType === 'leasing' && (
             <Form.Item
-              name="down_payment"
+              name="downPayment"
               label="Down Payment"
               rules={[{ required: true, message: 'Please enter the down payment amount' }]}
             >
@@ -270,7 +274,7 @@ const BillEdit = () => {
           {billType === 'advance' && (
             <>
               <Form.Item
-                name="down_payment"
+                name="downPayment"
                 label="Down Payment"
                 rules={[{ required: true, message: 'Please enter the down payment amount' }]}
               >
@@ -287,7 +291,7 @@ const BillEdit = () => {
               </Form.Item>
 
               <Form.Item
-                name="estimated_delivery_date"
+                name="estimatedDeliveryDate"
                 label="Estimated Delivery Date"
                 rules={[{ required: true, message: 'Please enter the estimated delivery date' }]}
               >
@@ -297,7 +301,7 @@ const BillEdit = () => {
           )}
 
           <Form.Item
-            name="customer_name"
+            name="customerName"
             label="Customer Name"
             rules={[{ required: true, message: 'Please enter customer name' }]}
           >
@@ -305,7 +309,7 @@ const BillEdit = () => {
           </Form.Item>
 
           <Form.Item
-            name="customer_nic"
+            name="customerNIC"
             label="Customer NIC"
             rules={[{ required: true, message: 'Please enter customer NIC' }]}
           >
@@ -313,7 +317,7 @@ const BillEdit = () => {
           </Form.Item>
 
           <Form.Item
-            name="customer_address"
+            name="customerAddress"
             label="Customer Address"
             rules={[{ required: true, message: 'Please enter customer address' }]}
           >
@@ -321,7 +325,7 @@ const BillEdit = () => {
           </Form.Item>
 
           <Form.Item
-            name="motor_number"
+            name="motorNumber"
             label="Motor Number"
             rules={[{ required: true, message: 'Please enter motor number' }]}
           >
@@ -329,7 +333,7 @@ const BillEdit = () => {
           </Form.Item>
 
           <Form.Item
-            name="chassis_number"
+            name="chassisNumber"
             label="Chassis Number"
             rules={[{ required: true, message: 'Please enter chassis number' }]}
           >
@@ -337,7 +341,7 @@ const BillEdit = () => {
           </Form.Item>
 
           <Form.Item
-            name="bill_date"
+            name="billDate"
             label="Bill Date"
           >
             <DatePicker className="w-full" />
