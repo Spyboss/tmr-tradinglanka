@@ -55,7 +55,7 @@ const generateHeader = (doc: PDFKit.PDFDocument, branding: any, logoBuffer?: Buf
     // Include remote logo if available
     if (logoBuffer) {
       try {
-        doc.image(logoBuffer, 50, 45, { width: 75 });
+        doc.image(logoBuffer, 50, 55, { width: 75 });
       } catch {
         // Continue without logo
       }
@@ -216,6 +216,7 @@ const generateCustomerInformation = (doc: PDFKit.PDFDocument, bill: any): void =
 const generateInvoiceTable = (doc: PDFKit.PDFDocument, bill: any): void => {
   // Get the Y position after customer and vehicle details
   let y = (doc as any)._lastDetailY || 320;
+  y += 30;
   
   doc
     .fontSize(14)
