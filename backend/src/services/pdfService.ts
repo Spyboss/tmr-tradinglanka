@@ -66,19 +66,19 @@ const generateHeader = (doc: PDFKit.PDFDocument, branding: any, logoBuffer?: Buf
       .fontSize(22)
       .font('Helvetica-Bold')
       .text(COMPANY_BRAND, 130, 55, { width: 400 })
-      // Line 2: Dealer name
+      // Line 2: Dealer name (tighter spacing by ~3px)
       .font('Helvetica')
       .fontSize(12)
-      .text(branding?.dealerName || '', 130, 85, { width: 400 })
-      // Line 3: Address line 1
+      .text(branding?.dealerName || '', 130, 82, { width: 400 })
+      // Line 3: Address line 1 (tighter by ~5px)
       .fontSize(11)
-      .text(branding?.addressLine1 || '', 130, 105, { width: 400 })
-      // Optional: Brand partner
+      .text(branding?.addressLine1 || '', 130, 100, { width: 400 })
+      // Optional: Brand partner (tighter by ~6px)
       .fontSize(10)
-      .text(branding?.brandPartner || '', 130, 120, { width: 400 })
-      // Optional: Address line 2
+      .text(branding?.brandPartner || '', 130, 114, { width: 400 })
+      // Optional: Address line 2 (tighter by ~7px)
       .fontSize(10)
-      .text(branding?.addressLine2 || '', 130, 135, { width: 400 })
+      .text(branding?.addressLine2 || '', 130, 128, { width: 400 })
       .moveDown();
   } catch (error) {
     // If there's an error, fall back to text-only header
@@ -258,7 +258,7 @@ const generateInvoiceTable = (doc: PDFKit.PDFDocument, bill: any): void => {
   // Header text
   doc
     .text('Description', 60, tableTop + 7)
-    .text('Amount (Rs.)', 60 + col1Width + 20, tableTop + 7);
+    .text('Amount (Rs.)', 50 + col1Width, tableTop + 7, { width: col2Width - 20, align: 'right' });
   
   doc.font('Helvetica');
   
@@ -275,7 +275,7 @@ const generateInvoiceTable = (doc: PDFKit.PDFDocument, bill: any): void => {
   // Row content
   doc
     .text('Bike Price', 60, y + 7)
-    .text(formatAmount(bill.bikePrice || bill.bike_price), 60 + col1Width + 20, y + 7);
+    .text(formatAmount(bill.bikePrice || bill.bike_price), 50 + col1Width, y + 7, { width: col2Width - 20, align: 'right' });
   
   y += itemRowHeight;
   
@@ -291,7 +291,7 @@ const generateInvoiceTable = (doc: PDFKit.PDFDocument, bill: any): void => {
     // Row content
     doc
       .text('RMV Charge', 60, y + 7)
-      .text(formatAmount(bill.rmvCharge || bill.rmv_charge || 13000), 60 + col1Width + 20, y + 7);
+      .text(formatAmount(bill.rmvCharge || bill.rmv_charge || 13000), 50 + col1Width, y + 7, { width: col2Width - 20, align: 'right' });
     
     y += itemRowHeight;
   } else if ((bill.billType === 'leasing' || bill.bill_type === 'leasing')) {
@@ -305,7 +305,7 @@ const generateInvoiceTable = (doc: PDFKit.PDFDocument, bill: any): void => {
     // Row content
     doc
       .text('RMV Charge - CPZ', 60, y + 7)
-      .text(formatAmount(bill.rmvCharge || bill.rmv_charge || 13500), 60 + col1Width + 20, y + 7);
+      .text(formatAmount(bill.rmvCharge || bill.rmv_charge || 13500), 50 + col1Width, y + 7, { width: col2Width - 20, align: 'right' });
     
     y += itemRowHeight;
   }
@@ -322,7 +322,7 @@ const generateInvoiceTable = (doc: PDFKit.PDFDocument, bill: any): void => {
     // Row content
     doc
       .text('Down Payment', 60, y + 7)
-      .text(formatAmount(bill.downPayment || bill.down_payment), 60 + col1Width + 20, y + 7);
+      .text(formatAmount(bill.downPayment || bill.down_payment), 50 + col1Width, y + 7, { width: col2Width - 20, align: 'right' });
     
     y += itemRowHeight;
   }
@@ -339,7 +339,7 @@ const generateInvoiceTable = (doc: PDFKit.PDFDocument, bill: any): void => {
     doc
       .font('Helvetica-Bold')
       .text('Total Amount', 60, y + 7)
-      .text(formatAmount(bill.totalAmount || bill.total_amount), 60 + col1Width + 20, y + 7);
+      .text(formatAmount(bill.totalAmount || bill.total_amount), 50 + col1Width, y + 7, { width: col2Width - 20, align: 'right' });
     
     doc.font('Helvetica');
     
@@ -354,7 +354,7 @@ const generateInvoiceTable = (doc: PDFKit.PDFDocument, bill: any): void => {
     
     doc
       .text('Advance Amount', 60, y + 7)
-      .text(formatAmount(bill.advanceAmount || bill.advance_amount), 60 + col1Width + 20, y + 7);
+      .text(formatAmount(bill.advanceAmount || bill.advance_amount), 50 + col1Width, y + 7, { width: col2Width - 20, align: 'right' });
     
     y += itemRowHeight;
     
@@ -378,7 +378,7 @@ const generateInvoiceTable = (doc: PDFKit.PDFDocument, bill: any): void => {
     doc
       .font('Helvetica-Bold') // Make the balance bold
       .text('Balance', 60, y + 7)
-      .text(formatAmount(bill.balanceAmount || bill.balance_amount || 0), 60 + col1Width + 20, y + 7)
+      .text(formatAmount(bill.balanceAmount || bill.balance_amount || 0), 50 + col1Width, y + 7, { width: col2Width - 20, align: 'right' })
       .font('Helvetica'); // Reset font
   } else {
     // Draw the total row with gray background
@@ -455,24 +455,22 @@ const generateInvoiceTable = (doc: PDFKit.PDFDocument, bill: any): void => {
  * Generate footer section
  */
 const generateFooter = (doc: PDFKit.PDFDocument, branding?: any): void => {
-  // Always show thank you line
+  // Thank you line
   doc
+    .fillColor('#000000')
     .fontSize(10)
     .text('Thank you for your business!', 50, 700, { align: 'center', width: 500 });
 
-  // If a footer note is provided, render it beneath the thank you line
-  if (branding?.footerNote) {
-    doc
-      .fontSize(9)
-      .text(branding.footerNote, 50, 715, { align: 'center', width: 500 });
-  }
+  // Contact/footer info in muted gray beneath
+  doc
+    .fillColor('#6b7280')
+    .fontSize(9)
+    .text(branding?.footerNote || '', 50, 716, { align: 'center', width: 500 });
 
-  // Address line (optional) below
-  if (branding?.addressLine2) {
-    doc
-      .fontSize(9)
-      .text(branding.addressLine2, 50, 730, { align: 'center', width: 500 });
-  }
+  doc
+    .fillColor('#6b7280')
+    .fontSize(9)
+    .text(branding?.addressLine2 || '', 50, 730, { align: 'center', width: 500 });
 };
 
 // Load branding document with safe defaults
