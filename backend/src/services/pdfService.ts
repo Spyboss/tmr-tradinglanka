@@ -55,7 +55,7 @@ const generateHeader = (doc: PDFKit.PDFDocument, branding: any, logoBuffer?: Buf
     // Include remote logo if available
     if (logoBuffer) {
       try {
-        doc.image(logoBuffer, 50, 45, { width: 85 });
+        doc.image(logoBuffer, 50, 45, { width: 75 });
       } catch {
         // Continue without logo
       }
@@ -108,28 +108,28 @@ const generateCustomerInformation = (doc: PDFKit.PDFDocument, bill: any): void =
   // Right side data (Bill No and Date) with additional spacing from header
   doc
     .fontSize(10)
-    .text('Bill No:', 400, 170)
+    .text('Bill No:', 400, 160)
     .font('Helvetica-Bold')
-    .text(bill.billNumber || bill.bill_number || '', 450, 170, { width: 150 })
+    .text(bill.billNumber || bill.bill_number || '', 450, 160, { width: 150 })
     .font('Helvetica');
     
   // Format the date properly
   const dateText = formatDate(bill.billDate || bill.bill_date);
-  doc.text('Date:', 400, 190)
+  doc.text('Date:', 400, 180)
      .font('Helvetica-Bold')
-     .text(dateText, 450, 190, { width: 150 })
+     .text(dateText, 450, 180, { width: 150 })
      .font('Helvetica');
   
   doc
     .fillColor('#444444')
     .fontSize(14)
-    .text('Customer Details:', 50, 180);
+    .text('Customer Details:', 50, 160);
   
   // For the customer name, explicitly handle long names by manually breaking them into multiple lines
   const nameText = bill.customerName || bill.customer_name || '';
   
   // Set starting Y position for customer details
-  let currentY = 200;
+  let currentY = 180;
   
   // Draw the "Name:" label
   doc
