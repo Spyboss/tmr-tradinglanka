@@ -398,11 +398,11 @@ const generateInvoiceTable = (doc: PDFKit.PDFDocument, bill: any): void => {
       .rect(50 + col1Width, y, col2Width, itemRowHeight)
       .stroke();
     
-    doc
-      .fontSize(10)
-      .font('Helvetica-Bold')
-      .text('Total Amount', 60, y + 7)
-      .text(formatAmount(bill.totalAmount || bill.total_amount), 60 + col1Width + 20, y + 7);
+  doc
+    .fontSize(10)
+    .font('Helvetica-Bold')
+    .text('Total Amount', 60, y + 7)
+    .text(formatAmount(bill.totalAmount || bill.total_amount), 50 + col1Width, y + 7, { width: col2Width - 20, align: 'right' });
     
     doc.font('Helvetica');
   }
