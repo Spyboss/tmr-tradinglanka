@@ -1,7 +1,18 @@
 # TMR Trading Lanka Business Management System
 
 End-to-end ERP for Sri Lankan motorcycle dealerships. The platform runs in production at TMR Trading Lanka, covering sales, inventory, quotations, and compliance workflows with a TypeScript stack.
+<div align="center">
 
+![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)
+![License](https://img.shields.io/badge/license-MIT-green.svg)
+![Node](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg)
+![React](https://img.shields.io/badge/react-18.2.0-blue.svg)
+
+**A comprehensive business management solution for motorcycle dealerships**
+
+[🚀 Live Demo](https://tmr-tradinglanka.pages.dev) • [📖 Documentation](./docs) • [🐛 Report Bug](https://github.com/your-repo/issues)
+
+</div>
 <p align="center">
   <a href="https://tmr-tradinglanka.pages.dev">🌐 Production SPA</a> ·
   <a href="./docs">📚 Documentation</a> ·
@@ -205,8 +216,8 @@ Active roadmap and future expansion plans:
 
 ## Maintainer
 
-**Uminda H. Aberathne** – Full-stack engineer at TMR Trading Lanka.
+**Uminda H. Aberathne** – Full-stack developer from Sri Lanka.
 
-- Portfolio: [uminda.dev](https://uminda-portfolio.pages.dev)
-- Email: `contact@uhadev.com`
+- Portfolio: [uminda.dev](https://uminda.dev)
+- Email: `hello@uminda.dev`
 - GitHub: [@Spyboss](https://github.com/Spyboss)
