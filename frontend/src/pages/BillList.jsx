@@ -205,13 +205,9 @@ const BillList = () => {
     const searchLower = searchText.toLowerCase();
     return (
       (bill.customerName && bill.customerName.toLowerCase().includes(searchLower)) ||
-      (bill.customer_name && bill.customer_name.toLowerCase().includes(searchLower)) ||
       (bill.customerNIC && bill.customerNIC.toLowerCase().includes(searchLower)) ||
-      (bill.customer_nic && bill.customer_nic.toLowerCase().includes(searchLower)) ||
       (bill.bikeModel && bill.bikeModel.toLowerCase().includes(searchLower)) ||
-      (bill.bike_model && bill.bike_model.toLowerCase().includes(searchLower)) ||
       (bill.billNumber && bill.billNumber.toLowerCase().includes(searchLower)) ||
-      (bill.bill_number && bill.bill_number.toLowerCase().includes(searchLower)) ||
       (bill._id && bill._id.toLowerCase().includes(searchLower))
     );
   };
@@ -232,7 +228,7 @@ const BillList = () => {
       key: 'billNumber',
       render: (billNumber, record) => (
         <Link to={`/bills/${record._id}`} className="text-blue-600 hover:underline dark:text-blue-400 dark:hover:text-blue-300">
-          {billNumber || record.bill_number || record._id.substring(0, 8)}
+          {billNumber || record._id.substring(0, 8)}
         </Link>
       ),
     },
@@ -428,8 +424,8 @@ const BillList = () => {
             <div key={bill._id} className="bg-white dark:bg-slate-800 rounded-lg shadow p-4">
               <div className="flex justify-between items-center">
                 <div>
-                  <div className="text-sm text-gray-500 dark:text-gray-400">{bill.billNumber || bill.bill_number || bill._id.substring(0,8)}</div>
-                  <div className="text-base font-medium text-gray-900 dark:text-gray-100">{bill.customerName || bill.customer_name}</div>
+                  <div className="text-sm text-gray-500 dark:text-gray-400">{bill.billNumber || bill._id.substring(0,8)}</div>
+                  <div className="text-base font-medium text-gray-900 dark:text-gray-100">{bill.customerName}</div>
                 </div>
                 {getBillTypeTag(bill)}
               </div>

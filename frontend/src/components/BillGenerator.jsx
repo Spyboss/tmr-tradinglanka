@@ -96,10 +96,16 @@ const BillGenerator = () => {
 
       // Prepare bill data for preview
       const billData = {
-        ...values,
-        bill_type: billType.toUpperCase(),
-        is_ebicycle: selectedModel?.is_ebicycle || false,
-        is_tricycle: selectedModel?.is_tricycle || false,
+        customerName: values.customer_name,
+        customerNIC: values.customer_nic,
+        customerAddress: values.customer_address,
+        bikeModel: selectedModel?.name,
+        bikePrice: values.bike_price || selectedModel?.price || 0,
+        motorNumber: values.motor_number,
+        chassisNumber: values.chassis_number,
+        billType: billType.toLowerCase(),
+        isEbicycle: selectedModel?.is_ebicycle || false,
+        isTricycle: selectedModel?.is_tricycle || false,
         can_be_leased: selectedModel?.can_be_leased || true
       };
 
@@ -109,33 +115,32 @@ const BillGenerator = () => {
       if (billType === 'cash') {
         if (selectedModel?.is_ebicycle || selectedModel?.is_tricycle) {
           // E-Bicycles and Tricycles: no RMV
-          billData.total_amount = parseFloat(bikePrice);
-          billData.rmv_charge = 0;
+          billData.totalAmount = parseFloat(bikePrice);
+          billData.rmvCharge = 0;
         } else {
           // Regular E-Motorcycles: add RMV
-          billData.total_amount = parseFloat(bikePrice) + 13000;
-          billData.rmv_charge = 13000;
+          billData.totalAmount = parseFloat(bikePrice) + 13000;
+          billData.rmvCharge = 13000;
         }
       } else {
         // Leasing (only for regular E-Motorcycles)
-        billData.total_amount = parseFloat(values.down_payment || 0);
-        billData.rmv_charge = 13500;
-        billData.is_cpz = true;
+        billData.totalAmount = parseFloat(values.down_payment || 0);
+        billData.rmvCharge = 13500;
       }
 
       // Handle advance payment
       if (isAdvancePayment) {
-        billData.advance_amount = parseFloat(values.advance_amount || 0);
-        billData.balance_amount = billData.total_amount - billData.advance_amount;
+        billData.advanceAmount = parseFloat(values.advance_amount || 0);
+        billData.balanceAmount = billData.totalAmount - billData.advanceAmount;
       }
 
       // Set vehicle type
       if (selectedModel?.is_tricycle) {
-        billData.vehicle_type = 'E-TRICYCLE';
+        billData.vehicleType = 'E-TRICYCLE';
       } else if (selectedModel?.is_ebicycle) {
-        billData.vehicle_type = 'E-MOTORBICYCLE';
+        billData.vehicleType = 'E-MOTORBICYCLE';
       } else {
-        billData.vehicle_type = 'E-MOTORCYCLE';
+        billData.vehicleType = 'E-MOTORCYCLE';
       }
 
       // Get the preview PDF

@@ -11,47 +11,47 @@ export default function BillForm() {
   const [submitting, setSubmitting] = useState(false)
   const [currentModel, setCurrentModel] = useState(null)
   const [formData, setFormData] = useState({
-    bill_type: 'cash',
-    customer_name: '',
-    customer_nic: '',
-    customer_address: '',
-    model_name: '',
-    motor_number: '',
-    chassis_number: '',
-    bike_price: 0,
-    down_payment: 0,
-    total_amount: 0,
-    balance_amount: 0,
-    estimated_delivery_date: ''
+    billType: 'cash',
+    customerName: '',
+    customerNIC: '',
+    customerAddress: '',
+    bikeModel: '',
+    motorNumber: '',
+    chassisNumber: '',
+    bikePrice: 0,
+    downPayment: 0,
+    totalAmount: 0,
+    balanceAmount: 0,
+    estimatedDeliveryDate: ''
   })
 
   // Calculate total and balance amounts when relevant fields change
   useEffect(() => {
     calculateTotalAndBalance();
-  }, [formData.bike_price, formData.bill_type, formData.down_payment]);
+  }, [formData.bikePrice, formData.billType, formData.downPayment]);
 
   const calculateTotalAndBalance = () => {
-    const bikePrice = parseInt(formData.bike_price) || 0;
+    const bikePrice = parseInt(formData.bikePrice) || 0;
     let total = bikePrice;
     let rmvCharge = 0;
 
     console.log('CALCULATE TOTAL DEBUG:');
     console.log('- Bike price:', bikePrice);
     console.log('- Current model:', currentModel ? JSON.stringify(currentModel) : 'null');
-    console.log('- Model name:', formData.model_name);
-    console.log('- Bill type:', formData.bill_type);
+    console.log('- Model name:', formData.bikeModel);
+    console.log('- Bill type:', formData.billType);
 
     // Add RMV charges based on bill type and bike type
-    const modelNameUpper = (formData.model_name || '').toUpperCase();
+    const modelNameUpper = (formData.bikeModel || '').toUpperCase();
     const isCola5 = modelNameUpper.includes('COLA5');
     const isX01 = modelNameUpper.includes('X01');
     const isEBicycle = isCola5 || isX01 || (currentModel && currentModel.is_ebicycle);
 
     if (!isEBicycle) {
       // Add RMV charges for non-e-bicycles
-      if (formData.bill_type === 'cash') {
+      if (formData.billType === 'cash') {
         rmvCharge = 13000; // Cash bill RMV charge
-      } else if (formData.bill_type === 'leasing') {
+      } else if (formData.billType === 'leasing') {
         rmvCharge = 0; // Leasing bills use CPZ
       }
       total += rmvCharge;
@@ -63,16 +63,16 @@ export default function BillForm() {
 
     // Calculate balance for advancement bills
     let balance = 0;
-    if (formData.bill_type === 'advancement') {
-      const downPayment = parseInt(formData.down_payment) || 0;
+    if (formData.billType === 'advancement') {
+      const downPayment = parseInt(formData.downPayment) || 0;
       balance = total - downPayment;
     }
 
     setFormData(prev => ({
       ...prev,
-      total_amount: total,
-      balance_amount: balance,
-      rmv_charge: rmvCharge
+      totalAmount: total,
+      balanceAmount: balance,
+      rmvCharge: rmvCharge
     }));
   };
 
@@ -82,13 +82,13 @@ const fetchBikeModels = async () => {
   try {
     setLoading(true)
     // Filter models only if bill type is leasing
-    const url = formData.bill_type === 'leasing'
-      ? `/bike-models?bill_type=${formData.bill_type}`
+    const url = formData.billType === 'leasing'
+      ? `/bike-models?bill_type=${formData.billType}`
       : '/bike-models';
 
-    const response = await api.get(url)
+    const response = await apiClient.get(url)
     console.log('bikeModels state:', response)
-setBikeModels(response.data)
+    setBikeModels(response || [])
   } catch (error) {
     toast.error('Failed to load bike models')
     console.error('Error fetching bike models:', error)
@@ -103,7 +103,7 @@ setBikeModels(response.data)
     const { name, value } = e.target
 
     // Special handling for model selection
-    if (name === 'model_name') {
+    if (name === 'bikeModel') {
       const selectedModel = bikeModels.find(model => model.name === value);
       if (selectedModel) {
         console.log('SELECTED MODEL DEBUG INFO:');
@@ -124,7 +124,7 @@ setBikeModels(response.data)
         setFormData(prev => ({
           ...prev,
           [name]: value,
-          bike_price: selectedModel.price
+          bikePrice: selectedModel.price
         }));
 
         // Force a recalculation of total amount
@@ -153,14 +153,14 @@ setBikeModels(response.data)
       setCurrentModel(null);
       setFormData(prev => ({
         ...prev,
-        bill_type: newBillType,
-        model_name: '',
-        bike_price: 0
+        billType: newBillType,
+        bikeModel: '',
+        bikePrice: 0
       }));
     } else {
       setFormData(prev => ({
         ...prev,
-        bill_type: newBillType
+        billType: newBillType
       }));
     }
   }
@@ -171,15 +171,20 @@ setBikeModels(response.data)
 
       // Prepare the preview data
       const previewData = {
-        ...formData,
-        bill_type: formData.bill_type.toUpperCase(),
         id: 'PREVIEW',
-        bill_date: new Date().toISOString(),
-        is_ebicycle: currentModel?.is_ebicycle || false,
+        billType: formData.billType.toUpperCase(),
+        billDate: new Date().toISOString(),
+        customerName: formData.customerName,
+        customerNIC: formData.customerNIC,
+        customerAddress: formData.customerAddress,
+        bikeModel: formData.bikeModel,
+        bikePrice: formData.bikePrice,
+        totalAmount: formData.totalAmount || 0,
+        rmvCharge: formData.rmvCharge || 0,
+        isEbicycle: currentModel?.is_ebicycle || false,
         can_be_leased: currentModel?.can_be_leased || true,
-        rmv_charge: formData.rmv_charge || 0,
-        total_amount: formData.total_amount || 0,
-        balance_amount: formData.balance_amount || 0
+        balanceAmount: formData.balanceAmount || 0,
+        estimatedDeliveryDate: formData.estimatedDeliveryDate || ''
       };
 
       try {
@@ -219,32 +224,39 @@ setBikeModels(response.data)
       setSubmitting(true);
 
       // Validate fields
-      if (!formData.bill_type) {
+      if (!formData.billType) {
         toast.error('Please select a bill type');
         return;
       }
 
       // Create a copy of the form data with proper formatting
       const submitData = {
-        ...formData,
-        bill_type: formData.bill_type.toUpperCase(),
-        bike_price: parseFloat(formData.bike_price) || 0,
-        down_payment: parseFloat(formData.down_payment) || 0,
-        total_amount: parseFloat(formData.total_amount) || 0,
-        balance_amount: parseFloat(formData.balance_amount) || 0,
-        rmv_charge: formData.bill_type === 'cash' ? 13000 : 0, // Ensure cash bills have 13000 RMV charge
-        is_ebicycle: currentModel?.is_ebicycle || false,
-        can_be_leased: currentModel?.can_be_leased || true
+        billType: formData.billType.toUpperCase(),
+        customerName: formData.customerName,
+        customerNIC: formData.customerNIC,
+        customerAddress: formData.customerAddress,
+        bikeModel: formData.bikeModel,
+        motorNumber: formData.motorNumber,
+        chassisNumber: formData.chassisNumber,
+        bikePrice: parseFloat(formData.bikePrice) || 0,
+        downPayment: parseFloat(formData.downPayment) || 0,
+        totalAmount: parseFloat(formData.totalAmount) || 0,
+        balanceAmount: parseFloat(formData.balanceAmount) || 0,
+        rmvCharge: formData.billType === 'cash' ? 13000 : 0,
+        isEbicycle: currentModel?.is_ebicycle || false,
+        can_be_leased: currentModel?.can_be_leased || true,
+        billDate: new Date().toISOString(),
+        estimatedDeliveryDate: formData.estimatedDeliveryDate || ''
       };
 
       // Additional validation for RMV charges
-      if (submitData.bill_type === 'CASH' && !submitData.is_ebicycle && submitData.rmv_charge !== 13000) {
+      if (submitData.billType === 'CASH' && !submitData.isEbicycle && submitData.rmvCharge !== 13000) {
         toast.error('Cash bills must have RMV charge of Rs. 13,000');
         return;
       }
 
       // Validate that chassis and motor numbers are provided
-      if (!submitData.chassis_number || !submitData.motor_number) {
+      if (!submitData.chassisNumber || !submitData.motorNumber) {
         toast.error('Please provide both chassis and motor numbers');
         return;
       }
@@ -266,12 +278,12 @@ setBikeModels(response.data)
         };
       } catch (_) {}
 
-      const response = await api.post('/bills', submitData);
-      console.log('Bill created successfully:', response.data);
+      const response = await apiClient.post('/bills', submitData);
+      console.log('Bill created successfully:', response);
       toast.success('Bill created successfully');
 
       // Navigate to the bill view page
-      navigate(`/bills/${response.data.id}`);
+      navigate(`/bills/${response._id || response.id}`);
     } catch (error) {
       console.error('Error creating bill:', error);
       toast.error(error.response?.data?.error || 'Failed to save bill');
@@ -292,36 +304,36 @@ setBikeModels(response.data)
           <label className="label">Bill Type</label>
           <div className="flex space-x-4">
             <label className="inline-flex items-center">
-              <input
-                type="radio"
-                name="bill_type"
-                value="cash"
-                checked={formData.bill_type === 'cash'}
-                onChange={handleBillTypeChange}
-                className="form-radio h-5 w-5 text-blue-600"
-              />
+            <input
+              type="radio"
+              name="billType"
+              value="cash"
+              checked={formData.billType === 'cash'}
+              onChange={handleBillTypeChange}
+              className="form-radio h-5 w-5 text-blue-600"
+            />
               <span className="ml-2">Cash Sale</span>
             </label>
             <label className="inline-flex items-center">
-              <input
-                type="radio"
-                name="bill_type"
-                value="leasing"
-                checked={formData.bill_type === 'leasing'}
-                onChange={handleBillTypeChange}
-                className="form-radio h-5 w-5 text-blue-600"
-              />
+            <input
+              type="radio"
+              name="billType"
+              value="leasing"
+              checked={formData.billType === 'leasing'}
+              onChange={handleBillTypeChange}
+              className="form-radio h-5 w-5 text-blue-600"
+            />
               <span className="ml-2">Leasing</span>
             </label>
             <label className="inline-flex items-center">
-              <input
-                type="radio"
-                name="bill_type"
-                value="advancement"
-                checked={formData.bill_type === 'advancement'}
-                onChange={handleBillTypeChange}
-                className="form-radio h-5 w-5 text-blue-600"
-              />
+            <input
+              type="radio"
+              name="billType"
+              value="advancement"
+              checked={formData.billType === 'advancement'}
+              onChange={handleBillTypeChange}
+              className="form-radio h-5 w-5 text-blue-600"
+            />
               <span className="ml-2">Advancement</span>
             </label>
           </div>
@@ -334,8 +346,8 @@ setBikeModels(response.data)
               <label className="label">Name</label>
               <input
                 type="text"
-                name="customer_name"
-                value={formData.customer_name}
+                name="customerName"
+                value={formData.customerName}
                 onChange={handleInputChange}
                 className="input w-full"
                 required
@@ -345,8 +357,8 @@ setBikeModels(response.data)
               <label className="label">NIC</label>
               <input
                 type="text"
-                name="customer_nic"
-                value={formData.customer_nic}
+                name="customerNIC"
+                value={formData.customerNIC}
                 onChange={handleInputChange}
                 className="input w-full"
                 required
@@ -355,8 +367,8 @@ setBikeModels(response.data)
             <div className="md:col-span-2">
               <label className="label">Address</label>
               <textarea
-                name="customer_address"
-                value={formData.customer_address}
+                name="customerAddress"
+                value={formData.customerAddress}
                 onChange={handleInputChange}
                 className="input w-full"
                 rows="2"
@@ -372,8 +384,8 @@ setBikeModels(response.data)
             <div>
               <label className="label">Bike Model</label>
               <select
-                name="model_name"
-                value={formData.model_name}
+                name="bikeModel"
+                value={formData.bikeModel}
                 onChange={handleInputChange}
                 className="input w-full"
                 required
@@ -390,8 +402,8 @@ setBikeModels(response.data)
               <label className="label">Price</label>
               <input
                 type="number"
-                name="bike_price"
-                value={formData.bike_price}
+                name="bikePrice"
+                value={formData.bikePrice}
                 onChange={handleInputChange}
                 className="input w-full bg-gray-100 dark:bg-gray-700"
                 readOnly
@@ -401,8 +413,8 @@ setBikeModels(response.data)
               <label className="label">Motor Number</label>
               <input
                 type="text"
-                name="motor_number"
-                value={formData.motor_number}
+                name="motorNumber"
+                value={formData.motorNumber}
                 onChange={handleInputChange}
                 className="input w-full"
                 required
@@ -412,8 +424,8 @@ setBikeModels(response.data)
               <label className="label">Chassis Number</label>
               <input
                 type="text"
-                name="chassis_number"
-                value={formData.chassis_number}
+                name="chassisNumber"
+                value={formData.chassisNumber}
                 onChange={handleInputChange}
                 className="input w-full"
                 required
@@ -425,30 +437,30 @@ setBikeModels(response.data)
         <div className="mb-6">
           <h2 className="text-lg font-semibold mb-4 pb-2 border-b">Payment Information</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
-            {(formData.bill_type === 'leasing' || formData.bill_type === 'advancement') && (
+            {(formData.billType === 'leasing' || formData.billType === 'advancement') && (
               <div>
                 <label className="label">
-                  {formData.bill_type === 'advancement' ? 'Advancement Amount' : 'Down Payment'}
+                  {formData.billType === 'advancement' ? 'Advancement Amount' : 'Down Payment'}
                 </label>
                 <input
                   type="number"
-                  name="down_payment"
-                  value={formData.down_payment}
+                  name="downPayment"
+                  value={formData.downPayment}
                   onChange={handleInputChange}
                   className="input w-full"
-                  required={formData.bill_type === 'leasing' || formData.bill_type === 'advancement'}
+                  required={formData.billType === 'leasing' || formData.billType === 'advancement'}
                 />
               </div>
             )}
 
-            {formData.bill_type === 'advancement' && (
+            {formData.billType === 'advancement' && (
               <>
                 <div>
                   <label className="label">Balance Amount</label>
                   <input
                     type="number"
-                    name="balance_amount"
-                    value={formData.balance_amount}
+                    name="balanceAmount"
+                    value={formData.balanceAmount}
                     className="input w-full bg-gray-100 dark:bg-gray-700"
                     readOnly
                   />
@@ -457,11 +469,11 @@ setBikeModels(response.data)
                   <label className="label">Estimated Delivery Date</label>
                   <input
                     type="date"
-                    name="estimated_delivery_date"
-                    value={formData.estimated_delivery_date}
+                    name="estimatedDeliveryDate"
+                    value={formData.estimatedDeliveryDate}
                     onChange={handleInputChange}
                     className="input w-full"
-                    required={formData.bill_type === 'advancement'}
+                    required={formData.billType === 'advancement'}
                   />
                 </div>
               </>
@@ -472,26 +484,26 @@ setBikeModels(response.data)
               <div>
                 <input
                   type="number"
-                  name="total_amount"
-                  value={formData.total_amount}
-                  className="input w-full bg-gray-100 dark:bg-gray-700"
-                  readOnly
-                />
+                name="totalAmount"
+                value={formData.totalAmount}
+                className="input w-full bg-gray-100 dark:bg-gray-700"
+                readOnly
+              />
                 {/* Show RMV charges for non-e-bicycles and non-advancement bills */}
                 {currentModel &&
                  !currentModel.is_ebicycle &&
-                 !(formData.model_name || '').toUpperCase().includes('COLA5') &&
-                 !(formData.model_name || '').toUpperCase().includes('X01') &&
-                 formData.bill_type !== 'advancement' && formData.rmv_charge > 0 && (
+                 !(formData.bikeModel || '').toUpperCase().includes('COLA5') &&
+                 !(formData.bikeModel || '').toUpperCase().includes('X01') &&
+                 formData.billType !== 'advancement' && formData.rmvCharge > 0 && (
                   <div className="mt-2 text-sm">
                     <div className="text-gray-600">Breakdown:</div>
                     <div className="flex justify-between text-gray-500">
                       <span>Bike Price:</span>
-                      <span>Rs. {formData.bike_price.toLocaleString()}</span>
+                      <span>Rs. {formData.bikePrice.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between text-gray-500">
                       <span>RMV Charges:</span>
-                      <span>Rs. {formData.rmv_charge.toLocaleString()}</span>
+                      <span>Rs. {formData.rmvCharge.toLocaleString()}</span>
                     </div>
                   </div>
                 )}

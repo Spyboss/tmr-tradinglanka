@@ -138,7 +138,7 @@ const BillGeneratorWithInventory = () => {
       // Add leasing details if applicable
       if (billType === 'leasing') {
         billData.downPayment = values.down_payment;
-        billData.rmvCharge = 13500; // Include CPZ fee
+        billData.rmvCharge = 13500;
       } else {
         // For cash bills
         if (!selectedModel.is_ebicycle && !selectedModel.is_tricycle) {

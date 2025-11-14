@@ -15,13 +15,10 @@ const AdvancementConversion = () => {
 
   const fetchAdvancePayments = async () => {
     try {
-      const { data } = await apiClient.get('/api/bills', {
-        params: {
-          is_advance_payment: true,
-          status: 'pending'
-        }
-      });
-      setAdvancePayments(data);
+      const response = await apiClient.get('/api/bills');
+      const data = Array.isArray(response?.bills) ? response.bills : Array.isArray(response) ? response : [];
+      const filtered = data.filter(b => b.isAdvancePayment === true && (b.status || '').toLowerCase() === 'pending');
+      setAdvancePayments(filtered);
     } catch (error) {
       message.error('Failed to fetch advance payments');
     }
@@ -31,7 +28,7 @@ const AdvancementConversion = () => {
     setSelectedBill(record);
     setIsModalVisible(true);
     form.setFieldsValue({
-      remaining_amount: record.balance_amount
+      remaining_amount: record.balanceAmount
     });
   };
 
@@ -41,11 +38,19 @@ const AdvancementConversion = () => {
       
       // Create a new full bill
       const newBillData = {
-        ...selectedBill,
-        is_advance_payment: false,
+        customerName: selectedBill.customerName,
+        customerNIC: selectedBill.customerNIC,
+        customerAddress: selectedBill.customerAddress,
+        bikeModel: selectedBill.bikeModel,
+        bikePrice: selectedBill.bikePrice,
+        motorNumber: selectedBill.motorNumber,
+        chassisNumber: selectedBill.chassisNumber,
+        billType: selectedBill.billType,
+        billDate: selectedBill.billDate,
+        isAdvancePayment: false,
         status: 'completed',
-        balance_amount: 0,
-        original_bill_id: selectedBill.id
+        balanceAmount: 0,
+        originalBillId: selectedBill.id
       };
 
       delete newBillData.id; // Remove the id so a new one is generated
@@ -54,7 +59,7 @@ const AdvancementConversion = () => {
       await apiClient.post('/api/bills', newBillData);
 
       // Update the advance payment bill status
-      await apiClient.patch(`/api/bills/${selectedBill.id}`, {
+      await apiClient.patch(`/api/bills/${selectedBill.id}/status`, {
         status: 'converted'
       });
 
@@ -71,11 +76,11 @@ const AdvancementConversion = () => {
   const columns = [
     {
       title: 'Customer Name',
-      dataIndex: 'customer_name',
+      dataIndex: 'customerName',
     },
     {
       title: 'Model',
-      dataIndex: 'model_name',
+      dataIndex: 'bikeModel',
     },
     {
       title: 'Payment Type',
@@ -83,12 +88,12 @@ const AdvancementConversion = () => {
     },
     {
       title: 'Advance Amount',
-      dataIndex: 'advance_amount',
+      dataIndex: 'advanceAmount',
       render: (amount) => `Rs. ${amount?.toFixed(2)}`,
     },
     {
       title: 'Balance',
-      dataIndex: 'balance_amount',
+      dataIndex: 'balanceAmount',
       render: (amount) => `Rs. ${amount?.toFixed(2)}`,
     },
     {
@@ -135,4 +140,4 @@ const AdvancementConversion = () => {
   );
 };
 
-export default AdvancementConversion; 
+export default AdvancementConversion;

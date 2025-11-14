@@ -242,7 +242,7 @@ const BillView = () => {
         <div>
           <h1 className="text-2xl font-semibold">Bill #{bill._id || bill.id}</h1>
           <div className="flex items-center mt-2">
-            {getBillTypeTag(bill.billType || bill.bill_type)}
+            {getBillTypeTag(bill.billType)}
             <Badge 
               status={getStatusBadgeClass(bill.status)} 
               text={bill.status} 
@@ -305,20 +305,18 @@ const BillView = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
         <Card title="Bill Details" className="mb-6 dark:bg-slate-800">
           <Descriptions bordered column={1}>
-            <Descriptions.Item label="Bill Number">{bill.billNumber || bill.bill_number || bill._id || bill.id}</Descriptions.Item>
-            <Descriptions.Item label="Bill Date">{formatDate(bill.billDate || bill.bill_date || bill.createdAt)}</Descriptions.Item>
-            <Descriptions.Item label="Bill Type">{getBillTypeTag(bill.billType || bill.bill_type)}</Descriptions.Item>
+            <Descriptions.Item label="Bill Number">{bill.billNumber || bill._id || bill.id}</Descriptions.Item>
+            <Descriptions.Item label="Bill Date">{formatDate(bill.billDate || bill.createdAt)}</Descriptions.Item>
+            <Descriptions.Item label="Bill Type">{getBillTypeTag(bill.billType)}</Descriptions.Item>
             <Descriptions.Item label="Status">
               <Badge 
                 status={getStatusBadgeClass(bill.status)} 
                 text={bill.status} 
               />
             </Descriptions.Item>
-            {((bill.billType === 'advance' || bill.bill_type === 'advance' || 
-               bill.billType === 'advancement' || bill.bill_type === 'advancement') && 
-              (bill.estimatedDeliveryDate || bill.estimated_delivery_date)) && (
+            {(bill.billType === 'advance' || bill.billType === 'advancement') && bill.estimatedDeliveryDate && (
               <Descriptions.Item label="Estimated Delivery Date">
-                {formatDate(bill.estimatedDeliveryDate || bill.estimated_delivery_date)}
+                {formatDate(bill.estimatedDeliveryDate)}
               </Descriptions.Item>
             )}
           </Descriptions>
@@ -326,39 +324,38 @@ const BillView = () => {
 
         <Card title="Customer Information" className="mb-6 dark:bg-slate-800">
           <Descriptions bordered column={1}>
-            <Descriptions.Item label="Name">{bill.customerName || bill.customer_name}</Descriptions.Item>
-            <Descriptions.Item label="NIC">{bill.customerNIC || bill.customer_nic}</Descriptions.Item>
-            <Descriptions.Item label="Address">{bill.customerAddress || bill.customer_address}</Descriptions.Item>
+            <Descriptions.Item label="Name">{bill.customerName}</Descriptions.Item>
+            <Descriptions.Item label="NIC">{bill.customerNIC}</Descriptions.Item>
+            <Descriptions.Item label="Address">{bill.customerAddress}</Descriptions.Item>
           </Descriptions>
         </Card>
 
         <Card title="Vehicle Information" className="mb-6 dark:bg-slate-800">
           <Descriptions bordered column={1}>
-            <Descriptions.Item label="Model">{bill.bikeModel || bill.model_name}</Descriptions.Item>
+            <Descriptions.Item label="Model">{bill.bikeModel}</Descriptions.Item>
             <Descriptions.Item label="Type">
-              {bill.vehicleType || bill.vehicle_type || (bill.isEbicycle || bill.is_ebicycle ? 'E-Bicycle' : 'Bicycle')}
+              {bill.vehicleType || (bill.isEbicycle ? 'E-Bicycle' : 'Bicycle')}
             </Descriptions.Item>
-            <Descriptions.Item label="Motor Number">{bill.motorNumber || bill.motor_number || 'N/A'}</Descriptions.Item>
-            <Descriptions.Item label="Chassis Number">{bill.chassisNumber || bill.chassis_number || 'N/A'}</Descriptions.Item>
+            <Descriptions.Item label="Motor Number">{bill.motorNumber || 'N/A'}</Descriptions.Item>
+            <Descriptions.Item label="Chassis Number">{bill.chassisNumber || 'N/A'}</Descriptions.Item>
           </Descriptions>
         </Card>
 
         <Card title="Payment Information" className="mb-6 dark:bg-slate-800">
           <Descriptions bordered column={1}>
-            <Descriptions.Item label="Bike Price">{formatAmount(bill.bikePrice || bill.bike_price)}</Descriptions.Item>
-            {!(bill.isEbicycle || bill.is_ebicycle) && (bill.billType === 'cash' || bill.bill_type === 'cash') && (
+            <Descriptions.Item label="Bike Price">{formatAmount(bill.bikePrice)}</Descriptions.Item>
+            {!bill.isEbicycle && bill.billType === 'cash' && (
               <Descriptions.Item label="RMV Charge">{formatAmount(bill.rmvCharge || 13000)}</Descriptions.Item>
             )}
-            <Descriptions.Item label="Total Amount">{formatAmount(bill.totalAmount || bill.total_amount)}</Descriptions.Item>
-            {((bill.billType === 'advance' || bill.bill_type === 'advance' || 
-               bill.billType === 'advancement' || bill.bill_type === 'advancement')) && (
+            <Descriptions.Item label="Total Amount">{formatAmount(bill.totalAmount)}</Descriptions.Item>
+            {(bill.billType === 'advance' || bill.billType === 'advancement') && (
               <>
-                <Descriptions.Item label="Down Payment">{formatAmount(bill.downPayment || bill.down_payment)}</Descriptions.Item>
-                <Descriptions.Item label="Balance Amount">{formatAmount(bill.balanceAmount || bill.balance_amount)}</Descriptions.Item>
+                <Descriptions.Item label="Down Payment">{formatAmount(bill.downPayment)}</Descriptions.Item>
+                <Descriptions.Item label="Balance Amount">{formatAmount(bill.balanceAmount)}</Descriptions.Item>
               </>
             )}
-            {(bill.billType === 'leasing' || bill.bill_type === 'leasing') && (
-              <Descriptions.Item label="Down Payment">{formatAmount(bill.downPayment || bill.down_payment)}</Descriptions.Item>
+            {bill.billType === 'leasing' && (
+              <Descriptions.Item label="Down Payment">{formatAmount(bill.downPayment)}</Descriptions.Item>
             )}
           </Descriptions>
         </Card>
@@ -383,9 +380,7 @@ const BillView = () => {
           </Button>
         )}
         
-        {((bill.billType === 'cash' || bill.bill_type === 'cash') && 
-          bill.status !== 'converted' && 
-          !(bill.isEbicycle || bill.is_ebicycle)) && (
+        {(bill.billType === 'cash' && bill.status !== 'converted' && !bill.isEbicycle) && (
           <Popconfirm
             title="Convert this cash bill to leasing?"
             onConfirm={handleConvertToLeasing}
