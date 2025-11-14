@@ -8,10 +8,6 @@ End-to-end ERP for Sri Lankan motorcycle dealerships. The platform runs in produ
 ![Node](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg)
 ![React](https://img.shields.io/badge/react-18.2.0-blue.svg)
 
-**A comprehensive business management solution for motorcycle dealerships**
-
-[🚀 Live Demo](https://tmr-tradinglanka.pages.dev) • [📖 Documentation](./docs) • [🐛 Report Bug](https://github.com/your-repo/issues)
-
 </div>
 <p align="center">
   <a href="https://tmr-tradinglanka.pages.dev">🌐 Production SPA</a> ·
