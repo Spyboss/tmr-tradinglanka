@@ -4,6 +4,7 @@ import { Form, Input, Select, Button, DatePicker, InputNumber, Switch, message, 
 import moment from 'moment';
 import apiClient from '../config/apiClient';
 import toast from 'react-hot-toast';
+import { mapBillFormToApi } from '../utils/mapBillFormToApi';
 
 const { Option } = Select;
 
@@ -167,7 +168,8 @@ const BillEdit = () => {
       }
 
       console.log('Sending update data:', updateData);
-      const response = await apiClient.put(`/bills/${id}`, updateData);
+      const mapped = mapBillFormToApi(updateData);
+      const response = await apiClient.put(`/bills/${id}`, mapped);
 
       if (response) {
         toast.success('Bill updated successfully');

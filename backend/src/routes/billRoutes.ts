@@ -5,6 +5,7 @@ import { connectToDatabase } from '../config/database.js';
 import { generatePDF } from '../services/pdfService.js';
 import { authenticate, requireAdmin, requireOwnership, AuthRequest } from '../auth/auth.middleware.js';
 import { createBill, updateBillStatus } from '../controllers/billController.js';
+import { updateBill } from '../controllers/billUpdateController.js';
 
 const router = express.Router();
 
@@ -89,40 +90,7 @@ router.get('/:id', authenticate, async (req: AuthRequest, res: Response) => {
 router.post('/', authenticate, createBill);
 
 // Update bill - Protected route with ownership check
-router.put('/:id', authenticate, async (req: AuthRequest, res: Response) => {
-  try {
-    // First check ownership
-    const bill = await Bill.findById(req.params.id);
-
-    if (!bill) {
-      return res.status(404).json({ error: 'Bill not found' });
-    }
-
-    // Check ownership or admin status
-    const user = await req.app.locals.models?.User.findById(req.user?.id);
-    const isAdmin = user?.role === 'admin';
-    const isOwner = bill.owner && bill.owner.toString() === req.user?.id;
-
-    if (!isAdmin && !isOwner) {
-      return res.status(403).json({ error: 'You do not have permission to update this bill' });
-    }
-
-    // Don't allow changing the owner
-    if (req.body.owner && !isAdmin) {
-      delete req.body.owner;
-    }
-
-    const updatedBill = await Bill.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true, runValidators: true }
-    );
-
-    res.status(200).json(updatedBill);
-  } catch (error) {
-    res.status(400).json({ error: (error as Error).message });
-  }
-});
+router.put('/:id', authenticate, updateBill);
 
 // Delete bill - Protected route with ownership check
 router.delete('/:id', authenticate, async (req: AuthRequest, res: Response) => {
