@@ -1,234 +1,212 @@
-# 🏍️ TMR Trading Lanka Business Management System
+# TMR Trading Lanka Business Management System
 
-<div align="center">
+End-to-end ERP for Sri Lankan motorcycle dealerships. The platform runs in production at TMR Trading Lanka, covering sales, inventory, quotations, and compliance workflows with a TypeScript stack.
 
-![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)
-![License](https://img.shields.io/badge/license-MIT-green.svg)
-![Node](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg)
-![React](https://img.shields.io/badge/react-18.2.0-blue.svg)
-
-**A comprehensive business management solution for motorcycle dealerships**
-
-[🚀 Live Demo](https://tmr-tradinglanka.pages.dev) • [📖 Documentation](./docs) • [🐛 Report Bug](https://github.com/your-repo/issues)
-
-</div>
+<p align="center">
+  <a href="https://tmr-tradinglanka.pages.dev">🌐 Production SPA</a> ·
+  <a href="./docs">📚 Documentation</a> ·
+  <a href="https://github.com/Spyboss/tmr-tradinglanka/issues">🐛 Issue Tracker</a>
+</p>
 
 ---
 
-## 🌟 Overview
+## Table of Contents
 
-What started as a simple bill generator has evolved into a **full-featured business management system** specifically designed for motorcycle dealerships. This enterprise-grade solution handles everything from sales and inventory to quotations and comprehensive reporting.
+1. [Why It Exists](#why-it-exists)
+2. [Who Uses It](#who-uses-it)
+3. [Tech Stack](#tech-stack)
+4. [Key Features](#key-features)
+5. [Architecture](#architecture)
+6. [Screenshots](#screenshots)
+7. [Getting Started](#getting-started)
+8. [Environment Variables](#environment-variables)
+9. [Running Locally](#running-locally)
+10. [Testing](#testing)
+11. [Folder Structure](#folder-structure)
+12. [Database Model Snapshot](#database-model-snapshot)
+13. [API Overview](#api-overview)
+14. [Security & Compliance](#security--compliance)
+15. [Roadmap](#roadmap)
+16. [Maintainer](#maintainer)
 
-## 🏗️ Architecture
+## Why It Exists
+
+TMR needed to replace spreadsheet-driven processes for billing electric motorcycles, tracking stock, and handling insurance quotations. The system centralises customer data, enforces permission boundaries, and produces compliant PDFs that align with Sri Lankan regulatory expectations.
+
+## Who Uses It
+
+| Persona | Responsibilities |
+| --- | --- |
+| Dealer principal | Reviews daily sales, outstanding balances, and stock positions. |
+| Sales executives | Create bills, manage advance payments, and deliver invoices to customers. |
+| Inventory coordinators | Register incoming bikes, update status, and reconcile sold stock. |
+| Insurance liaisons | Prepare quotations, convert to invoices, and send branded PDFs to insurers. |
+| Operations admins | Manage branding, user access, and system preferences. |
+
+Further business context lives in [`docs/overview/business-context.md`](./docs/overview/business-context.md).
+
+## Tech Stack
+
+| Layer | Technology |
+| --- | --- |
+| Frontend | React 18, Vite, Ant Design, TailwindCSS |
+| Backend | Node.js 18, Express, TypeScript, Mongoose |
+| Data | MongoDB Atlas, Redis Cloud |
+| Infrastructure | Cloudflare Pages, Railway |
+| PDFs | PDFKit templates with dynamic branding |
+
+## Key Features
+
+- **Billing** – End-to-end bill lifecycle with encrypted NIC/address storage, RMV/advance tracking, and PDF exports.
+- **Inventory** – Model catalogue, single-unit inventory with status tracking, analytics endpoints, and PDF reporting.
+- **Quotations & Invoices** – Multi-line quotations, conversion to invoices, insurance metadata, and branded PDF downloads.
+- **Branding Control** – Admin-managed logo, colour, and address metadata powering SPA chrome and documents.
+- **User Preferences & Activity** – Personalised themes/language plus structured audit logs for major actions.
+- **Compliance Toolkit** – GDPR export/delete flows, rate limiting, and optional email verification enforcement.
+
+## Architecture
 
 ```
-┌───────────────────────────────────────────────────────────────────────┐
-│                           Cloudflare Pages                             │
-│ React + Vite SPA │ Build hooks from main │ Edge caching + image proxy │
-└────────────▲───────────────────────────────────────────────────────────┘
-             │ HTTPS (public)
-             │
-┌────────────┴─────────────┐      ┌──────────────────────────────────────┐
-│  Cloudflare Zero Trust   │─────►│   Railway (Node.js + Express API)    │
-│  Origin rules + WAF      │      │   Horizontal scaling via autoscaler  │
-└────────────▲─────────────┘      │   Background jobs (bullmq + Redis)   │
-             │                    └────────────▲─────────────────────────┘
-             │ HTTPS (private)
-             │
-┌────────────┴─────────────┐      ┌──────────────────────────────────────┐
-│      MongoDB Atlas       │◄────►│    Redis Cloud (session cache)       │
-│  Global cluster (M10)    │      │  Ephemeral queues + rate limiting    │
-└──────────────────────────┘      └──────────────────────────────────────┘
+┌──────────────────────────────────────────────────┐
+│                 Cloudflare Pages                  │
+│ React SPA • Auth cookie storage • CDN edge cache  │
+└──────────────▲───────────────────────────────────┘
+               │ HTTPS (browser)
+┌──────────────┴──────────────┐
+│   Railway (Express API)     │◄─────┐ BullMQ-ready workers share Redis
+│   Autoscaled containers     │      │
+└──────────────▲──────────────┘      │
+               │                     │
+               │ HTTPS (private)     │
+┌──────────────┴──────────────┐      │
+│    MongoDB Atlas (M10)      │◄─────┘ Redis Cloud (sessions, rate limits, verification)
+│  Customer data encrypted    │
+└──────────────────────────────┘
 ```
 
-- **Frontend**: Modern React SPA with TypeScript, TailwindCSS, and Ant Design. Built on every merge to `main` and pushed to Cloudflare Pages, which serves static assets through its global CDN while enforcing Zero-Trust access for preview environments.
-- **Backend**: Node.js + TypeScript API deployed to Railway using rolling deployments. Railway manages container restarts on crash and auto-scales between 0–3 instances based on CPU and memory. Express routes use layered middleware for auth, rate limiting, and validation.
-- **Data Layer**: MongoDB Atlas hosts the operational database with regional failover; encryption-at-rest and field-level encryption protect customer identity numbers and payment metadata. Redis Cloud provides ephemeral storage for sessions, job queues, and throttle counters; it is treated as a disposable cache with automatic rehydration logic in the API.
-- **Deployment Flow**: GitHub Actions packages the backend and frontend. Successful test runs trigger Railway/Cloudflare deploy hooks; production promotes only after smoke checks succeed on staging URLs.
-- **Operational Guardrails**: All services emit structured logs to Railway's log drains; Cloudflare analytics provide edge performance metrics. A status dashboard (Better Stack) monitors HTTP 5xx rates, queue depth, and MongoDB primary health.
+Detailed design notes live in [`docs/architecture/README.md`](./docs/architecture/README.md).
 
-## ✨ Core Features
+## Screenshots
 
-### 🧾 **Sales Management**
-- **Smart Bill Generation** - Automated calculations for different vehicle types
-- **Payment Processing** - Support for cash, leasing, and advance payments
-- **Status Tracking** - Real-time bill status management (pending, completed, cancelled)
-- **PDF Generation** - Professional, branded invoices and receipts
-- **Customer Management** - Secure customer data with encryption
+> Screenshots are captured during release reviews and stored in the project wiki. Replace this block with updated imagery when publishing externally.
 
-### 📦 **Inventory Management**
-- **Real-time Tracking** - Live inventory status across all locations
-- **Batch Operations** - Efficient bulk inventory additions and updates
-- **Lifecycle Management** - Track bikes from arrival to sale
-- **Smart Analytics** - Inventory insights, stock alerts, and trend analysis
-- **Integration** - Seamless connection with sales processes
+- Dashboard overview – _pending update_
+- Bill creation form – _pending update_
+- Inventory analytics – _pending update_
 
-### 💼 **Quotation System**
-- **Insurance Claims** - Specialized quotations for insurance work
-- **Estimate Management** - Professional estimates with conversion to invoices
-- **Template System** - Standardized quotation formats
-- **Client Communication** - Streamlined quotation approval workflow
+## Getting Started
 
-### 👥 **User Management**
-- **Role-based Access** - Admin, Manager, and User permission levels
-- **Activity Tracking** - Comprehensive audit logs for all user actions
-- **Profile Management** - User preferences and account settings
-- **Security Features** - Multi-factor authentication and session management
-
-### 📊 **Advanced Reporting**
-- **Professional PDFs** - LaTeX-quality reports with company branding
-- **Business Intelligence** - KPI dashboards and performance metrics
-- **Inventory Reports** - Stock analysis with actionable insights
-- **Financial Summaries** - Revenue tracking and payment analysis
-
-### 🔒 **Enterprise Security**
-- **Data Encryption** - Field-level encryption for sensitive information
-- **GDPR Compliance** - Complete data protection and user rights
-- **Rate Limiting** - API protection against abuse
-- **Audit Trails** - Comprehensive activity logging
-
-### 🎨 **Modern UI/UX**
-- **Dark/Light Themes** - Consistent theming across all components
-- **Responsive Design** - Optimized for desktop, tablet, and mobile
-- **Accessibility** - WCAG compliant interface design
-- **Real-time Updates** - Live data synchronization
-
-## 🚀 Quick Start
-
-### Prerequisites
-- **Node.js** 18+
-- **npm** or **yarn**
-- **MongoDB** (Atlas recommended)
-
-### Installation
-
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/your-username/gunawardhana-motors.git
-   cd gunawardhana-motors
-   ```
-
-2. **Backend Setup**
-   ```bash
-   cd backend
-   npm install
-   cp .env.example .env  # Configure your environment variables
-   npm run dev
-   ```
-
-3. **Frontend Setup**
-   ```bash
-   cd frontend
-   npm install
-   npm run dev
-   ```
-
-4. **Access the application**
-   - Frontend: `http://localhost:5173`
-   - Backend API: `http://localhost:8080`
-
-## 🌐 Production Deployment
-
-### Current Infrastructure
-- **Frontend**: [Cloudflare Pages](https://tmr-tradinglanka.pages.dev)
-- **Backend**: [Railway](https://tmr-production.up.railway.app)
-- **Database**: MongoDB Atlas with global clusters
-- **CDN**: Cloudflare for optimal performance
-
-### Runtime Topology & Data Flow
-- **Request path**: The SPA calls the Railway API over HTTPS. Requests first pass through Cloudflare's WAF/Zero-Trust rules, then reach the active Railway instance. Authenticated calls validate the JWT against Redis, query MongoDB for the primary document, and publish events back to Redis queues for downstream jobs (PDF generation, email notifications).
-- **Asynchronous jobs**: Long-running tasks (PDF rendering, stock reconciliation) run as BullMQ workers within the same Railway project. They consume queue messages from Redis and write results (signed URLs, inventory deltas) back into MongoDB. Failures retry with exponential backoff up to 5 attempts before surfacing alerts.
-- **File storage**: Generated PDFs are persisted to Cloudflare R2 via signed upload URLs, with references stored in MongoDB. Expired artifacts are purged nightly by a scheduled worker.
-
-### Environment Configuration
-
-<details>
-<summary><strong>Backend Environment Variables</strong></summary>
-
-```env
-# Database
-MONGODB_URI=mongodb+srv://...
-REDIS_URL=redis://...
-
-# Authentication
-JWT_SECRET=your-super-secret-key
-JWT_REFRESH_SECRET=your-refresh-secret
-
-# Security
-ENCRYPTION_KEY=your-encryption-key
-CORS_ORIGINS=https://tmr-tradinglanka.pages.dev
-
-# Application
-NODE_ENV=production
-PORT=8080
+```bash
+git clone https://github.com/Spyboss/tmr-tradinglanka.git
+cd tmr-tradinglanka
+npm install
+npm install --prefix backend
+npm install --prefix frontend
+cp backend/.env.example backend/.env
+cp frontend/.env.example frontend/.env
 ```
-</details>
 
-### Scalability & Resilience
-- **Horizontal scaling**: Railway's autoscaler spins up additional API containers when CPU exceeds 70% for 3 minutes. The application is stateless; session data and cache layers live in Redis, so new instances can join immediately.
-- **Cold starts**: Idle scaling may pause all instances overnight. Cloudflare health checks send synthetic traffic every 5 minutes to keep the API warm during business hours.
-- **Failure modes**: Redis outages degrade to read-only operations—billing actions requiring queues are blocked, and the frontend surfaces maintenance banners. MongoDB failover typically completes within 30s; the API retries connections with jittered backoff.
-- **Disaster recovery**: Nightly backups from MongoDB Atlas and weekly configuration exports from Cloudflare/Railway are stored in S3 with 30-day retention. Runbooks in `docs/workflow/` describe manual recovery.
+Refer to [`docs/setup/local-development.md`](./docs/setup/local-development.md) for a full walkthrough.
 
-### Observability & Operations
-- **Logging**: Application logs use pino JSON format and ship to Railway's log drains; Cloudflare produces edge logs for cache misses. Critical actions include correlation IDs propagated via the `x-request-id` header.
-- **Metrics**: Prometheus-compatible metrics are exposed at `/api/metrics` (auth-protected) and scraped by Better Stack every 60s. Key indicators include bill creation latency (p95 < 1.2s) and queue delay (< 15s).
-- **Alerts**: PagerDuty incidents trigger when HTTP 5xx > 3% for 5 minutes or queue depth exceeds 200 jobs. MongoDB sends emails for replica set elections or storage pressure.
-- **Debugging**: For production issues, tail logs via Railway CLI, inspect queue states with `bull-board` (behind VPN), and replay failed jobs by re-enqueueing documents via the admin console.
+## Environment Variables
 
-<details>
-<summary><strong>Frontend Environment Variables</strong></summary>
+Backend and frontend environment keys are documented in [`docs/setup/environment.md`](./docs/setup/environment.md). Sample `.env` files live alongside each application.
 
-```env
-VITE_API_URL=https://tmr-production.up.railway.app
-VITE_APP_NAME=TMR Trading Lanka
+## Running Locally
+
+```bash
+# Run API + SPA together
+npm run dev
+
+# Backend only
+npm run dev --prefix backend
+
+# Frontend only
+npm run dev --prefix frontend
 ```
-</details>
 
-## 📚 Documentation
+- API: `http://localhost:8080`
+- SPA: `http://localhost:5173`
 
-| Section | Description |
-|---------|-------------|
-| [📋 API Reference](./docs/api) | Complete API documentation |
-| [🗄️ Database Schema](./docs/models) | Data models and relationships |
-| [🔄 Workflows](./docs/workflow) | Business process documentation |
-| [🛠️ Development](./docs/development) | Setup and contribution guide |
+Use the admin bootstrap endpoint to create an initial admin:
 
-## 🔐 Cross-Origin Auth & CSRF Protection
-- Cookies: In production, the `refreshToken` cookie uses `SameSite=None; Secure; HttpOnly; Path=/` to support cross-origin auth from Cloudflare Pages.
-- CORS allowlist: Set `CORS_ORIGINS` (comma-separated) to control allowed origins. If unset, the backend falls back to a safe default allowlist.
-- CSRF checks: The `/api/auth/refresh` and `/api/auth/logout` endpoints require an `Origin` or `Referer` header that matches the allowlist in production. Mismatches or missing headers return `403 Forbidden` and are logged with `warn`.
-- No-Origin requests: Controlled by `ALLOW_NO_ORIGIN`. When `false`, requests without an `Origin` header are rejected. When unset or `true`, legacy behavior is preserved (allowed for CLI/internal tools).
-- Safe fallbacks: Development behavior remains unchanged; if `CORS_ORIGINS` is not set, the existing hardcoded allowlist is used.
+```bash
+curl -X POST http://localhost:8080/api/auth/create-admin \
+  -H "Content-Type: application/json" \
+  -d '{"setupKey":"local-admin-setup-key","email":"admin@example.com","password":"ChangeMe123!"}'
+```
 
-## 🤝 Contributing
+## Testing
 
-We welcome contributions! Please see our [Contributing Guide](./docs/development/README.md) for details.
+```bash
+cd backend
+npm run lint
+npm run test
+```
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+Frontend automated tests are on the roadmap; manual QA covers core journeys today.
 
-## 👨‍💻 Author
+## Folder Structure
 
-**Uminda H. Aberathne** ([@Spyboss](https://github.com/Spyboss))
-- 🌐 Website: [uminda.dev](https://uminda-portfolio.pages.dev)
-- 📧 Email: contact@uhadev.com
+```
+.
+├── backend/        # Express API (TypeScript)
+├── frontend/       # React SPA (Vite)
+├── docs/           # Comprehensive documentation set
+├── CHANGELOG.md    # Release log (Keep a Changelog)
+├── docker-compose.yml
+└── package.json    # Workspace scripts
+```
 
-## 📄 License
+## Database Model Snapshot
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+| Collection | Key Fields |
+| --- | --- |
+| `users` | email, role, hashed password, loginAttempts, accountLocked |
+| `bills` | billNumber, status, encrypted NIC/address, inventoryItemId, owner |
+| `bike_inventory` | bikeModelId, motorNumber, status, addedBy, billId |
+| `bike_models` | name, price, leasing flags |
+| `quotations` | quotationNumber, type, encrypted customer info, items[], owner |
+| `branding` | dealerName, primaryColor, logoUrl |
+| `userpreferences` | theme, language, notification + dashboard preferences |
+| `useractivities` | activity type, metadata, timestamp |
 
-## 🙏 Acknowledgments
+Full ERD available in [`docs/architecture/data-model.md`](./docs/architecture/data-model.md).
 
-- Built with ❤️ for TMR Trading Lanka
-- Special thanks to the open-source community
-- Powered by modern web technologies
+## API Overview
 
----
+The REST API is described in [`docs/architecture/api-reference.md`](./docs/architecture/api-reference.md). Highlights:
 
-<div align="center">
-<strong>Made with ❤️ by <a href="https://github.com/Spyboss">@uhadev</a></strong>
-</div>
+- `/api/auth/*` – authentication, profile, verification.
+- `/api/bills` – CRUD + PDF endpoints.
+- `/api/inventory` – item management, analytics, report PDFs.
+- `/api/quotations` – quotations, invoice conversion, customer suggestions.
+- `/api/branding` – dealer branding config (admin-only mutating operations).
+- `/api/user/*` – preferences and activity history.
+- `/api/gdpr/*` – data export/delete flows.
+
+## Security & Compliance
+
+- AES encryption for NIC, address, and phone fields (`ENCRYPTION_KEY`).
+- JWT access tokens + Redis-backed refresh tokens with revocation on logout/password change.
+- Ownership enforcement ensures staff only see their own bills/quotations unless admin.
+- Optional email verification enforcement with rate-limited resend endpoints.
+- GDPR export (encrypted ZIP) and delete flows to satisfy customer data requests.
+- Rate limiting on login/registration/verification endpoints; suspicious IP monitoring with optional webhook alerts.
+
+More detail lives in [`docs/operations/security.md`](./docs/operations/security.md).
+
+## Roadmap
+
+Active roadmap and future expansion plans:
+
+- [`docs/product/roadmap.md`](./docs/product/roadmap.md)
+- [`docs/product/future-expansion.md`](./docs/product/future-expansion.md)
+
+## Maintainer
+
+**Uminda H. Aberathne** – Full-stack engineer at TMR Trading Lanka.
+
+- Portfolio: [uminda.dev](https://uminda-portfolio.pages.dev)
+- Email: `contact@uhadev.com`
+- GitHub: [@Spyboss](https://github.com/Spyboss)

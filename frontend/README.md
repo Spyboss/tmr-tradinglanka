@@ -1,160 +1,81 @@
-# 🎨 TMR Trading Lanka Frontend
+# Frontend SPA – TMR Trading Lanka
 
-**Modern React frontend for the TMR Trading Lanka Business Management System**
+React + Vite single-page application for dealership operations.
 
-[![React](https://img.shields.io/badge/react-18.2.0-blue.svg)](https://reactjs.org/)
-[![Vite](https://img.shields.io/badge/vite-5.1.4-purple.svg)](https://vitejs.dev/)
-[![TailwindCSS](https://img.shields.io/badge/tailwindcss-3.4.1-blue.svg)](https://tailwindcss.com/)
-[![Ant Design](https://img.shields.io/badge/antd-5.15.1-blue.svg)](https://ant.design/)
+## Highlights
 
-## 🌟 Overview
+- **Authenticated workspace** – React Router + context-driven auth; Ant Design layout tuned for desktop workflows.
+- **Modules** – Dashboard, bills, inventory, quotations/invoices, admin branding, verification prompts, user profile/preferences.
+- **Styling** – TailwindCSS utility styling with Ant Design components and custom theming.
+- **API client** – Axios instance (`src/config/apiClient.js`) injects tokens, handles refresh, and normalises errors.
 
-A modern, responsive React application that provides an intuitive interface for managing motorcycle dealership operations. Built with cutting-edge technologies and designed for optimal user experience across all devices.
-
-## ✨ Key Features
-
-### 🎯 **User Experience**
-- **Responsive Design** - Optimized for desktop, tablet, and mobile
-- **Dark/Light Themes** - Consistent theming with user preferences
-- **Real-time Updates** - Live data synchronization
-- **Accessibility** - WCAG compliant interface design
-
-### 🏢 **Business Modules**
-- **Dashboard** - Comprehensive overview with quick actions
-- **Sales Management** - Bill creation, editing, and tracking
-- **Inventory Control** - Real-time stock management
-- **Quotation System** - Professional estimates and invoices
-- **Reporting** - Advanced analytics and PDF generation
-
-### 🔐 **Security & Auth**
-- **JWT Authentication** - Secure token-based authentication
-- **Role-based Access** - Granular permission controls
-- **Session Management** - Automatic token refresh
-- **Protected Routes** - Secure navigation system
-
-## 🛠️ Technology Stack
-
-- **Framework**: React 18 with functional components and hooks
-- **Build Tool**: Vite for fast development and optimized builds
-- **Styling**: TailwindCSS for utility-first styling
-- **UI Components**: Ant Design for professional components
-- **Routing**: React Router DOM for client-side navigation
-- **State Management**: React Context API for global state
-- **HTTP Client**: Axios for API communication
-- **Notifications**: React Hot Toast for user feedback
-
-## 🚀 Quick Start
-
-### Prerequisites
-
-- **Node.js** 18+
-- **npm** or **yarn**
-
-### Development Setup
-
-1. **Navigate to frontend**
-   ```bash
-   cd frontend
-   ```
-
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
-
-3. **Environment setup**
-   ```bash
-   # Create .env file
-   echo "VITE_API_URL=http://localhost:8080" > .env
-   ```
-
-4. **Start development server**
-   ```bash
-   npm run dev
-   ```
-
-The application will be available at `http://localhost:5173`
-
-## 📁 Project Structure
+## Directory Structure
 
 ```
 frontend/
-├── public/                 # Static assets
-│   ├── _headers           # Cloudflare headers
-│   ├── _redirects         # Cloudflare redirects
-│   └── robots.txt         # SEO configuration
 ├── src/
-│   ├── components/        # Reusable UI components
-│   │   ├── Navbar.jsx     # Navigation component
-│   │   ├── ProtectedRoute.jsx
-│   │   └── ...
-│   ├── pages/             # Page components
-│   │   ├── Dashboard.jsx  # Main dashboard
-│   │   ├── auth/          # Authentication pages
-│   │   ├── Inventory/     # Inventory management
-│   │   └── ...
-│   ├── contexts/          # React contexts
-│   │   ├── AuthContext.jsx
-│   │   └── ThemeContext.jsx
-│   ├── services/          # API services
-│   │   └── api.js         # Axios configuration
-│   ├── config/            # Configuration files
-│   └── tests/             # Test files
-├── tailwind.config.js     # TailwindCSS configuration
-├── vite.config.js         # Vite configuration
-└── package.json           # Dependencies and scripts
+│   ├── pages/          # Feature pages (bills, inventory, quotations, admin, auth)
+│   ├── components/     # Reusable UI (navigation, protected routes, forms)
+│   ├── contexts/       # Auth & theme providers
+│   ├── services/       # API wrappers per module
+│   ├── config/         # API client configuration
+│   └── index.css       # Tailwind base styles
+├── public/             # Static assets, Cloudflare headers/redirects
+├── vite.config.js
+└── tailwind.config.js
 ```
 
-## 🌐 Production Deployment
-
-### Cloudflare Pages
-
-The frontend is deployed on Cloudflare Pages with automatic deployments from GitHub.
-
-**Build Configuration:**
-- **Build Command**: `npm run build`
-- **Build Directory**: `dist`
-- **Node Version**: 18
-
-**Environment Variables:**
-```env
-VITE_API_URL=https://tmr-production.up.railway.app
-VITE_APP_NAME=TMR Trading Lanka
-```
-
-### Performance Optimizations
-
-- **Code Splitting** - Automatic route-based splitting
-- **Tree Shaking** - Unused code elimination
-- **Asset Optimization** - Compressed images and fonts
-- **CDN Delivery** - Global content distribution
-
-## 🎨 Theming & Styling
-
-### TailwindCSS Configuration
-
-The project uses a custom TailwindCSS configuration with:
-- **Dark mode support** - Class-based theme switching
-- **Custom color palette** - Brand-consistent colors
-- **Responsive breakpoints** - Mobile-first design
-- **Component utilities** - Reusable style patterns
-
-### Ant Design Integration
-
-- **Theme customization** - Consistent with brand colors
-- **Dark mode support** - Automatic theme switching
-- **Component overrides** - Custom styling for specific needs
-
-## 🧪 Testing
+## Setup
 
 ```bash
-# Run tests (when configured)
-npm run test
-
-# Lint code
-npm run lint
+cd frontend
+npm install
+cp .env.example .env
+npm run dev
 ```
 
-## 📄 License
+- SPA served at `http://localhost:5173`.
+- Point `VITE_API_URL` to the backend (`http://localhost:8080` locally or `/api` behind Cloudflare proxy).
 
-MIT - see [LICENSE](../LICENSE) for details.
+## Scripts
+
+| Command | Description |
+| --- | --- |
+| `npm run dev` | Start Vite dev server. |
+| `npm run build` | Production build to `dist/`. |
+| `npm run build:prod` | Production build with `NODE_ENV=production`. |
+| `npm run preview` | Preview built assets locally. |
+| `npm run test` | Placeholder (manual QA currently). |
+| `npm run lint` | Placeholder. |
+
+## Environment Variables
+
+Defined at build time. See [`../docs/setup/environment.md`](../docs/setup/environment.md) for complete reference.
+
+```env
+VITE_API_URL=http://localhost:8080
+VITE_APP_NAME=TMR Trading Lanka
+VITE_APP_DESCRIPTION=Motorcycle dealership ERP for sales, inventory, and quotations
+```
+
+## Auth Flow
+
+1. Login form posts to `/api/auth/login`.
+2. Access token stored in memory; refresh cookie handled automatically by backend.
+3. `ProtectedRoute` component checks auth context and redirects to `/login` as needed.
+4. API client attaches Bearer token and retries refresh flow on 401 responses.
+
+## UI Considerations
+
+- Dashboard summarises bills, inventory status, and recent activity.
+- Forms reuse Ant Design components with Tailwind utility classes for layout.
+- Branding context fetches `/api/branding` post-authentication to update titles, logos, and PDF previews.
+- Dark mode leverages Tailwind's `class` strategy combined with Ant Design theme tokens.
+
+## Deployment
+
+- Built via `npm run build` and deployed to Cloudflare Pages (`frontend/dist`).
+- `_redirects` file proxies `/api/*` to the Railway backend when configured.
+- Zero Trust protects preview deployments; production remains public for staff.
+
+Refer to [`../docs/setup/deployment.md`](../docs/setup/deployment.md) for platform-specific instructions.
