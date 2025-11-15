@@ -3,7 +3,7 @@ import { Form, Input, Select, Button, DatePicker, InputNumber, Switch, message, 
 import { useNavigate } from 'react-router-dom';
 import apiClient from '../config/apiClient';
 import toast from 'react-hot-toast';
-import { getAvailableBikesByModel, getInventory } from '../services/inventoryService';
+import { getAvailableBikesByModel, getInventory, addToInventory } from '../services/inventoryService';
 
 const { Option } = Select;
 
@@ -235,14 +235,24 @@ const BillGeneratorUnified = () => {
           content: 'Do you want to add this bike to inventory now?',
           okText: 'Yes',
           cancelText: 'No',
-          onOk: () => {
-            navigate('/inventory/add', {
-              state: {
-                bikeModelId: selectedModel._id,
-                motorNumber: values.motor_number,
-                chassisNumber: values.chassis_number
-              }
-            });
+          onOk: async () => {
+            const billDateISO = billData.billDate || new Date().toISOString();
+            const inventoryPayload = {
+              bikeModelId: selectedModel._id,
+              motorNumber: values.motor_number,
+              chassisNumber: values.chassis_number,
+              status: 'sold',
+              dateAdded: billDateISO,
+              dateSold: billDateISO,
+              notes: 'Auto-added from bill creation'
+            };
+
+            const created = await addToInventory(inventoryPayload);
+            try {
+              await apiClient.put(`/bills/${billId}`, { inventoryItemId: created._id || created.id });
+            } catch (_) {}
+            toast.success('Bike added to inventory as SOLD');
+            navigate(`/bills/${billId}`);
           },
           onCancel: () => navigate(`/bills/${billId}`)
         });
