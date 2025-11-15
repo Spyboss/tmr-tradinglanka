@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Form, Input, Button, Select, DatePicker, message, Spin, Card } from 'antd';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { addToInventory } from '../../services/inventoryService';
 import { getAllBikeModels } from '../../services/bikeModelService';
 
@@ -13,10 +13,25 @@ const AddInventoryItem = () => {
   const [submitting, setSubmitting] = useState(false);
   const [bikeModels, setBikeModels] = useState([]);
   const [selectedModel, setSelectedModel] = useState(null);
+  const location = useLocation();
 
   useEffect(() => {
     fetchBikeModels();
   }, []);
+
+  useEffect(() => {
+    // Prefill from navigation state if present
+    if (location.state) {
+      const { bikeModelId, motorNumber, chassisNumber } = location.state || {};
+      const values = {};
+      if (bikeModelId) values.bikeModelId = bikeModelId;
+      if (motorNumber) values.motorNumber = motorNumber;
+      if (chassisNumber) values.chassisNumber = chassisNumber;
+      if (Object.keys(values).length > 0) {
+        form.setFieldsValue(values);
+      }
+    }
+  }, [location.state]);
 
   const fetchBikeModels = async () => {
     try {

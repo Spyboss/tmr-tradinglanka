@@ -26,13 +26,13 @@ export default function Dashboard() {
               to="/bills/new"
               className="inline-block px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 dark:hover:bg-green-500 text-center"
             >
-              Standard Bill
+              Create Bill
             </Link>
             <Link
-              to="/bills/new-with-inventory"
+              to="/bills/new"
               className="inline-block px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 dark:hover:bg-green-400 text-center"
             >
-              Bill with Inventory
+              Create Bill
             </Link>
           </div>
         </div>

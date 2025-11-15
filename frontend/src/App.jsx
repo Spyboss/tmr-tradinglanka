@@ -9,6 +9,7 @@ import BillView from './pages/BillView';
 import Dashboard from './pages/Dashboard';
 import BillGenerator from './components/BillGenerator';
 import BillGeneratorWithInventory from './components/BillGeneratorWithInventory';
+import BillGeneratorUnified from './components/BillGeneratorUnified';
 import BillConversion from './components/BillConversion';
 import BillEdit from './pages/BillEdit';
 import Login from './pages/auth/Login';
@@ -50,6 +51,7 @@ const ProtectedBatchAddInventory = () => <ProtectedRoute><BatchAddInventory /></
 const ProtectedEditInventoryItem = () => <ProtectedRoute><EditInventoryItem /></ProtectedRoute>;
 const ProtectedInventoryReport = () => <ProtectedRoute><InventoryReport /></ProtectedRoute>;
 const ProtectedBillGeneratorWithInventory = () => <ProtectedRoute><BillGeneratorWithInventory /></ProtectedRoute>;
+const ProtectedBillGeneratorUnified = () => <ProtectedRoute><BillGeneratorUnified /></ProtectedRoute>;
 const ProtectedBikeModelList = () => <ProtectedRoute><BikeModelList /></ProtectedRoute>;
 const ProtectedBikeModelForm = () => <ProtectedRoute><BikeModelForm /></ProtectedRoute>;
 const ProtectedQuotationGenerator = () => <ProtectedRoute><QuotationGenerator /></ProtectedRoute>;
@@ -106,8 +108,8 @@ const AppContent = () => {
             {/* Protected routes */}
             <Route path="/" element={<ProtectedDashboard />} />
             <Route path="/bills" element={<ProtectedBillList />} />
-            <Route path="/bills/new" element={<ProtectedBillGenerator />} />
-            <Route path="/bills/new-with-inventory" element={<ProtectedBillGeneratorWithInventory />} />
+            <Route path="/bills/new" element={<ProtectedBillGeneratorUnified />} />
+            <Route path="/bills/new-with-inventory" element={<ProtectedBillGeneratorUnified />} />
             <Route path="/bills/:id" element={<ProtectedBillView />} />
             <Route path="/bills/:id/convert" element={<ProtectedBillConversion />} />
             <Route path="/bills/:id/edit" element={<ProtectedBillEdit />} />
