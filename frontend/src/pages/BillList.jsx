@@ -374,13 +374,13 @@ const BillList = () => {
               icon={<PlusOutlined />}
               onClick={() => navigate('/bills/new')}
             >
-              Standard Bill
+              Create Bill
             </Button>
             <Button
               icon={<PlusOutlined />}
-              onClick={() => navigate('/bills/new-with-inventory')}
+              onClick={() => navigate('/bills/new')}
             >
-              Bill with Inventory
+              Create Bill
             </Button>
           </Space>
           <Button
