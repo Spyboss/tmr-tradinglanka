@@ -28,12 +28,6 @@ export default function Dashboard() {
             >
               Create Bill
             </Link>
-            <Link
-              to="/bills/new"
-              className="inline-block px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 dark:hover:bg-green-400 text-center"
-            >
-              Create Bill
-            </Link>
           </div>
         </div>
 
