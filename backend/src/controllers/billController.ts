@@ -7,6 +7,8 @@ import { AuthRequest } from '../auth/auth.middleware.js';
 import { AppError } from '../middleware/errorHandler.js';
 import logger from '../utils/logger.js';
 
+const escapeRegExp = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 /**
  * Create a new bill with inventory integration
  * @route POST /api/bills
@@ -55,6 +57,36 @@ export const createBill = async (req: AuthRequest, res: Response, next: NextFunc
       billData.bikePrice = bikeModel.price;
       billData.isEbicycle = bikeModel.is_ebicycle;
       billData.isTricycle = bikeModel.is_tricycle;
+    }
+
+    // If no explicit inventory item provided, try auto-link by motor+chassis
+    if (!billData.inventoryItemId && billData.motorNumber && billData.chassisNumber) {
+      const motor = String(billData.motorNumber).trim();
+      const chassis = String(billData.chassisNumber).trim();
+
+      if (motor && chassis) {
+        const motorRegex = new RegExp(`^${escapeRegExp(motor)}$`, 'i');
+        const chassisRegex = new RegExp(`^${escapeRegExp(chassis)}$`, 'i');
+
+        const matchedItem = await BikeInventory.findOne({
+          motorNumber: motorRegex,
+          chassisNumber: chassisRegex,
+          status: BikeStatus.AVAILABLE
+        }).session(session);
+
+        if (matchedItem) {
+          const bikeModel = await mongoose.model('BikeModel').findById(matchedItem.bikeModelId).session(session);
+          if (bikeModel) {
+            billData.inventoryItemId = matchedItem._id;
+            billData.bikeModel = bikeModel.name;
+            billData.motorNumber = matchedItem.motorNumber;
+            billData.chassisNumber = matchedItem.chassisNumber;
+            billData.bikePrice = bikeModel.price;
+            billData.isEbicycle = bikeModel.is_ebicycle;
+            billData.isTricycle = bikeModel.is_tricycle;
+          }
+        }
+      }
     }
     
     // Determine vehicle type and set appropriate flags

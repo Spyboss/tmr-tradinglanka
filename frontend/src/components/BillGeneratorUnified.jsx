@@ -3,7 +3,7 @@ import { Form, Input, Select, Button, DatePicker, InputNumber, Switch, message, 
 import { useNavigate } from 'react-router-dom';
 import apiClient from '../config/apiClient';
 import toast from 'react-hot-toast';
-import { getAvailableBikesByModel, getInventory, addToInventory } from '../services/inventoryService';
+import { getAvailableBikesByModel, getInventory, addToInventory, updateInventory } from '../services/inventoryService';
 
 const { Option } = Select;
 
@@ -228,7 +228,9 @@ const BillGeneratorUnified = () => {
       const response = await apiClient.post('/bills', billData);
       toast.success('Bill generated successfully');
 
-      const billId = response._id || response.id;
+      const createdBill = response;
+      const billId = createdBill._id || createdBill.id;
+      const isCompleted = (createdBill.status || '').toLowerCase() === 'completed';
       if (!selectedInventoryItem) {
         Modal.confirm({
           title: 'Add to Inventory?',
@@ -236,22 +238,52 @@ const BillGeneratorUnified = () => {
           okText: 'Yes',
           cancelText: 'No',
           onOk: async () => {
-            const billDateISO = billData.billDate || new Date().toISOString();
-            const inventoryPayload = {
-              bikeModelId: selectedModel._id,
-              motorNumber: values.motor_number,
-              chassisNumber: values.chassis_number,
-              status: 'sold',
-              dateAdded: billDateISO,
-              dateSold: billDateISO,
-              notes: 'Auto-added from bill creation'
-            };
+            const motor = values.motor_number;
+            const chassis = values.chassis_number;
+            let linked = false;
 
-            const created = await addToInventory(inventoryPayload);
             try {
-              await apiClient.put(`/bills/${billId}`, { inventoryItemId: created._id || created.id });
+              const [byMotor, byChassis] = await Promise.all([
+                motor ? getInventory({ search: motor, limit: 10 }) : Promise.resolve(null),
+                chassis ? getInventory({ search: chassis, limit: 10 }) : Promise.resolve(null)
+              ]);
+
+              const itemsMotor = byMotor?.items || byMotor?.data?.items || [];
+              const itemsChassis = byChassis?.items || byChassis?.data?.items || [];
+
+              const lc = (s) => (s || '').toString().toLowerCase();
+              const intersection = itemsMotor.filter(m => itemsChassis.some(c => lc(c._id||c.id)===lc(m._id||m.id)))
+                .filter(i => lc(i.motorNumber) === lc(motor) && lc(i.chassisNumber) === lc(chassis));
+
+              const preferred = intersection.find(i => (i.status || '').toLowerCase() === 'available') || intersection[0];
+              if (preferred) {
+                await apiClient.put(`/bills/${billId}`, { inventoryItemId: preferred._id || preferred.id });
+                if (isCompleted && (preferred.status || '').toLowerCase() !== 'sold') {
+                  await updateInventory(preferred._id || preferred.id, { status: 'sold', dateSold: new Date().toISOString(), billId });
+                }
+                toast.success('Linked to existing inventory item');
+                linked = true;
+              }
             } catch (_) {}
-            toast.success('Bike added to inventory as SOLD');
+
+            if (!linked) {
+              const billDateISO = billData.billDate || new Date().toISOString();
+              const inventoryPayload = {
+                bikeModelId: selectedModel._id,
+                motorNumber: motor,
+                chassisNumber: chassis,
+                status: 'sold',
+                dateAdded: billDateISO,
+                dateSold: billDateISO,
+                notes: 'Auto-added from bill creation'
+              };
+
+              const created = await addToInventory(inventoryPayload);
+              try {
+                await apiClient.put(`/bills/${billId}`, { inventoryItemId: created._id || created.id });
+              } catch (_) {}
+              toast.success('Bike added to inventory as SOLD');
+            }
             navigate(`/bills/${billId}`);
           },
           onCancel: () => navigate(`/bills/${billId}`)
