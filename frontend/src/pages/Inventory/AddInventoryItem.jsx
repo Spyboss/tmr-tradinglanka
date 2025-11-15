@@ -149,6 +149,7 @@ const AddInventoryItem = () => {
             <Select placeholder="Select status">
               <Option value="available">Available</Option>
               <Option value="reserved">Reserved</Option>
+              <Option value="sold">Sold</Option>
               <Option value="damaged">Damaged</Option>
             </Select>
           </Form.Item>
