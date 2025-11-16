@@ -459,18 +459,18 @@ const generateFooter = (doc: PDFKit.PDFDocument, branding?: any): void => {
   doc
     .fillColor('#000000')
     .fontSize(10)
-    .text('Thank you for your business!', 50, 700, { align: 'center', width: 500 });
+    .text('Thank you for your business!', 50, 740, { align: 'center', width: 500 });
 
   // Contact/footer info in muted gray beneath
   doc
     .fillColor('#6b7280')
     .fontSize(9)
-    .text(branding?.footerNote || '', 50, 716, { align: 'center', width: 500 });
+    .text(branding?.footerNote || '', 50, 758, { align: 'center', width: 500 });
 
   doc
     .fillColor('#6b7280')
     .fontSize(9)
-    .text(branding?.addressLine2 || '', 50, 730, { align: 'center', width: 500 });
+    .text(branding?.addressLine2 || '', 50, 772, { align: 'center', width: 500 });
 };
 
 // Load branding document with safe defaults
