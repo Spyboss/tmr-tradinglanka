@@ -100,10 +100,6 @@ const BillList = () => {
   }
 
   const handleDelete = async (billId) => {
-    if (!window.confirm('Are you sure you want to delete this bill?')) {
-      return
-    }
-
     try {
       setLoading(true)
       await apiClient.delete(`/bills/${billId}`)
