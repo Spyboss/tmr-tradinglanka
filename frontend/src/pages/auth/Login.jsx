@@ -26,7 +26,6 @@ const Login = () => {
         setError('Failed to login. Please check your credentials.');
         toast.error('Failed to login. Please check your credentials.');
       } else {
-        toast.success('Signed in successfully');
       }
     } catch (err) {
       setError(err.message || 'An error occurred during login');
