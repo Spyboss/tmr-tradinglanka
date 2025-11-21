@@ -78,7 +78,8 @@ export const generateQuotationPDF = async (quotation: IQuotation): Promise<Buffe
             brandPartner: b?.brandPartner || 'TMR Trading Lanka (Pvt) Ltd',
             primaryColor: b?.primaryColor || '#1e90ff',
             addressLine1: b?.addressLine1 || '',
-            addressLine2: b?.addressLine2 || ''
+            addressLine2: b?.addressLine2 || '',
+            footerNote: b?.footerNote || ''
           };
         } catch {
           return {
@@ -86,7 +87,8 @@ export const generateQuotationPDF = async (quotation: IQuotation): Promise<Buffe
             brandPartner: 'TMR Trading Lanka (Pvt) Ltd',
             primaryColor: '#1e90ff',
             addressLine1: '',
-            addressLine2: ''
+            addressLine2: '',
+            footerNote: ''
           };
         }
       };
@@ -100,22 +102,17 @@ export const generateQuotationPDF = async (quotation: IQuotation): Promise<Buffe
            .fillColor(branding.primaryColor)
            .text(branding.brandPartner, 50, 50);
 
-        const dealerHeader = `Authorized Dealer: ${branding.dealerName}`;
         const addressLine1 = branding.addressLine1 || '';
-        const addressLine2 = branding.addressLine2 || '';
+        const dealerHeader = `Authorized Dealer: ${branding.dealerName}${addressLine1 ? ` - ${addressLine1}` : ''}`;
 
         doc.fontSize(12)
            .font('Helvetica')
            .fillColor('#000000')
            .text(dealerHeader, 50, 75);
 
-        let contactY = 90;
-        if (addressLine1) {
-          doc.text(addressLine1, 50, contactY);
-          contactY += 15; // line spacing
-        }
-        if (addressLine2) {
-          doc.text(addressLine2, 50, contactY);
+        const footerNote = (branding as any).footerNote || '';
+        if (footerNote) {
+          doc.text(footerNote, 50, 90);
         }
 
         // Document title
