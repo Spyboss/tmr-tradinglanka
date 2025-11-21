@@ -174,7 +174,7 @@ const InventoryList = () => {
               onClick={() => navigate(`/inventory/edit/${record._id}`)}
             />
           </Tooltip>
-          {isAdmin() && record.status !== 'sold' && (
+          {isAdmin() && (
             <Tooltip title="Delete">
               <Button 
                 icon={<DeleteOutlined />} 
@@ -282,7 +282,7 @@ const InventoryList = () => {
                 </div>
                 <div className="mt-3 flex justify-end gap-2">
                   <Button size="small" onClick={() => navigate(`/inventory/edit/${item._id}`)}>Edit</Button>
-                  {isAdmin() && item.status !== 'sold' && (
+                  {isAdmin() && (
                     <Button size="small" danger onClick={() => showDeleteModal(item)}>Delete</Button>
                   )}
                 </div>

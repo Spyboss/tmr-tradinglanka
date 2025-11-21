@@ -33,12 +33,16 @@ describe('DELETE /api/inventory/:id', () => {
     expect(res.status).toBe(404)
   })
 
-  it('blocks deletion of sold item', async () => {
+  it('allows soft-delete of sold item', async () => {
+    const updateSpy = vi.spyOn(BikeInventory, 'findByIdAndUpdate').mockResolvedValue({} as any)
     vi.spyOn(BikeInventory, 'findById').mockResolvedValue({ _id: 'x', status: BikeStatus.SOLD } as any)
     const res = await request(app)
       .delete('/api/inventory/64b3f2f0f0f0f0f0f0f0f0f0')
       .set('Authorization', 'Bearer test')
-    expect(res.status).toBe(400)
+      .send({ reason: 'Cleanup sold entry' })
+    expect(res.status).toBe(200)
+    expect(res.body.softDeleted).toBe(true)
+    expect(updateSpy).toHaveBeenCalled()
   })
 
   it('soft-deletes available item and records reason', async () => {

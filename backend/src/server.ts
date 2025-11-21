@@ -302,8 +302,9 @@ if (args.includes('--create-admin')) {
       process.exit(1);
     }
   })();
+} else if (process.env.VITEST_WORKER_ID || process.env.NODE_ENV === 'test') {
+  
 } else {
-  // Start server normally
   const server = app.listen(port, async () => {
     try {
       // Connect to database

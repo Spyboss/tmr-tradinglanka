@@ -339,9 +339,7 @@ export const deleteInventory = async (req: Request, res: Response, next: NextFun
       return next(new AppError('Inventory item not found', 404));
     }
 
-    if (inventoryItem.status === BikeStatus.SOLD) {
-      return next(new AppError('Cannot delete a sold inventory item', 400));
-    }
+            
 
     const deleteReasonHeader = (req.headers['x-delete-reason'] as string | undefined) || undefined;
     const reasonBody = (req as any).body?.reason as string | undefined;
