@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import request from 'supertest'
-import app from '../server'
+import app from '../server.js'
 import BikeInventory, { BikeStatus } from '../models/BikeInventory.js'
 import User, { UserRole } from '../models/User.js'
 
@@ -67,21 +67,28 @@ describe('DELETE /api/inventory/:id', () => {
   })
 
   it('applies CSRF allowlist in production', async () => {
-    process.env.NODE_ENV = 'production'
-    // Allowed origin
-    app.locals.allowedOrigins = ['http://allowed.example']
-    vi.spyOn(BikeInventory, 'findById').mockResolvedValue({ _id: 'x', status: BikeStatus.AVAILABLE } as any)
-    let res = await request(app)
-      .delete('/api/inventory/64b3f2f0f0f0f0f0f0f0f0f0')
-      .set('Authorization', 'Bearer test')
-      .set('Origin', 'http://not-allowed.example')
-    expect(res.status).toBe(403)
+    const originalNodeEnv = process.env.NODE_ENV
+    const originalAllowedOrigins = app.locals.allowedOrigins
+    try {
+      process.env.NODE_ENV = 'production'
+      // Allowed origin
+      app.locals.allowedOrigins = ['http://allowed.example']
+      vi.spyOn(BikeInventory, 'findById').mockResolvedValue({ _id: 'x', status: BikeStatus.AVAILABLE } as any)
+      vi.spyOn(BikeInventory, 'findByIdAndUpdate').mockResolvedValue({} as any)
+      let res = await request(app)
+        .delete('/api/inventory/64b3f2f0f0f0f0f0f0f0f0f0')
+        .set('Authorization', 'Bearer test')
+        .set('Origin', 'http://not-allowed.example')
+      expect(res.status).toBe(403)
 
-    res = await request(app)
-      .delete('/api/inventory/64b3f2f0f0f0f0f0f0f0f0f0')
-      .set('Authorization', 'Bearer test')
-      .set('Origin', 'http://allowed.example')
-    expect(res.status).toBe(200)
-    process.env.NODE_ENV = 'test'
+      res = await request(app)
+        .delete('/api/inventory/64b3f2f0f0f0f0f0f0f0f0f0')
+        .set('Authorization', 'Bearer test')
+        .set('Origin', 'http://allowed.example')
+      expect(res.status).toBe(200)
+    } finally {
+      process.env.NODE_ENV = originalNodeEnv
+      app.locals.allowedOrigins = originalAllowedOrigins
+    }
   })
 })

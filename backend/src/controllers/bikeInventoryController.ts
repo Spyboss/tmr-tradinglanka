@@ -302,8 +302,7 @@ export const deleteInventory = async (req: Request, res: Response, next: NextFun
         ? req.app.locals.allowedOrigins
         : [
             'https://tmr-production.up.railway.app',
-            'https://tmr-tradinglanka.pages.dev',
-            'http://localhost:5173'
+            'https://tmr-tradinglanka.pages.dev'
           ];
       const originHeader = req.headers.origin as string | undefined;
       const refererHeader = req.headers.referer as string | undefined;
@@ -323,7 +322,6 @@ export const deleteInventory = async (req: Request, res: Response, next: NextFun
         return next(new AppError('Forbidden', 403));
       }
     }
-
     const featureEnabled = (process.env.INVENTORY_DELETE_ENABLED ?? 'true').toLowerCase() !== 'false';
     if (!featureEnabled) {
       return next(new AppError('Inventory deletion is disabled', 403));
