@@ -17,6 +17,10 @@ export interface IBikeInventory extends Document {
   billId?: mongoose.Types.ObjectId;
   notes?: string;
   addedBy: mongoose.Types.ObjectId;
+  isDeleted?: boolean;
+  deletedAt?: Date | null;
+  deletedBy?: mongoose.Types.ObjectId | null;
+  deleteReason?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -65,6 +69,24 @@ const BikeInventorySchema = new Schema<IBikeInventory>({
     type: Schema.Types.ObjectId,
     ref: 'User',
     required: true
+  },
+  isDeleted: {
+    type: Boolean,
+    default: false
+  },
+  deletedAt: {
+    type: Date,
+    default: null
+  },
+  deletedBy: {
+    type: Schema.Types.ObjectId,
+    ref: 'User',
+    default: null
+  },
+  deleteReason: {
+    type: String,
+    default: null,
+    trim: true
   }
 }, {
   timestamps: true,

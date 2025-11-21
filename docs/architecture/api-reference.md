@@ -81,7 +81,7 @@ All endpoints are prefixed with `/api`. JSON responses follow a consistent shape
 | POST | `/api/inventory` | Authenticated | Add a single bike. Validates bike model existence and uniqueness of motor/chassis numbers. |
 | POST | `/api/inventory/batch` | Authenticated | Bulk insert array of bikes. |
 | PUT | `/api/inventory/:id` | Authenticated | Update status, notes, model reference, etc. |
-| DELETE | `/api/inventory/:id` | Admin | Remove inventory entry. |
+| DELETE | `/api/inventory/:id` | Admin | Soft-delete inventory entry (feature-flagged). Blocks sold items. CSRF-protected in production via Origin/Referer allowlist. Optional `{ reason }` body. |
 | GET | `/api/inventory/summary` | Authenticated | Aggregated counts by model and status. |
 | GET | `/api/inventory/analytics` | Authenticated | Extended statistics for dashboards (turnover, stock ageing). |
 | GET | `/api/inventory/available/:modelId` | Authenticated | Return available bikes for a model. |

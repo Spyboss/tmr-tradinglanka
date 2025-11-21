@@ -14,7 +14,7 @@ Two primary roles exist today: **Admin** and **User**. Deleted accounts are pseu
 | Manage bills | ✅ (all) | ✅ (own records only) |
 | Generate bill PDFs | ✅ | ✅ (own records only) |
 | Manage inventory | ✅ (full access) | ✅ (entries created by user) |
-| Delete inventory entries | ✅ | ❌ |
+| Delete inventory entries | ✅ (soft-delete, audited) | ❌ |
 | Inventory analytics | ✅ | ✅ (filtered) |
 | Manage quotations/invoices | ✅ (all) | ✅ (own records only) |
 | Convert quotation to invoice | ✅ (all) | ✅ (own records only) |

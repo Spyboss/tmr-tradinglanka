@@ -29,7 +29,7 @@ export const getAllInventory = async (req: AuthRequest, res: Response, next: Nex
     const skip = (pageNum - 1) * limitNum;
 
     // Build filter query
-    const filter: any = {};
+    const filter: any = { isDeleted: { $ne: true } };
 
     // Filter by owner if not admin
     const user = await req.app.locals.models?.User.findById(req.user?.id);
@@ -296,13 +296,45 @@ export const updateInventory = async (req: Request, res: Response, next: NextFun
  */
 export const deleteInventory = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
+    const isProd = process.env.NODE_ENV === 'production';
+    if (isProd) {
+      const allowed: string[] = Array.isArray(req.app?.locals?.allowedOrigins) && req.app.locals.allowedOrigins.length
+        ? req.app.locals.allowedOrigins
+        : [
+            'https://tmr-production.up.railway.app',
+            'https://tmr-tradinglanka.pages.dev',
+            'http://localhost:5173'
+          ];
+      const originHeader = req.headers.origin as string | undefined;
+      const refererHeader = req.headers.referer as string | undefined;
+      const parse = (value?: string): string | null => {
+        if (!value) return null;
+        try {
+          if (/^https?:\/\//i.test(value)) {
+            return new URL(value).origin;
+          }
+          return value;
+        } catch {
+          return null;
+        }
+      };
+      const candidate = parse(originHeader) || parse(refererHeader);
+      if (!candidate || !allowed.includes(candidate)) {
+        return next(new AppError('Forbidden', 403));
+      }
+    }
+
+    const featureEnabled = (process.env.INVENTORY_DELETE_ENABLED ?? 'true').toLowerCase() !== 'false';
+    if (!featureEnabled) {
+      return next(new AppError('Inventory deletion is disabled', 403));
+    }
+
     const { id } = req.params;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return next(new AppError('Invalid inventory ID', 400));
     }
 
-    // Check if the item is sold
     const inventoryItem = await BikeInventory.findById(id);
 
     if (!inventoryItem) {
@@ -313,9 +345,21 @@ export const deleteInventory = async (req: Request, res: Response, next: NextFun
       return next(new AppError('Cannot delete a sold inventory item', 400));
     }
 
-    await BikeInventory.findByIdAndDelete(id);
+    const deleteReasonHeader = (req.headers['x-delete-reason'] as string | undefined) || undefined;
+    const reasonBody = (req as any).body?.reason as string | undefined;
+    const reason = reasonBody ?? deleteReasonHeader ?? null;
 
-    res.status(200).json({ message: 'Inventory item deleted successfully' });
+    await BikeInventory.findByIdAndUpdate(
+      id,
+      {
+        isDeleted: true,
+        deletedAt: new Date(),
+        deletedBy: (req as any).user?.id ? new mongoose.Types.ObjectId((req as any).user.id) : null,
+        deleteReason: reason
+      }
+    );
+
+    res.status(200).json({ message: 'Inventory item deleted successfully', softDeleted: true });
   } catch (error) {
     logger.error(`Error deleting inventory: ${(error as Error).message}`);
     next(new AppError(`Failed to delete inventory: ${(error as Error).message}`, 500));
@@ -330,7 +374,7 @@ export const deleteInventory = async (req: Request, res: Response, next: NextFun
 export const getInventorySummary = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     // Build filter for ownership
-    const matchStage: any = {};
+    const matchStage: any = { isDeleted: { $ne: true } };
     
     // Filter by owner if not admin
     const user = await req.app.locals.models?.User.findById(req.user?.id);
@@ -416,6 +460,7 @@ export const getInventorySummary = async (req: AuthRequest, res: Response, next:
 
     // Get total counts by status
     const statusTotals = await BikeInventory.aggregate([
+      { $match: { isDeleted: { $ne: true } } },
       {
         $group: {
           _id: '$status',
@@ -433,9 +478,7 @@ export const getInventorySummary = async (req: AuthRequest, res: Response, next:
 
     // Calculate total inventory value
     const inventoryValue = await BikeInventory.aggregate([
-      {
-        $match: { status: BikeStatus.AVAILABLE }
-      },
+      { $match: { status: BikeStatus.AVAILABLE, isDeleted: { $ne: true } } },
       {
         $lookup: {
           from: 'bike_models',
@@ -480,7 +523,7 @@ export const getInventoryAnalytics = async (req: AuthRequest, res: Response, nex
     const ninetyDaysAgo = new Date(now.getTime() - (90 * 24 * 60 * 60 * 1000));
 
     // Build filter for ownership
-    const matchStage: any = {};
+    const matchStage: any = { isDeleted: { $ne: true } };
     
     // Filter by owner if not admin
     const user = await req.app.locals.models?.User.findById(req.user?.id);
@@ -596,6 +639,7 @@ export const getInventoryAnalytics = async (req: AuthRequest, res: Response, nex
 
     // Calculate key performance indicators
     const kpis = await BikeInventory.aggregate([
+      { $match: { isDeleted: { $ne: true } } },
       {
         $lookup: {
           from: 'bike_models',
@@ -698,6 +742,7 @@ export const getInventoryAnalytics = async (req: AuthRequest, res: Response, nex
 
     // Enhanced Category breakdown with monthly performance
     const categoryBreakdown = await BikeInventory.aggregate([
+      { $match: { isDeleted: { $ne: true } } },
       {
         $lookup: {
           from: 'bike_models',
@@ -920,7 +965,8 @@ export const getAvailableBikesByModel = async (req: AuthRequest, res: Response, 
     // Build filter query
     const filter: any = {
       bikeModelId: modelId,
-      status: BikeStatus.AVAILABLE
+      status: BikeStatus.AVAILABLE,
+      isDeleted: { $ne: true }
     };
 
     // Filter by owner if not admin
@@ -952,7 +998,7 @@ export const generateInventoryReportPDF = async (req: AuthRequest, res: Response
     const now = new Date();
 
     // Build filter query
-    const filter: any = {};
+    const filter: any = { isDeleted: { $ne: true } };
 
     // Filter by owner if not admin
     const user = await req.app.locals.models?.User.findById(req.user?.id);

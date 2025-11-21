@@ -239,7 +239,8 @@ function getActivityInfo(req: AuthRequest): {
             description: `Deleted inventory item ${inventoryId}`,
             metadata: {
               resourceId: inventoryId,
-              resourceType: 'inventory'
+              resourceType: 'inventory',
+              reason: (body && typeof body === 'object' ? (body as any).reason : undefined) ?? (req.headers['x-delete-reason'] as string | undefined)
             }
           };
         }

@@ -124,9 +124,9 @@ export const updateInventory = async (id, data) => {
  * @param {string} id - Inventory item ID
  * @returns {Promise} - Promise with deletion result
  */
-export const deleteInventory = async (id) => {
+export const deleteInventory = async (id, reason) => {
   try {
-    const response = await apiClient.delete(`/inventory/${id}`);
+    const response = await apiClient.delete(`/inventory/${id}`, reason ? { data: { reason } } : {});
     return response;
   } catch (error) {
     console.error('Error deleting inventory:', error);

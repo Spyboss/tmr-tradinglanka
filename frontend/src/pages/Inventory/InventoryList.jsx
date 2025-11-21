@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Table, Button, Input, Select, Tag, Space, Spin, Tooltip, Modal, message, Skeleton, Card } from 'antd';
 import { SearchOutlined, PlusOutlined, ExportOutlined, ReloadOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
 import { getInventory, deleteInventory } from '../../services/inventoryService';
 import { format } from 'date-fns';
 
@@ -16,6 +17,7 @@ const statusColors = {
 
 const InventoryList = () => {
   const navigate = useNavigate();
+  const { isAdmin } = useAuth();
   const [inventory, setInventory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [pagination, setPagination] = useState({
@@ -31,6 +33,7 @@ const InventoryList = () => {
   });
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
+  const [deleteReason, setDeleteReason] = useState('');
 
   useEffect(() => {
     fetchInventory();
@@ -105,7 +108,7 @@ const InventoryList = () => {
   const handleDelete = async () => {
     try {
       setLoading(true);
-      await deleteInventory(itemToDelete._id);
+      await deleteInventory(itemToDelete._id, deleteReason || undefined);
       message.success('Inventory item deleted successfully');
       fetchInventory();
     } catch (error) {
@@ -115,6 +118,7 @@ const InventoryList = () => {
       setLoading(false);
       setDeleteModalVisible(false);
       setItemToDelete(null);
+      setDeleteReason('');
     }
   };
 
@@ -170,7 +174,7 @@ const InventoryList = () => {
               onClick={() => navigate(`/inventory/edit/${record._id}`)}
             />
           </Tooltip>
-          {record.status !== 'sold' && (
+          {isAdmin() && record.status !== 'sold' && (
             <Tooltip title="Delete">
               <Button 
                 icon={<DeleteOutlined />} 
@@ -278,7 +282,7 @@ const InventoryList = () => {
                 </div>
                 <div className="mt-3 flex justify-end gap-2">
                   <Button size="small" onClick={() => navigate(`/inventory/edit/${item._id}`)}>Edit</Button>
-                  {item.status !== 'sold' && (
+                  {isAdmin() && item.status !== 'sold' && (
                     <Button size="small" danger onClick={() => showDeleteModal(item)}>Delete</Button>
                   )}
                 </div>
@@ -305,6 +309,14 @@ const InventoryList = () => {
             <p><strong className="dark:text-gray-200">Chassis Number:</strong> {itemToDelete.chassisNumber}</p>
           </div>
         )}
+        <div className="mt-4">
+          <Input.TextArea
+            rows={3}
+            placeholder="Optional reason for deletion"
+            value={deleteReason}
+            onChange={(e) => setDeleteReason(e.target.value)}
+          />
+        </div>
       </Modal>
     </div>
   );
