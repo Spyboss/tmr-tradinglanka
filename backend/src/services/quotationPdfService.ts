@@ -75,7 +75,7 @@ export const generateQuotationPDF = async (quotation: IQuotation): Promise<Buffe
           const b = await Branding.findOne({}).lean();
           return {
             dealerName: b?.dealerName || 'TMR Trading Lanka',
-            brandPartner: b?.brandPartner || 'TMR Trading Lanka Pvt Ltd',
+            brandPartner: b?.brandPartner || 'TMR Trading Lanka (Pvt) Ltd',
             primaryColor: b?.primaryColor || '#1e90ff',
             addressLine1: b?.addressLine1 || '',
             addressLine2: b?.addressLine2 || ''
@@ -83,7 +83,7 @@ export const generateQuotationPDF = async (quotation: IQuotation): Promise<Buffe
         } catch {
           return {
             dealerName: 'TMR Trading Lanka',
-            brandPartner: 'TMR Trading Lanka Pvt Ltd',
+            brandPartner: 'TMR Trading Lanka (Pvt) Ltd',
             primaryColor: '#1e90ff',
             addressLine1: '',
             addressLine2: ''
@@ -100,17 +100,22 @@ export const generateQuotationPDF = async (quotation: IQuotation): Promise<Buffe
            .fillColor(branding.primaryColor)
            .text(branding.brandPartner, 50, 50);
 
-        const dealerLine = branding.addressLine1
-          ? `Dealer: ${branding.dealerName} - ${branding.addressLine1}`
-          : `Dealer: ${branding.dealerName}`;
-        const contactLine = branding.addressLine2 || '';
+        const dealerHeader = `Authorized Dealer: ${branding.dealerName}`;
+        const addressLine1 = branding.addressLine1 || '';
+        const addressLine2 = branding.addressLine2 || '';
 
         doc.fontSize(12)
            .font('Helvetica')
            .fillColor('#000000')
-           .text(dealerLine, 50, 75);
-        if (contactLine) {
-          doc.text(contactLine, 50, 90);
+           .text(dealerHeader, 50, 75);
+
+        let contactY = 90;
+        if (addressLine1) {
+          doc.text(addressLine1, 50, contactY);
+          contactY += 15; // line spacing
+        }
+        if (addressLine2) {
+          doc.text(addressLine2, 50, contactY);
         }
 
         // Document title
