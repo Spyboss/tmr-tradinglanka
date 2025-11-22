@@ -147,34 +147,40 @@ export const generateQuotationPDF = async (quotation: IQuotation): Promise<Buffe
         const branding = await loadBranding();
 
         // Company header with optional logo
-        const topY = 40;
+        const topY = 50;
         const leftX = 50;
         const logoBuffer = await loadLogoBuffer((branding as any).logoUrl);
-        const logoWidth = 60;
+        const logoWidth = 70;
         let titleX = leftX;
         if (logoBuffer) {
           try {
             doc.image(logoBuffer, leftX, topY, { width: logoWidth });
-            titleX = leftX + logoWidth + 15;
+            titleX = leftX + logoWidth + 16;
           } catch {}
         }
 
         doc.fontSize(20)
            .font('Helvetica-Bold')
            .fillColor(branding.primaryColor)
-           .text(branding.brandPartner, titleX, topY + 10);
+           .text(branding.brandPartner, titleX, topY);
 
         const addressLine1 = branding.addressLine1 || '';
-        const dealerHeader = `Authorized Dealer: ${branding.dealerName}${addressLine1 ? ` - ${addressLine1}` : ''}`;
+        const addressLine2 = (branding as any).addressLine2 || '';
+        const dealerHeader = `Authorized Dealer: ${branding.dealerName}`;
+        const addressLine = [addressLine1, addressLine2].filter(Boolean).join(', ');
 
+        const lineSpacing = 18;
         doc.fontSize(12)
            .font('Helvetica')
            .fillColor('#000000')
-           .text(dealerHeader, titleX, topY + 35);
+           .text(dealerHeader, titleX, topY + lineSpacing);
+        if (addressLine) {
+          doc.text(addressLine, titleX, topY + (lineSpacing * 2));
+        }
 
         const footerNote = (branding as any).footerNote || '';
         if (footerNote) {
-          doc.text(footerNote, titleX, topY + 50);
+          doc.text(footerNote, titleX, topY + (lineSpacing * 3));
         }
 
         // Document title
