@@ -147,15 +147,16 @@ export const generateQuotationPDF = async (quotation: IQuotation): Promise<Buffe
         const branding = await loadBranding();
 
         // Company header with optional logo
-        const topY = 50;
+        const topY = 40;
         const leftX = 50;
         const logoBuffer = await loadLogoBuffer((branding as any).logoUrl);
-        const logoWidth = 70;
+        const logoWidth = 60;
+        const logoHeight = 24;
         let titleX = leftX;
         if (logoBuffer) {
           try {
-            doc.image(logoBuffer, leftX, topY, { width: logoWidth });
-            titleX = leftX + logoWidth + 16;
+            doc.image(logoBuffer, leftX, topY, { height: logoHeight });
+            titleX = leftX + logoWidth + 15;
           } catch {}
         }
 
@@ -165,22 +166,16 @@ export const generateQuotationPDF = async (quotation: IQuotation): Promise<Buffe
            .text(branding.brandPartner, titleX, topY);
 
         const addressLine1 = branding.addressLine1 || '';
-        const addressLine2 = (branding as any).addressLine2 || '';
-        const dealerHeader = `Authorized Dealer: ${branding.dealerName}`;
-        const addressLine = [addressLine1, addressLine2].filter(Boolean).join(', ');
+        const dealerHeader = `Authorized Dealer: ${branding.dealerName}${addressLine1 ? ` - ${addressLine1}` : ''}`;
 
-        const lineSpacing = 18;
         doc.fontSize(12)
            .font('Helvetica')
            .fillColor('#000000')
-           .text(dealerHeader, titleX, topY + lineSpacing);
-        if (addressLine) {
-          doc.text(addressLine, titleX, topY + (lineSpacing * 2));
-        }
+           .text(dealerHeader, titleX, topY + 26);
 
         const footerNote = (branding as any).footerNote || '';
         if (footerNote) {
-          doc.text(footerNote, titleX, topY + (lineSpacing * 3));
+          doc.text(footerNote, titleX, topY + 44);
         }
 
         // Document title
