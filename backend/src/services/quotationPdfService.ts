@@ -138,51 +138,52 @@ export const generateQuotationPDF = async (quotation: IQuotation): Promise<Buffe
 
       let yPos = 250;
       const lineHeight = 15;
-      const labelWidth = 100;
-      const contentWidth = 400;
+      const labelWidth = 150;
+      const contentStartX = 50 + labelWidth + 10;
+      const contentWidth = 550 - contentStartX;
       const sectionSpacing = 5; // Consistent spacing between fields
       
       doc.fontSize(12).font('Helvetica');
       
       // Customer Name with text wrapping
-      doc.text('Name:', 50, yPos);
+      doc.text('Name:', 50, yPos, { width: labelWidth });
       const nameLines = wrapText(quotation.customerName, contentWidth, 12);
       nameLines.forEach((line, index) => {
-        doc.text(line, 150, yPos + (index * lineHeight));
+        doc.text(line, contentStartX, yPos + (index * lineHeight));
       });
       yPos += Math.max(nameLines.length * lineHeight, lineHeight) + sectionSpacing;
       
       // Address with text wrapping
-      doc.text('Address:', 50, yPos);
+      doc.text('Address:', 50, yPos, { width: labelWidth });
       const addressLines = wrapText(quotation.customerAddress, contentWidth, 12);
       addressLines.forEach((line, index) => {
-        doc.text(line, 150, yPos + (index * lineHeight));
+        doc.text(line, contentStartX, yPos + (index * lineHeight));
       });
       yPos += Math.max(addressLines.length * lineHeight, lineHeight) + sectionSpacing;
 
       if (quotation.customerNIC) {
-        doc.text('NIC:', 50, yPos)
-           .text(quotation.customerNIC, 150, yPos);
+        doc.text('NIC:', 50, yPos, { width: labelWidth });
+        doc.text(quotation.customerNIC, contentStartX, yPos);
         yPos += lineHeight + sectionSpacing;
       }
 
       if (quotation.customerPhone) {
-        doc.text('Phone:', 50, yPos)
-           .text(quotation.customerPhone, 150, yPos);
+        doc.text('Phone:', 50, yPos, { width: labelWidth });
+        doc.text(quotation.customerPhone, contentStartX, yPos);
         yPos += lineHeight + sectionSpacing;
       }
 
       if (quotation.bikeRegNo) {
-        doc.text('Bike Registration No:', 50, yPos)
-           .text(quotation.bikeRegNo, 150, yPos);
+        doc.text('Bike Registration No:', 50, yPos, { width: labelWidth });
+        doc.text(quotation.bikeRegNo, contentStartX, yPos);
         yPos += lineHeight + sectionSpacing;
       }
 
       // Insurance details (if available)
       const insurance = (quotation as any).insuranceDetails?.companyName ?? (quotation as any).insuranceDetails;
       if (insurance) {
-        doc.text('Insurance:', 50, yPos)
-           .text(String(insurance), 150, yPos);
+        doc.text('Insurance:', 50, yPos, { width: labelWidth });
+        doc.text(String(insurance), contentStartX, yPos);
         yPos += lineHeight + (sectionSpacing * 2); // Double spacing before items section
       }
 
