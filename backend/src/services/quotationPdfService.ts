@@ -1,6 +1,8 @@
 import PDFDocument from 'pdfkit';
 import Branding from '../models/Branding.js';
 import { IQuotation } from '../models/Quotation.js';
+import http from 'http';
+import https from 'https';
 
 /**
  * Utility function to wrap text properly within specified width
@@ -45,6 +47,52 @@ const wrapText = (text: string, maxWidth: number, fontSize: number = 10): string
   return wrappedLines.length > 0 ? wrappedLines : [''];
 };
 
+// Fetch remote logo into a Buffer with size and time safeguards
+const loadLogoBuffer = async (url?: string): Promise<Buffer | undefined> => {
+  if (!url || !(url.startsWith('http://') || url.startsWith('https://'))) return undefined;
+  const MAX_LOGO_BYTES = 1 * 1024 * 1024; // 1MB cap
+  const REQUEST_TIMEOUT_MS = 5000; // 5s timeout
+
+  return new Promise((resolve) => {
+    try {
+      const client = url.startsWith('https://') ? https : http;
+      const req = client.get(url, (res) => {
+        const statusOk = res.statusCode && res.statusCode >= 200 && res.statusCode < 300;
+        const ct = (res.headers['content-type'] || '').toLowerCase();
+        const isImage = ct.startsWith('image/');
+        if (!statusOk || !isImage) {
+          try { res.destroy(); } catch {}
+          resolve(undefined);
+          return;
+        }
+
+        const chunks: Buffer[] = [];
+        let total = 0;
+        res.on('data', (c) => {
+          const buf = Buffer.isBuffer(c) ? c : Buffer.from(c);
+          total += buf.length;
+          if (total > MAX_LOGO_BYTES) {
+            try { res.destroy(); } catch {}
+            resolve(undefined);
+            return;
+          }
+          chunks.push(buf);
+        });
+        res.on('end', () => resolve(Buffer.concat(chunks)));
+        res.on('error', () => resolve(undefined));
+      });
+
+      req.setTimeout(REQUEST_TIMEOUT_MS, () => {
+        try { req.destroy(); } catch {}
+        resolve(undefined);
+      });
+      req.on('error', () => resolve(undefined));
+    } catch {
+      resolve(undefined);
+    }
+  });
+};
+
 /**
  * Generate a PDF for a quotation or invoice
  * @param quotation The quotation object
@@ -79,7 +127,8 @@ export const generateQuotationPDF = async (quotation: IQuotation): Promise<Buffe
             primaryColor: b?.primaryColor || '#1e90ff',
             addressLine1: b?.addressLine1 || '',
             addressLine2: b?.addressLine2 || '',
-            footerNote: b?.footerNote || ''
+            footerNote: b?.footerNote || '',
+            logoUrl: b?.logoUrl
           };
         } catch {
           return {
@@ -88,7 +137,8 @@ export const generateQuotationPDF = async (quotation: IQuotation): Promise<Buffe
             primaryColor: '#1e90ff',
             addressLine1: '',
             addressLine2: '',
-            footerNote: ''
+            footerNote: '',
+            logoUrl: undefined
           };
         }
       };
@@ -96,11 +146,23 @@ export const generateQuotationPDF = async (quotation: IQuotation): Promise<Buffe
       (async () => {
         const branding = await loadBranding();
 
-        // Company header
+        // Company header with optional logo
+        const topY = 40;
+        const leftX = 50;
+        const logoBuffer = await loadLogoBuffer((branding as any).logoUrl);
+        const logoWidth = 60;
+        let titleX = leftX;
+        if (logoBuffer) {
+          try {
+            doc.image(logoBuffer, leftX, topY, { width: logoWidth });
+            titleX = leftX + logoWidth + 15;
+          } catch {}
+        }
+
         doc.fontSize(20)
            .font('Helvetica-Bold')
            .fillColor(branding.primaryColor)
-           .text(branding.brandPartner, 50, 50);
+           .text(branding.brandPartner, titleX, topY + 10);
 
         const addressLine1 = branding.addressLine1 || '';
         const dealerHeader = `Authorized Dealer: ${branding.dealerName}${addressLine1 ? ` - ${addressLine1}` : ''}`;
@@ -108,11 +170,11 @@ export const generateQuotationPDF = async (quotation: IQuotation): Promise<Buffe
         doc.fontSize(12)
            .font('Helvetica')
            .fillColor('#000000')
-           .text(dealerHeader, 50, 75);
+           .text(dealerHeader, titleX, topY + 35);
 
         const footerNote = (branding as any).footerNote || '';
         if (footerNote) {
-          doc.text(footerNote, 50, 90);
+          doc.text(footerNote, titleX, topY + 50);
         }
 
         // Document title
