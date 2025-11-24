@@ -98,8 +98,8 @@ const isPrivateIP = (ip: string): boolean => {
  * Apply general API rate limiting
  */
 export const apiRateLimit = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  // Skip rate limiting for development mode or private IPs
-  if (process.env.NODE_ENV === 'development') {
+  // Skip rate limiting for development/test mode or private IPs
+  if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
     return next();
   }
 
@@ -151,8 +151,8 @@ export const apiRateLimit = async (req: Request, res: Response, next: NextFuncti
  * Apply specific login rate limiting
  */
 export const loginRateLimit = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  // Skip rate limiting for development mode
-  if (process.env.NODE_ENV === 'development') {
+  // Skip rate limiting for development/test mode
+  if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
     return next();
   }
 
@@ -208,8 +208,8 @@ export const loginRateLimit = async (req: Request, res: Response, next: NextFunc
  * Apply specific registration rate limiting
  */
 export const registrationRateLimit = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  // Skip rate limiting for development mode
-  if (process.env.NODE_ENV === 'development') {
+  // Skip rate limiting for development/test mode
+  if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
     return next();
   }
 

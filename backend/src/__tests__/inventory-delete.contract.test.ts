@@ -5,14 +5,14 @@ import BikeInventory, { BikeStatus } from '../models/BikeInventory.js'
 import User, { UserRole } from '../models/User.js'
 
 vi.mock('../auth/jwt.strategy.js', () => ({
-  verifyToken: vi.fn(async () => ({ sub: 'admin-user-id' }))
+  verifyToken: vi.fn(async () => ({ sub: '6566f1f2a1b2c3d4e5f6a7b8' }))
 }))
 
 describe('DELETE /api/inventory/:id', () => {
   beforeEach(() => {
     vi.restoreAllMocks()
     // Ensure admin role for requireAdmin
-    vi.spyOn(User, 'findById').mockResolvedValue({ _id: 'admin-user-id', role: UserRole.ADMIN } as any)
+    vi.spyOn(User, 'findById').mockResolvedValue({ _id: '6566f1f2a1b2c3d4e5f6a7b8', role: UserRole.ADMIN } as any)
     // Default env
     process.env.NODE_ENV = 'test'
     process.env.INVENTORY_DELETE_ENABLED = 'true'

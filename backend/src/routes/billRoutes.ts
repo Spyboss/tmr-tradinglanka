@@ -11,7 +11,7 @@ const router = express.Router();
 // Get all bills with pagination and filtering - Protected route
 router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
   try {
-    const { page = 1, limit = 20, status, search } = req.query;
+    const { page = 1, limit = 20, status, search, startDate, endDate, minAmount, maxAmount, billType } = req.query as any;
     const pageNum = parseInt(page as string) || 1;
     const limitNum = parseInt(limit as string) || 20;
     const skip = (pageNum - 1) * limitNum;
@@ -29,14 +29,31 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
     }
 
     if (status) filter.status = status;
+    if (billType) filter.billType = billType;
+
+    if (startDate || endDate) {
+      const range: any = {};
+      if (startDate) range.$gte = new Date(String(startDate));
+      if (endDate) range.$lte = new Date(String(endDate));
+      filter.billDate = range;
+    }
+
+    if (minAmount || maxAmount) {
+      const amountRange: any = {};
+      if (minAmount) amountRange.$gte = Number(minAmount);
+      if (maxAmount) amountRange.$lte = Number(maxAmount);
+      filter.totalAmount = amountRange;
+    }
 
     // Add search query if provided
     if (search) {
+      const tokens = String(search).split(/\s+/).filter(Boolean);
+      const regexes = tokens.map(t => new RegExp(t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i'));
       filter.$or = [
-        { customerName: { $regex: search, $options: 'i' } },
-        { customerNIC: { $regex: search, $options: 'i' } },
-        { billNumber: { $regex: search, $options: 'i' } },
-        { bikeModel: { $regex: search, $options: 'i' } }
+        { customerName: { $in: regexes } },
+        { customerNIC: { $in: regexes } },
+        { billNumber: { $in: regexes } },
+        { bikeModel: { $in: regexes } }
       ];
     }
 
@@ -57,6 +74,41 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
     });
   } catch (error) {
     console.error('Error fetching bills:', error);
+    res.status(500).json({ error: (error as Error).message });
+  }
+});
+
+router.get('/suggestions', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const { q = '' } = req.query as any;
+    const user = await req.app.locals.models?.User.findById(req.user?.id);
+    const isAdmin = user?.role === 'admin';
+    const ownerFilter: any = {};
+    if (!isAdmin && req.user?.id) ownerFilter.owner = req.user.id;
+    const regex = new RegExp(String(q).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+
+    const customers = await Bill.aggregate([
+      { $match: { ...ownerFilter, customerName: { $regex: regex } } },
+      { $group: { _id: '$customerName' } },
+      { $limit: 5 }
+    ]);
+    const billNumbers = await Bill.aggregate([
+      { $match: { ...ownerFilter, billNumber: { $regex: regex } } },
+      { $group: { _id: '$billNumber' } },
+      { $limit: 5 }
+    ]);
+    const models = await Bill.aggregate([
+      { $match: { ...ownerFilter, bikeModel: { $regex: regex } } },
+      { $group: { _id: '$bikeModel' } },
+      { $limit: 5 }
+    ]);
+
+    res.status(200).json({
+      customers: customers.map(c => c._id).filter(Boolean),
+      billNumbers: billNumbers.map(b => b._id).filter(Boolean),
+      models: models.map(m => m._id).filter(Boolean)
+    });
+  } catch (error) {
     res.status(500).json({ error: (error as Error).message });
   }
 });

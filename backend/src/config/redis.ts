@@ -45,8 +45,8 @@ export const getRedisClient = (): any => {
   if (redisClient) return redisClient;
   
   try {
-    // Only use mock in development
-    if (process.env.NODE_ENV === 'development') {
+    // Use mock in development and test environments
+    if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
       logger.info('Using Redis mock for development environment');
       redisClient = new RedisMock();
       useRedisMock = true;
@@ -73,8 +73,8 @@ export const getRedisClient = (): any => {
       if (process.env.NODE_ENV === 'production') {
         throw new Error('Redis connection failed in production');
       }
-      // In development, fallback to mock if not already using it
-      if (process.env.NODE_ENV === 'development' && !useRedisMock) {
+      // In development/test, fallback to mock if not already using it
+      if ((process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') && !useRedisMock) {
         logger.warn('Redis connection failed, using mock implementation');
         redisClient = new RedisMock();
         useRedisMock = true;
@@ -88,8 +88,8 @@ export const getRedisClient = (): any => {
     if (process.env.NODE_ENV === 'production') {
       throw error;
     }
-    // In development, fallback to mock
-    if (process.env.NODE_ENV === 'development') {
+    // In development/test, fallback to mock
+    if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
       logger.warn('Using Redis mock due to initialization error');
       redisClient = new RedisMock();
       return redisClient;
@@ -106,4 +106,4 @@ export const closeRedisConnection = async (): Promise<void> => {
     redisClient = null;
     logger.info('Redis connection closed');
   }
-}; 
+};

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import apiClient from '../config/apiClient'
-import { Table, Tag, Button, Space, Popconfirm, message, Spin, Input, Badge, Select, Skeleton, Card } from 'antd'
+import { Table, Tag, Button, Space, Popconfirm, message, Spin, Input, Badge, Select, Skeleton, Card, DatePicker, InputNumber, AutoComplete } from 'antd'
 import { PlusOutlined, SearchOutlined, DownloadOutlined, EyeOutlined, EditOutlined, DeleteOutlined, FileExcelOutlined } from '@ant-design/icons'
 
 const BillList = () => {
@@ -10,15 +10,35 @@ const BillList = () => {
   const [bills, setBills] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchText, setSearchText] = useState('')
+  const [pagination, setPagination] = useState({ current: 1, pageSize: 20, total: 0 })
+  const [filters, setFilters] = useState({ status: '', billType: '', dateRange: [], minAmount: null, maxAmount: null })
+  const [suggestions, setSuggestions] = useState({ options: [] })
+  const [bookmarks, setBookmarks] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('bill_bookmarks') || '[]') } catch { return [] }
+  })
+  const [history, setHistory] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('bill_view_history') || '[]') } catch { return [] }
+  })
 
   useEffect(() => {
     fetchBills()
-  }, [])
+  }, [pagination.current, pagination.pageSize, filters, searchText])
 
   const fetchBills = async () => {
     try {
       setLoading(true)
-      const response = await apiClient.get('/bills')
+      const params = {
+        page: pagination.current,
+        limit: pagination.pageSize,
+        status: filters.status || undefined,
+        billType: filters.billType || undefined,
+        startDate: filters.dateRange?.[0]?.toISOString?.(),
+        endDate: filters.dateRange?.[1]?.toISOString?.(),
+        minAmount: filters.minAmount || undefined,
+        maxAmount: filters.maxAmount || undefined,
+        search: searchText || undefined
+      }
+      const response = await apiClient.get('/bills', { params })
 
       // Handle the new response format which includes pagination
       let billsData = [];
@@ -54,6 +74,10 @@ const BillList = () => {
       }))
 
       setBills(transformedBills)
+      const meta = response.data || response
+      const total = meta.total ?? meta.pagination?.total ?? 0
+      const currentPage = meta.currentPage ?? meta.pagination?.page ?? pagination.current
+      setPagination(prev => ({ ...prev, total: total, current: currentPage }))
     } catch (error) {
       console.error('Error fetching bills:', error)
       toast.error(`Failed to fetch bills: ${error.message || 'Server error'}`)
@@ -61,6 +85,39 @@ const BillList = () => {
     } finally {
       setLoading(false)
     }
+  }
+
+  const handlePageChange = (page, pageSize) => {
+    setPagination({ current: page, pageSize, total: pagination.total })
+  }
+
+  const handleSuggest = async (value) => {
+    try {
+      setSearchText(value)
+      if (!value) { setSuggestions({ options: [] }); return }
+      const resp = await apiClient.get('/bills/suggestions', { params: { q: value } })
+      const opts = []
+      ;(resp.data?.customers || []).forEach(v => opts.push({ value: v }))
+      ;(resp.data?.billNumbers || []).forEach(v => opts.push({ value: v }))
+      ;(resp.data?.models || []).forEach(v => opts.push({ value: v }))
+      setSuggestions({ options: opts })
+    } catch {}
+  }
+
+  const toggleBookmark = (billId) => {
+    setBookmarks(prev => {
+      const next = prev.includes(billId) ? prev.filter(id => id !== billId) : [...prev, billId]
+      localStorage.setItem('bill_bookmarks', JSON.stringify(next))
+      return next
+    })
+  }
+
+  const pushHistory = (billId) => {
+    setHistory(prev => {
+      const next = [billId, ...prev.filter(id => id !== billId)].slice(0, 10)
+      localStorage.setItem('bill_view_history', JSON.stringify(next))
+      return next
+    })
   }
 
   const handlePreviewPDF = async (billId) => {
@@ -195,18 +252,7 @@ const BillList = () => {
     return isNaN(numericAmount) ? 'Rs. 0' : `Rs. ${numericAmount.toLocaleString()}`;
   };
 
-  const filterBills = (bill) => {
-    if (!searchText) return true;
-
-    const searchLower = searchText.toLowerCase();
-    return (
-      (bill.customerName && bill.customerName.toLowerCase().includes(searchLower)) ||
-      (bill.customerNIC && bill.customerNIC.toLowerCase().includes(searchLower)) ||
-      (bill.bikeModel && bill.bikeModel.toLowerCase().includes(searchLower)) ||
-      (bill.billNumber && bill.billNumber.toLowerCase().includes(searchLower)) ||
-      (bill._id && bill._id.toLowerCase().includes(searchLower))
-    );
-  };
+  
 
   const getBillTypeTag = (record) => {
     if (record.isAdvancePayment) {
@@ -322,6 +368,10 @@ const BillList = () => {
             }}
             title="Download"
           />
+          <Button
+            type="text"
+            onClick={(e) => { e.stopPropagation(); toggleBookmark(record._id) }}
+          >{bookmarks.includes(record._id) ? 'Unbookmark' : 'Bookmark'}</Button>
           <Popconfirm
             title="Are you sure you want to delete this bill?"
             onConfirm={(e) => {
@@ -357,12 +407,41 @@ const BillList = () => {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Bills</h1>
         <div className="flex space-x-3">
-          <Input
-            placeholder="Search bills..."
+          <AutoComplete
             value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
-            prefix={<SearchOutlined />}
-            className="w-64"
+            options={suggestions.options}
+            onSearch={handleSuggest}
+            onChange={(val) => setSearchText(val)}
+            style={{ width: 260 }}
+          >
+            <Input placeholder="Search bills..." prefix={<SearchOutlined />} />
+          </AutoComplete>
+          <DatePicker.RangePicker onChange={(v) => setFilters(prev => ({ ...prev, dateRange: v }))} />
+          <InputNumber placeholder="Min" onChange={(v) => setFilters(prev => ({ ...prev, minAmount: v }))} />
+          <InputNumber placeholder="Max" onChange={(v) => setFilters(prev => ({ ...prev, maxAmount: v }))} />
+          <Select
+            placeholder="Status"
+            style={{ width: 120 }}
+            allowClear
+            value={filters.status || undefined}
+            onChange={(v) => setFilters(prev => ({ ...prev, status: v || '' }))}
+            options={[
+              { label: 'Pending', value: 'pending' },
+              { label: 'Completed', value: 'completed' },
+              { label: 'Cancelled', value: 'cancelled' },
+              { label: 'Converted', value: 'converted' }
+            ]}
+          />
+          <Select
+            placeholder="Type"
+            style={{ width: 120 }}
+            allowClear
+            value={filters.billType || undefined}
+            onChange={(v) => setFilters(prev => ({ ...prev, billType: v || '' }))}
+            options={[
+              { label: 'Cash', value: 'cash' },
+              { label: 'Leasing', value: 'leasing' }
+            ]}
           />
           <Space>
             <Button
@@ -396,12 +475,12 @@ const BillList = () => {
         ) : (
           <Table
             rowKey="_id"
-            dataSource={bills.filter(filterBills)}
+            dataSource={bills}
             columns={columns}
-            pagination={{ pageSize: 10 }}
+            pagination={{ current: pagination.current, pageSize: pagination.pageSize, total: pagination.total, onChange: handlePageChange }}
             className="bg-white dark:bg-gray-800 rounded-lg shadow dark:border dark:border-gray-700"
             onRow={(record) => ({
-              onClick: () => navigate(`/bills/${record._id}`),
+              onClick: () => { pushHistory(record._id); navigate(`/bills/${record._id}`) },
               style: { cursor: 'pointer' }
             })}
           />
@@ -416,7 +495,7 @@ const BillList = () => {
             </Card>
           ))
         ) : (
-          bills.filter(filterBills).map((bill) => (
+          bills.map((bill) => (
             <div key={bill._id} className="bg-white dark:bg-slate-800 rounded-lg shadow p-4">
               <div className="flex justify-between items-center">
                 <div>
@@ -433,10 +512,29 @@ const BillList = () => {
                 <Button size="small" onClick={() => handlePreviewPDF(bill._id)}>Preview</Button>
                 <Button size="small" onClick={() => navigate(`/bills/${bill._id}/edit`)}>Edit</Button>
                 <Button size="small" onClick={() => handleDownloadPDF(bill._id)}>PDF</Button>
+                <Button size="small" onClick={() => toggleBookmark(bill._id)}>{bookmarks.includes(bill._id) ? 'Unbookmark' : 'Bookmark'}</Button>
               </div>
             </div>
           ))
         )}
+      </div>
+
+      <div className="mt-4">
+        <div className="mb-2 text-sm">Recent:</div>
+        <Space wrap>
+          {history.map(id => (
+            <Tag key={id} onClick={() => navigate(`/bills/${id}`)} style={{ cursor: 'pointer' }}>{id.slice(0,8)}</Tag>
+          ))}
+        </Space>
+      </div>
+
+      <div className="mt-2">
+        <div className="mb-2 text-sm">Bookmarks:</div>
+        <Space wrap>
+          {bookmarks.map(id => (
+            <Tag key={id} color="gold" onClick={() => navigate(`/bills/${id}`)} style={{ cursor: 'pointer' }}>{id.slice(0,8)}</Tag>
+          ))}
+        </Space>
       </div>
     </div>
   )

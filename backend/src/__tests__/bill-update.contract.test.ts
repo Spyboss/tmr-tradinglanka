@@ -2,10 +2,11 @@ import request from 'supertest'
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import app from '../server'
 import Bill from '../models/Bill'
+import User from '../models/User'
 
 // Mock JWT verification to bypass authentication
 vi.mock('../auth/jwt.strategy.js', () => ({
-  verifyToken: vi.fn(async () => ({ sub: 'test-user-id' }))
+  verifyToken: vi.fn(async () => ({ sub: '6566f1f2a1b2c3d4e5f6a7b8' }))
 }))
 
 describe('PUT /api/bills/:id (camelCase contract)', () => {
@@ -17,10 +18,7 @@ describe('PUT /api/bills/:id (camelCase contract)', () => {
 
   it('updates with camelCase JSON and returns changed fields', async () => {
     // Stub ownership check to allow update
-    const userModel = app.locals.models?.User
-    if (userModel) {
-      vi.spyOn(userModel, 'findById').mockResolvedValue({ _id: 'test-user-id', role: 'admin' })
-    }
+    vi.spyOn(User, 'findById').mockResolvedValue({ _id: '6566f1f2a1b2c3d4e5f6a7b8', role: 'admin' } as any)
 
     // Original bill
     vi.spyOn(Bill, 'findById').mockResolvedValue({ _id: billId, owner: 'test-user-id' } as any)
@@ -53,8 +51,7 @@ describe('PUT /api/bills/:id (camelCase contract)', () => {
       customerNIC: '000000000V',
       customerAddress: 'Main Street',
       motorNumber: 'MTR123',
-      chassisNumber: 'CHS123',
-      billDate: new Date().toISOString()
+      chassisNumber: 'CHS123'
     }
 
     const res = await request(app)
@@ -73,10 +70,7 @@ describe('PUT /api/bills/:id (camelCase contract)', () => {
   })
 
   it('snake_case keys do not update camelCase fields (contract safety)', async () => {
-    const userModel = app.locals.models?.User
-    if (userModel) {
-      vi.spyOn(userModel, 'findById').mockResolvedValue({ _id: 'test-user-id', role: 'admin' })
-    }
+    vi.spyOn(User, 'findById').mockResolvedValue({ _id: '6566f1f2a1b2c3d4e5f6a7b8', role: 'admin' } as any)
 
     vi.spyOn(Bill, 'findById').mockResolvedValue({ _id: billId, owner: 'test-user-id' } as any)
 

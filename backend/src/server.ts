@@ -164,6 +164,11 @@ app.use(cors({
   origin: function (origin, callback) {
     const allowNoOrigin = (process.env.ALLOW_NO_ORIGIN ?? 'true').toLowerCase() !== 'false';
 
+    // Resolve allowed origins dynamically from app.locals to support tests/runtime overrides
+    const dynamicAllowed = Array.isArray((this as any)?.locals?.allowedOrigins)
+      ? (this as any).locals.allowedOrigins
+      : allowedOrigins;
+
     // Handle requests with no Origin header (CLI/internal tools)
     if (!origin) {
       if (!allowNoOrigin) {
@@ -175,17 +180,17 @@ app.use(cors({
     }
 
     // Validate provided Origin against allowlist
-    if (allowedOrigins.indexOf(origin) === -1) {
+    if (dynamicAllowed.indexOf(origin) === -1) {
       const msg = `The CORS policy for this site does not allow access from the specified Origin: ${origin}`;
       logger.warn(msg);
-      return callback(new Error(msg), false);
+      return callback(null, false);
     }
 
     return callback(null, true);
   },
-  credentials: true, // Important for cookies, authorization headers with HTTPS
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'], // Explicitly list allowed methods
-  allowedHeaders: ['Content-Type', 'Authorization'] // Explicitly list allowed headers
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 // Security middlewares
@@ -202,8 +207,10 @@ app.use(morgan('dev', {
 // Apply global rate limiting to all routes
 app.use(apiRateLimit);
 
-// Apply activity logging middleware
-app.use(activityLogger);
+// Apply activity logging middleware (skip in test to avoid DB writes)
+if (process.env.NODE_ENV !== 'test') {
+  app.use(activityLogger);
+}
 
 // Make models available to middleware
 app.use((req, res, next) => {

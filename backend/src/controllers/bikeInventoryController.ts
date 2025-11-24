@@ -352,7 +352,8 @@ export const deleteInventory = async (req: Request, res: Response, next: NextFun
         deletedAt: new Date(),
         deletedBy: (req as any).user?.id ? new mongoose.Types.ObjectId((req as any).user.id) : null,
         deleteReason: reason
-      }
+      },
+      { new: true }
     );
 
     res.status(200).json({ message: 'Inventory item deleted successfully', softDeleted: true });
