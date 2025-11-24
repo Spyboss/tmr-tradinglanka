@@ -451,12 +451,6 @@ const BillList = () => {
             >
               Create Bill
             </Button>
-            <Button
-              icon={<PlusOutlined />}
-              onClick={() => navigate('/bills/new')}
-            >
-              Create Bill
-            </Button>
           </Space>
           <Button
             icon={<FileExcelOutlined />}
