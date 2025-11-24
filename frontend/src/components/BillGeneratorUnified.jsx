@@ -410,24 +410,49 @@ const BillGeneratorUnified = () => {
           </Form.Item>
         )}
 
-        <Form.Item name="customer_name" label="Customer Name" rules={[{ required: true, message: 'Please enter customer name' }]}>
-          <Input />
+        <Form.Item 
+          name="customer_name" 
+          label="Customer Name" 
+          rules={[{ required: true, message: 'Please enter customer name' }]}
+          getValueFromEvent={e => e?.target?.value?.toUpperCase?.() || ''}
+        >
+          <Input style={{ textTransform: 'uppercase' }} autoCapitalize="characters" />
         </Form.Item>
 
-        <Form.Item name="customer_nic" label="Customer NIC" rules={[{ required: true, message: 'Please enter customer NIC' }]}>
-          <Input />
+        <Form.Item 
+          name="customer_nic" 
+          label="Customer NIC" 
+          rules={[{ required: true, message: 'Please enter customer NIC' }]}
+          getValueFromEvent={e => e?.target?.value?.toUpperCase?.() || ''}
+        >
+          <Input style={{ textTransform: 'uppercase' }} autoCapitalize="characters" />
         </Form.Item>
 
-        <Form.Item name="customer_address" label="Customer Address" rules={[{ required: true, message: 'Please enter customer address' }]}>
-          <Input.TextArea />
+        <Form.Item 
+          name="customer_address" 
+          label="Customer Address" 
+          rules={[{ required: true, message: 'Please enter customer address' }]}
+          getValueFromEvent={e => e?.target?.value?.toUpperCase?.() || ''}
+        >
+          <Input.TextArea style={{ textTransform: 'uppercase' }} autoCapitalize="characters" />
         </Form.Item>
 
-        <Form.Item name="motor_number" label="Motor Number" rules={[{ required: true, message: 'Please enter motor number' }]}>
-          <Input disabled={!!selectedInventoryItem} />
+        <Form.Item 
+          name="motor_number" 
+          label="Motor Number" 
+          rules={[{ required: true, message: 'Please enter motor number' }]}
+          getValueFromEvent={e => e?.target?.value?.toUpperCase?.() || ''}
+        >
+          <Input disabled={!!selectedInventoryItem} style={{ textTransform: 'uppercase' }} autoCapitalize="characters" />
         </Form.Item>
 
-        <Form.Item name="chassis_number" label="Chassis Number" rules={[{ required: true, message: 'Please enter chassis number' }]}>
-          <Input disabled={!!selectedInventoryItem} />
+        <Form.Item 
+          name="chassis_number" 
+          label="Chassis Number" 
+          rules={[{ required: true, message: 'Please enter chassis number' }]}
+          getValueFromEvent={e => e?.target?.value?.toUpperCase?.() || ''}
+        >
+          <Input disabled={!!selectedInventoryItem} style={{ textTransform: 'uppercase' }} autoCapitalize="characters" />
         </Form.Item>
 
         <Form.Item name="inventoryItemId" hidden>
