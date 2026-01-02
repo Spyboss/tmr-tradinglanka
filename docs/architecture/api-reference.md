@@ -48,6 +48,7 @@ All endpoints are prefixed with `/api`. JSON responses follow a consistent shape
 | DELETE | `/api/bills/:id` | Authenticated | Delete bill. Admin bypass. |
 | GET | `/api/bills/:id/pdf` | Authenticated | Download branded PDF of bill. |
 | GET | `/api/bills/preview` | Authenticated | Download sample PDF using mock data. |
+| GET | `/api/bills/preview/pdf` | Authenticated | Render PDF using `formData` JSON query string payload. |
 | POST | `/api/bills/preview` | Authenticated | Render PDF using request body bill payload. |
 
 > Contract note
@@ -71,6 +72,14 @@ All endpoints are prefixed with `/api`. JSON responses follow a consistent shape
   "balanceAmount": 350000
 }
 ```
+
+**Bill Preview Request Body**
+
+`POST /api/bills/preview` accepts the same bill payload used when creating or updating a bill. Send JSON with camelCase keys matching the bill model fields (e.g., `customerName`, `customerNIC`, `bikeModel`, `billType`, `totalAmount`).
+
+**Bill Preview Query Format**
+
+`GET /api/bills/preview/pdf` expects a `formData` query string containing the JSON-encoded bill payload.
 
 ## Inventory
 
