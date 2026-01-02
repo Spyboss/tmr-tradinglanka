@@ -34,8 +34,8 @@ const BillList = () => {
         billType: filters.billType || undefined,
         startDate: filters.dateRange?.[0]?.toISOString?.(),
         endDate: filters.dateRange?.[1]?.toISOString?.(),
-        minAmount: filters.minAmount || undefined,
-        maxAmount: filters.maxAmount || undefined,
+        minAmount: filters.minAmount ?? undefined,
+        maxAmount: filters.maxAmount ?? undefined,
         search: searchText || undefined
       }
       const response = await apiClient.get('/bills', { params })
