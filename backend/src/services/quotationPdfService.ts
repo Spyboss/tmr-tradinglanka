@@ -250,20 +250,19 @@ export const generateQuotationPDF = async (quotation: IQuotation): Promise<Buffe
         yPos += lineHeight + (sectionSpacing * 2); // Double spacing before items section
       }
 
+      const pageBottomMargin = 60;
+      const pageUsableBottom = () => doc.page.height - pageBottomMargin;
+      const ensureSpace = (spaceNeeded: number, onNewPage?: () => void) => {
+        if (yPos + spaceNeeded > pageUsableBottom()) {
+          doc.addPage();
+          yPos = 50;
+          if (onNewPage) onNewPage();
+        }
+      };
+
       // Items table with improved alignment
       yPos += (sectionSpacing * 4); // Consistent spacing before table
-      
-      // Check if we need a new page
-      if (yPos > 700) {
-        doc.addPage();
-        yPos = 50;
-      }
-
-      doc.fontSize(14)
-         .font('Helvetica-Bold')
-         .text('Items:', 50, yPos);
-
-      yPos += 30;
+      ensureSpace(120);
 
       // Define column positions and widths
       const columns = {
@@ -273,42 +272,45 @@ export const generateQuotationPDF = async (quotation: IQuotation): Promise<Buffe
         amount: { x: 470, width: 80 }
       };
 
-      // Table headers with better alignment
-      doc.fontSize(12)
-         .font('Helvetica-Bold')
-         .text('Description', columns.description.x, yPos)
-         .text('Qty', columns.qty.x, yPos, { align: 'center', width: columns.qty.width })
-         .text('Rate', columns.rate.x, yPos, { align: 'right', width: columns.rate.width })
-         .text('Amount', columns.amount.x, yPos, { align: 'right', width: columns.amount.width });
+      const drawItemsHeader = () => {
+        doc.fontSize(14)
+           .font('Helvetica-Bold')
+           .text('Items:', 50, yPos);
 
-      // Add (LKR) labels
-      doc.fontSize(10)
-         .font('Helvetica')
-         .text('(LKR)', columns.rate.x, yPos + 15, { align: 'right', width: columns.rate.width })
-         .text('(LKR)', columns.amount.x, yPos + 15, { align: 'right', width: columns.amount.width });
+        yPos += 30;
 
-      yPos += (sectionSpacing * 7); // Consistent header spacing
+        doc.fontSize(12)
+           .font('Helvetica-Bold')
+           .text('Description', columns.description.x, yPos)
+           .text('Qty', columns.qty.x, yPos, { align: 'center', width: columns.qty.width })
+           .text('Rate', columns.rate.x, yPos, { align: 'right', width: columns.rate.width })
+           .text('Amount', columns.amount.x, yPos, { align: 'right', width: columns.amount.width });
 
-      // Draw line under headers
-      doc.moveTo(50, yPos)
-         .lineTo(550, yPos)
-         .stroke();
+        doc.fontSize(10)
+           .font('Helvetica')
+           .text('(LKR)', columns.rate.x, yPos + 15, { align: 'right', width: columns.rate.width })
+           .text('(LKR)', columns.amount.x, yPos + 15, { align: 'right', width: columns.amount.width });
 
-      yPos += 10;
+        yPos += (sectionSpacing * 7);
+
+        doc.moveTo(50, yPos)
+           .lineTo(550, yPos)
+           .stroke();
+
+        yPos += 10;
+      };
+
+      drawItemsHeader();
 
       // Add items with proper text wrapping
       quotation.items.forEach((item) => {
-        // Check if we need a new page
-        if (yPos > 700) {
-          doc.addPage();
-          yPos = 50;
-        }
-
         const startY = yPos;
         
         // Description with text wrapping
         const descriptionLines = wrapText(item.description, columns.description.width, 10);
         const itemHeight = Math.max(descriptionLines.length * 12, 20);
+
+        ensureSpace(itemHeight + sectionSpacing, drawItemsHeader);
         
         doc.fontSize(10).font('Helvetica');
         
@@ -338,25 +340,33 @@ export const generateQuotationPDF = async (quotation: IQuotation): Promise<Buffe
 
       // Draw line before total
       yPos += (sectionSpacing * 2);
+      ensureSpace(40);
       doc.moveTo(350, yPos)
          .lineTo(550, yPos)
          .stroke();
 
       // Total
       yPos += (sectionSpacing * 3);
+      ensureSpace(24);
       doc.fontSize(12)
          .font('Helvetica-Bold')
          .text(`Total Amount: LKR ${quotation.totalAmount.toFixed(2)}`, 350, yPos, { align: 'right', width: 200 });
 
       // Remarks with text wrapping
       if (quotation.remarks) {
-        yPos += (sectionSpacing * 8); // Consistent spacing before remarks
+        const remarksLines = wrapText(quotation.remarks, 500, 10);
+        const remarksHeight = (sectionSpacing * 8)
+          + 16
+          + (sectionSpacing * 4)
+          + (remarksLines.length * 12)
+          + (sectionSpacing * 4);
+        ensureSpace(remarksHeight);
+        yPos += (sectionSpacing * 8);
         doc.fontSize(12)
            .font('Helvetica-Bold')
            .text('Remarks:', 50, yPos);
 
-        yPos += (sectionSpacing * 4); // Consistent spacing after remarks header
-        const remarksLines = wrapText(quotation.remarks, 500, 10);
+        yPos += (sectionSpacing * 4);
         doc.fontSize(10).font('Helvetica');
         remarksLines.forEach((line, index) => {
           doc.text(line, 50, yPos + (index * 12));
@@ -365,7 +375,9 @@ export const generateQuotationPDF = async (quotation: IQuotation): Promise<Buffe
       }
 
       // Footer with consistent spacing
-      yPos = Math.max(yPos + (sectionSpacing * 8), doc.page.height - 100); // Ensure minimum footer position
+      const footerHeight = (sectionSpacing * 9) + 30;
+      ensureSpace(footerHeight);
+      yPos += (sectionSpacing * 8);
       doc.fontSize(10)
          .font('Helvetica')
          .text('Thank you for your business!', 50, yPos)

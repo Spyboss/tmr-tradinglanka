@@ -159,6 +159,7 @@ const generateInventoryTable = (doc: PDFKit.PDFDocument, inventoryItems: BikeInv
   const tableLeft = 40;
   const rowHeight = 18;
   const tableWidth = 515;
+  const reservedBottomSpace = 150;
 
   // Column widths for: No, Model, Color, Chassis Number, Motor Number
   const colWidths = [40, 120, 80, 135, 140];
@@ -166,23 +167,25 @@ const generateInventoryTable = (doc: PDFKit.PDFDocument, inventoryItems: BikeInv
 
   // Draw table headers
   let currentY = tableTop;
-  doc.fontSize(9)
-     .font('Helvetica-Bold');
+  const drawTableHeader = () => {
+    doc.fontSize(9)
+       .font('Helvetica-Bold');
 
-  // Header background
-  doc.rect(tableLeft, currentY, tableWidth, rowHeight)
-     .fillAndStroke('#f0f0f0', '#000000');
+    doc.rect(tableLeft, currentY, tableWidth, rowHeight)
+       .fillAndStroke('#f0f0f0', '#000000');
 
-  // Header text
-  let currentX = tableLeft + 2;
-  headers.forEach((header, index) => {
-    doc.fillColor('#000000')
-       .text(header, currentX, currentY + 4, {
-         width: colWidths[index] - 4,
-         align: 'center'
-       });
-    currentX += colWidths[index];
-  });
+    let currentX = tableLeft + 2;
+    headers.forEach((header, index) => {
+      doc.fillColor('#000000')
+         .text(header, currentX, currentY + 4, {
+           width: colWidths[index] - 4,
+           align: 'center'
+         });
+      currentX += colWidths[index];
+    });
+  };
+
+  drawTableHeader();
 
   currentY += rowHeight;
 
@@ -193,12 +196,19 @@ const generateInventoryTable = (doc: PDFKit.PDFDocument, inventoryItems: BikeInv
   const availableBikes = inventoryItems.filter(item => item.status === 'available');
 
   availableBikes.forEach((item, index) => {
+    if (currentY + rowHeight > doc.page.height - reservedBottomSpace) {
+      doc.addPage();
+      currentY = tableTop;
+      drawTableHeader();
+      currentY += rowHeight;
+    }
+
     // Alternate row colors
     const fillColor = index % 2 === 0 ? '#ffffff' : '#f9f9f9';
     doc.rect(tableLeft, currentY, tableWidth, rowHeight)
        .fillAndStroke(fillColor, '#000000');
 
-    currentX = tableLeft + 2;
+    let currentX = tableLeft + 2;
 
     // Extract color from notes
     const color = extractColorFromNotes(item.notes);
@@ -237,8 +247,13 @@ const generateTotalRow = (doc: PDFKit.PDFDocument, totalAvailable: number): void
   const rowHeight = 18;
   const tableWidth = 515;
   const colWidths = [40, 120, 80, 135, 140];
+  const reservedBottomSpace = 140;
 
   let currentY = doc.y;
+  if (currentY + rowHeight > doc.page.height - reservedBottomSpace) {
+    doc.addPage();
+    currentY = 120;
+  }
 
   // Total row background
   doc.rect(tableLeft, currentY, tableWidth, rowHeight)
@@ -268,14 +283,23 @@ const generateTotalRow = (doc: PDFKit.PDFDocument, totalAvailable: number): void
     currentX += colWidths[colIndex];
   });
 
-  doc.y = currentY + rowHeight + 10;
+  doc.y = currentY + rowHeight + 12;
 };
 
 /**
  * Generate action items section
  */
 const generateActionItems = (doc: PDFKit.PDFDocument, insights: any[]): void => {
-  const currentY = doc.y + 20;
+  const maxItems = Math.min(insights.length, 3);
+  const titleHeight = 16;
+  const itemHeight = 15;
+  const requiredHeight = titleHeight + (maxItems * itemHeight) + 10;
+
+  if (doc.y + requiredHeight > doc.page.height - 80) {
+    doc.addPage();
+  }
+
+  const currentY = doc.y + 12;
 
   doc.fontSize(10)
      .font('Helvetica-Bold')
@@ -284,7 +308,7 @@ const generateActionItems = (doc: PDFKit.PDFDocument, insights: any[]): void => 
 
   let itemY = currentY + 20;
 
-  insights.slice(0, 3).forEach((insight) => {
+  insights.slice(0, maxItems).forEach((insight) => {
     const priority = insight.priority === 'high' ? 'URGENT' :
                     insight.priority === 'medium' ? 'IMPORTANT' : 'NOTE';
 
@@ -309,16 +333,26 @@ const generateActionItems = (doc: PDFKit.PDFDocument, insights: any[]): void => 
        });
     itemY += 15;
   });
+
+  doc.y = itemY + 6;
 };
 
 /**
  * Generate signature section
  */
 const generateSignatureSection = (doc: PDFKit.PDFDocument, branding?: { addressLine2?: string }): void => {
-  // Position signature section at the bottom of the page
   const pageHeight = doc.page.height;
-  const bottomMargin = 60;
-  const signatureStartY = pageHeight - bottomMargin - 80; // Reserve 80 points for signature section
+  const bottomMargin = 50;
+  const signatureBlockHeight = 70;
+  const contactHeight = 16;
+  const requiredHeight = signatureBlockHeight + contactHeight + 10;
+  const startY = doc.y + 10;
+
+  if (startY + requiredHeight > pageHeight - bottomMargin) {
+    doc.addPage();
+  }
+
+  const signatureStartY = doc.y + 10;
 
   // Signature & Rubberstamp section title
   doc.fontSize(10)
@@ -338,7 +372,7 @@ const generateSignatureSection = (doc: PDFKit.PDFDocument, branding?: { addressL
      .text('Territory Sales Manager Signature', 350, signatureY + 15);
 
   // Contact info at the very bottom
-  const contactY = pageHeight - bottomMargin + 10;
+  const contactY = signatureStartY + signatureBlockHeight + 8;
   doc.fontSize(7)
      .text(branding?.addressLine2 || 'For inquiries, contact:', 0, contactY, {
        align: 'center'
