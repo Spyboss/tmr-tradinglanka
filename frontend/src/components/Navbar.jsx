@@ -226,9 +226,10 @@ export default function Navbar() {
 
                 {/* User dropdown menu */}
                 {userMenuOpen && (
-                  <div className="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-white dark:bg-gray-700 ring-1 ring-black ring-opacity-5 z-50">
+                  <div className="origin-top-right absolute right-0 mt-2 min-w-[14rem] max-w-xs rounded-md shadow-lg py-1 bg-white dark:bg-gray-700 ring-1 ring-black ring-opacity-5 z-50">
                     <div className="px-4 py-2 text-sm text-gray-700 dark:text-gray-200 border-b border-gray-200 dark:border-gray-600">
-                      Signed in as <span className="font-semibold">{user?.email}</span>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Signed in as</p>
+                      <p className="font-semibold break-all">{user?.email}</p>
                     </div>
 
                     {verification?.verified && (
