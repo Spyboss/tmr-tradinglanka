@@ -21,6 +21,13 @@ const BillList = () => {
   })
 
   useEffect(() => {
+    // Reset to first page when filters or search text changes
+    if (pagination.current !== 1) {
+      setPagination(prev => ({ ...prev, current: 1 }));
+    }
+  }, [filters, searchText]);
+
+  useEffect(() => {
     fetchBills()
   }, [pagination.current, pagination.pageSize, filters, searchText])
 
@@ -77,7 +84,7 @@ const BillList = () => {
       const meta = response.data || response
       const total = meta.total ?? meta.pagination?.total ?? 0
       const currentPage = meta.currentPage ?? meta.pagination?.page ?? pagination.current
-      setPagination(prev => ({ ...prev, total: total, current: currentPage }))
+      setPagination(prev => ({ ...prev, total: total }))
     } catch (error) {
       console.error('Error fetching bills:', error)
       toast.error(`Failed to fetch bills: ${error.message || 'Server error'}`)

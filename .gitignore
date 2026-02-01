@@ -24,6 +24,7 @@ out/
 .idea/
 .vscode/
 .trae/
+.tare/
 *.swp
 *.swo
 .DS_Store
