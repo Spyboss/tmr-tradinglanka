@@ -76,8 +76,8 @@ const BrandingManager = () => {
     }
   }
 
-  if (loading) return <div>Loading...</div>
-  if (error) return <div className="text-red-500">{error}</div>
+  if (loading) return <div className="p-6 dark:bg-slate-900 dark:text-gray-300">Loading...</div>
+  if (error) return <div className="p-6 text-red-500 dark:bg-slate-900">{error}</div>
 
   return (
     <div className="max-w-4xl mx-auto p-6">

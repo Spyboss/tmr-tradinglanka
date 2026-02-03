@@ -134,7 +134,7 @@ const QuotationView = () => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-64">
+      <div className="flex justify-center items-center h-64 dark:bg-slate-900">
         <Spin size="large" />
       </div>
     );

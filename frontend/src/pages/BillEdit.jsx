@@ -189,7 +189,7 @@ const BillEdit = () => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-screen">
+      <div className="flex justify-center items-center h-screen dark:bg-slate-900">
         <Spin size="large" />
       </div>
     );

@@ -2,6 +2,15 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Global Background Fix for Dark Mode */
+html {
+  background-color: #f9fafb; /* bg-gray-50 */
+}
+
+html.dark {
+  background-color: #0f172a; /* bg-slate-900 */
+}
+
 /* Dark Theme Form Input Fixes */
 .dark .ant-input,
 .dark .ant-input-affix-wrapper,

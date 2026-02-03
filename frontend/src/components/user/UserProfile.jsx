@@ -69,7 +69,7 @@ const UserProfile = () => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-[400px]">
+      <div className="flex justify-center items-center min-h-[400px] dark:bg-slate-900">
         <Spin size="large" />
       </div>
     );

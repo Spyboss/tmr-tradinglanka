@@ -103,7 +103,11 @@ const BikeModelList = () => {
   };
 
   if (loading) {
-    return <div className="text-center py-10 dark:text-gray-300">Loading bike models...</div>;
+    return (
+      <div className="flex justify-center items-center h-64 dark:bg-slate-900">
+        <div className="text-center py-10 dark:text-gray-300">Loading bike models...</div>
+      </div>
+    );
   }
 
   if (error) {
