@@ -120,7 +120,13 @@ export const generateQuotationPDF = async (quotation: IQuotation): Promise<Buffe
       // Branding-aware content generation
       const loadBranding = async () => {
         try {
-          const b = await Branding.findOne({}).lean();
+          const userId = quotation.owner;
+          let b = await Branding.findOne({ userId }).lean();
+          
+          if (!b) {
+            b = await Branding.findOne({ userId: null }).lean();
+          }
+
           return {
             dealerName: b?.dealerName || 'TMR Trading Lanka',
             brandPartner: b?.brandPartner || 'TMR Trading Lanka (Pvt) Ltd',

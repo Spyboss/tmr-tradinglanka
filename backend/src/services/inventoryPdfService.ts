@@ -25,9 +25,10 @@ interface InventoryData {
 /**
  * Generate a professional PDF for inventory report
  * @param inventoryData The inventory analytics data
+ * @param userId The user ID for branding isolation
  * @returns Promise with PDF buffer
  */
-export const generateInventoryPDF = async (inventoryData: InventoryData): Promise<Buffer> => {
+export const generateInventoryPDF = async (inventoryData: InventoryData, userId?: string): Promise<Buffer> => {
   return new Promise((resolve, reject) => {
     try {
       // Create a document with single page layout
@@ -51,7 +52,13 @@ export const generateInventoryPDF = async (inventoryData: InventoryData): Promis
       // Helper to load branding
       const loadBranding = async () => {
         try {
-          const b = await Branding.findOne({}).lean();
+          let b;
+          if (userId) {
+            b = await Branding.findOne({ userId }).lean();
+          }
+          if (!b) {
+            b = await Branding.findOne({ userId: null }).lean();
+          }
           return {
             dealerName: b?.dealerName || 'TMR Trading Lanka',
             primaryColor: b?.primaryColor || '#1e90ff',

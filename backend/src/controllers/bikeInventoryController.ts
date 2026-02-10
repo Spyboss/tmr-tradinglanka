@@ -1041,7 +1041,7 @@ export const generateInventoryReportPDF = async (req: AuthRequest, res: Response
     };
 
     // Generate PDF
-    const pdfBuffer = await generateInventoryPDF(inventoryData);
+    const pdfBuffer = await generateInventoryPDF(inventoryData, req.user?.id);
 
     // Set headers and send PDF
     res.setHeader('Content-Type', 'application/pdf');

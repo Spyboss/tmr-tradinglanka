@@ -10,8 +10,8 @@ import http from 'http';
  * @returns Promise with PDF buffer
  */
 export const generatePDF = async (bill: any): Promise<Buffer> => {
-  // Load branding once per document
-  const branding = await loadBranding();
+  // Load branding isolated by the bill owner
+  const branding = await loadBranding(bill.owner);
   const logoBuffer = await loadLogoBuffer(branding.logoUrl);
 
   return new Promise((resolve, reject) => {
@@ -474,7 +474,7 @@ const generateFooter = (doc: PDFKit.PDFDocument, branding?: any): void => {
 };
 
 // Load branding document with safe defaults
-const loadBranding = async (): Promise<{
+const loadBranding = async (userId?: any): Promise<{
   dealerName: string;
   logoUrl?: string;
   primaryColor?: string;
@@ -484,7 +484,17 @@ const loadBranding = async (): Promise<{
   footerNote?: string;
 }> => {
   try {
-    const b = await Branding.findOne();
+    let b;
+    if (userId) {
+      // Try to find personal branding for the user first
+      b = await Branding.findOne({ userId });
+    }
+    
+    // Fallback to system-wide branding if no personal branding or no userId provided
+    if (!b) {
+      b = await Branding.findOne({ userId: null });
+    }
+
     return {
       dealerName: b?.dealerName || 'TMR Trading Lanka (Pvt) Ltd',
       logoUrl: b?.logoUrl,
