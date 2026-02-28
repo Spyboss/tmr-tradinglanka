@@ -97,7 +97,15 @@ class ApiClient {
         // Add a timestamp to prevent caching
         const timestampedUrl = `${processedUrl}${processedUrl.includes('?') ? '&' : '?'}_t=${Date.now()}`;
         
-        const response = await pdfAxiosInstance.get(timestampedUrl);
+        const response = await pdfAxiosInstance.get(timestampedUrl, {
+          ...config,
+          responseType: 'blob',
+          headers: {
+            'Accept': 'application/pdf',
+            'Authorization': token ? `Bearer ${token}` : undefined,
+            ...(config.headers || {})
+          }
+        });
         
         // Verify we got a PDF
         if (response.headers['content-type'] && 

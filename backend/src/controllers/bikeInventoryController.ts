@@ -993,6 +993,7 @@ export const getAvailableBikesByModel = async (req: AuthRequest, res: Response, 
 export const generateInventoryReportPDF = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const now = new Date();
+    const sortMode = req.query.sortMode === 'model' ? 'model' : 'date';
 
     // Build filter query
     const filter: any = { isDeleted: { $ne: true } };
@@ -1008,7 +1009,19 @@ export const generateInventoryReportPDF = async (req: AuthRequest, res: Response
     // Get all inventory items with bike model details
     const inventoryItems = await BikeInventory.find(filter)
       .populate('bikeModelId', 'name price is_ebicycle is_tricycle')
-      .sort({ 'bikeModelId.name': 1, dateAdded: 1 });
+      .sort({ dateAdded: 1, _id: 1 });
+
+    const sortedInventoryItems = sortMode === 'model'
+      ? [...inventoryItems].sort((a: any, b: any) => {
+          const modelA = (a?.bikeModelId as any)?.name || '';
+          const modelB = (b?.bikeModelId as any)?.name || '';
+          const modelCompare = modelA.localeCompare(modelB);
+
+          if (modelCompare !== 0) return modelCompare;
+
+          return new Date(a.dateAdded).getTime() - new Date(b.dateAdded).getTime();
+        })
+      : inventoryItems;
 
     // Count available bikes
     const totalAvailable = inventoryItems.filter(item => item.status === 'available').length;
@@ -1034,7 +1047,7 @@ export const generateInventoryReportPDF = async (req: AuthRequest, res: Response
 
     // Prepare data for PDF generation
     const inventoryData = {
-      inventoryItems: inventoryItems as any[],
+      inventoryItems: sortedInventoryItems as any[],
       totalAvailable,
       insights,
       reportGenerated: now
