@@ -166,7 +166,7 @@ const generateInventoryTable = (doc: PDFKit.PDFDocument, inventoryItems: BikeInv
   const tableLeft = 40;
   const rowHeight = 18;
   const tableWidth = 515;
-  const reservedBottomSpace = 150;
+  const pageBottomMargin = 40;
 
   // Column widths for: No, Model, Color, Chassis Number, Motor Number
   const colWidths = [40, 120, 80, 135, 140];
@@ -176,7 +176,11 @@ const generateInventoryTable = (doc: PDFKit.PDFDocument, inventoryItems: BikeInv
   let currentY = tableTop;
   const drawTableHeader = () => {
     doc.fontSize(9)
-       .font('Helvetica-Bold');
+       .font('Helvetica-Bold')
+       .fillColor('#000000')
+       .strokeColor('#000000')
+       .lineWidth(0.5)
+       .opacity(1);
 
     doc.rect(tableLeft, currentY, tableWidth, rowHeight)
        .fillAndStroke('#f0f0f0', '#000000');
@@ -203,15 +207,24 @@ const generateInventoryTable = (doc: PDFKit.PDFDocument, inventoryItems: BikeInv
   const availableBikes = inventoryItems.filter(item => item.status === 'available');
 
   availableBikes.forEach((item, index) => {
-    if (currentY + rowHeight > doc.page.height - reservedBottomSpace) {
+    if (currentY + rowHeight > doc.page.height - pageBottomMargin) {
       doc.addPage();
       currentY = tableTop;
       drawTableHeader();
       currentY += rowHeight;
+      doc.fontSize(8)
+         .font('Helvetica')
+         .fillColor('#000000')
+         .strokeColor('#000000')
+         .lineWidth(0.5)
+         .opacity(1);
     }
 
     // Alternate row colors
     const fillColor = index % 2 === 0 ? '#ffffff' : '#f9f9f9';
+    doc.strokeColor('#000000')
+       .lineWidth(0.5)
+       .opacity(1);
     doc.rect(tableLeft, currentY, tableWidth, rowHeight)
        .fillAndStroke(fillColor, '#000000');
 
@@ -263,6 +276,9 @@ const generateTotalRow = (doc: PDFKit.PDFDocument, totalAvailable: number): void
   }
 
   // Total row background
+  doc.strokeColor('#000000')
+     .lineWidth(0.5)
+     .opacity(1);
   doc.rect(tableLeft, currentY, tableWidth, rowHeight)
      .fillAndStroke('#e6f3ff', '#000000');
 
