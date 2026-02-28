@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Spin, Statistic, Table, Tag, Button, Row, Col, Divider, Progress, Alert, Typography } from 'antd';
+import { Card, Spin, Statistic, Table, Tag, Button, Row, Col, Divider, Progress, Alert, Typography, Select } from 'antd';
 import { DownloadOutlined, PrinterOutlined, ReloadOutlined, ArrowUpOutlined, ArrowDownOutlined, WarningOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { getInventorySummary, getInventoryAnalytics } from '../../services/inventoryService';
@@ -23,6 +23,7 @@ const InventoryReport = () => {
   const [inventoryValue, setInventoryValue] = useState({ totalValue: 0, count: 0 });
   const [analytics, setAnalytics] = useState(null);
   const [reportDate] = useState(new Date());
+  const [pdfSortMode, setPdfSortMode] = useState('date');
 
   useEffect(() => {
     fetchData();
@@ -56,7 +57,9 @@ const InventoryReport = () => {
   const handlePrint = async () => {
     try {
       // Use apiClient which handles authentication properly
-      const blob = await apiClient.get('/inventory/report/pdf');
+      const blob = await apiClient.get('/inventory/report/pdf', {
+        params: { sortMode: pdfSortMode }
+      });
 
       // Create a URL for the blob
       const url = window.URL.createObjectURL(blob);
@@ -422,6 +425,15 @@ const InventoryReport = () => {
           >
             Refresh
           </Button>
+          <Select
+            value={pdfSortMode}
+            onChange={setPdfSortMode}
+            style={{ width: 260 }}
+            options={[
+              { value: 'date', label: 'PDF Sort: Added Date (current)' },
+              { value: 'model', label: 'PDF Sort: Group by Bike Model' }
+            ]}
+          />
           <Button
             icon={<PrinterOutlined />}
             onClick={handlePrint}
