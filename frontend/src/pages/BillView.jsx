@@ -327,6 +327,9 @@ const BillView = () => {
             <Descriptions.Item label="Name">{bill.customerName}</Descriptions.Item>
             <Descriptions.Item label="NIC">{bill.customerNIC}</Descriptions.Item>
             <Descriptions.Item label="Address">{bill.customerAddress}</Descriptions.Item>
+            {(bill.isAdvancePayment || bill.customerPhone) && (
+              <Descriptions.Item label="Contact Number">{bill.customerPhone || 'N/A'}</Descriptions.Item>
+            )}
           </Descriptions>
         </Card>
 

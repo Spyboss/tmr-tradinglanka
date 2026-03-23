@@ -13,6 +13,7 @@ export interface IBill extends Document {
   customerName: string;
   customerNIC: string;
   customerAddress: string;
+  customerPhone?: string;
 
   // Bike details
   bikeModel: string;
@@ -90,6 +91,18 @@ const BillSchema = new Schema({
     type: String,
     required: true,
     encrypted: true // This field will be encrypted
+  },
+  customerPhone: {
+    type: String,
+    encrypted: true,
+    trim: true,
+    validate: {
+      validator: function(this: any, value: string | undefined): boolean {
+        if (!value) return true;
+        return /^07\d{8}$/.test(value);
+      },
+      message: 'Customer phone number must be in 07XXXXXXXX format'
+    }
   },
 
   // Bike details

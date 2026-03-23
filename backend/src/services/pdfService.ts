@@ -187,6 +187,14 @@ const generateCustomerInformation = (doc: PDFKit.PDFDocument, bill: any): void =
   doc
     .text('Address:', 50, currentY)
     .text(bill.customerAddress || bill.customer_address || '', 150, currentY, { width: 200 });
+
+  const customerPhone = bill.customerPhone || bill.customer_phone || '';
+  if (customerPhone) {
+    currentY += 15;
+    doc
+      .text('Contact No:', 50, currentY)
+      .text(customerPhone, 150, currentY, { width: 200 });
+  }
   
   // Add spacing before vehicle details
   currentY += 30;

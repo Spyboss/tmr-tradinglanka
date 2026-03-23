@@ -66,6 +66,7 @@ const BillEdit = () => {
         customerName: data.customerName,
         customerNIC: data.customerNIC,
         customerAddress: data.customerAddress,
+        customerPhone: data.customerPhone,
         motorNumber: data.motorNumber,
         chassisNumber: data.chassisNumber,
         bikePrice: data.bikePrice,
@@ -142,6 +143,7 @@ const BillEdit = () => {
         customerName: values.customerName,
         customerNIC: values.customerNIC,
         customerAddress: values.customerAddress,
+        customerPhone: values.customerPhone?.trim(),
         motorNumber: values.motorNumber,
         chassisNumber: values.chassisNumber,
         bikePrice: bikePrice,
@@ -296,6 +298,17 @@ const BillEdit = () => {
                 rules={[{ required: true, message: 'Please enter the estimated delivery date' }]}
               >
                 <DatePicker className="w-full" />
+              </Form.Item>
+
+              <Form.Item
+                name="customerPhone"
+                label="Customer Contact Number"
+                rules={[
+                  { required: true, message: 'Please enter customer contact number' },
+                  { pattern: /^07\d{8}$/, message: 'Enter a valid Sri Lankan mobile number (07XXXXXXXX)' }
+                ]}
+              >
+                <Input maxLength={10} placeholder="0701234567" />
               </Form.Item>
             </>
           )}

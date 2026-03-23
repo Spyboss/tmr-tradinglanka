@@ -8,6 +8,7 @@ import { AppError } from '../middleware/errorHandler.js';
 import logger from '../utils/logger.js';
 
 const escapeRegExp = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const SRI_LANKA_MOBILE_REGEX = /^07\d{8}$/;
 
 /**
  * Create a new bill with inventory integration
@@ -22,6 +23,22 @@ export const createBill = async (req: AuthRequest, res: Response, next: NextFunc
     logger.info(`Received bill data`);
     
     const billData = req.body;
+
+    const normalizedCustomerPhone = typeof billData.customerPhone === 'string'
+      ? billData.customerPhone.trim()
+      : '';
+
+    if (billData.isAdvancePayment) {
+      if (!SRI_LANKA_MOBILE_REGEX.test(normalizedCustomerPhone)) {
+        return next(new AppError('Customer contact number is required for advance payments (format: 07XXXXXXXX)', 400));
+      }
+      billData.customerPhone = normalizedCustomerPhone;
+    } else if (normalizedCustomerPhone) {
+      if (!SRI_LANKA_MOBILE_REGEX.test(normalizedCustomerPhone)) {
+        return next(new AppError('Customer contact number must be in 07XXXXXXXX format', 400));
+      }
+      billData.customerPhone = normalizedCustomerPhone;
+    }
     
     // Set the owner as the current authenticated user
     billData.owner = req.user?.id;

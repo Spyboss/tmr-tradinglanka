@@ -138,6 +138,7 @@ const BillGeneratorUnified = () => {
       billData.isAdvancePayment = true;
       billData.advanceAmount = parseFloat(values.advance_amount || 0);
       billData.balanceAmount = totalAmount - (parseFloat(values.advance_amount || 0));
+      billData.customerPhone = values.customer_phone?.trim();
       if (values.estimated_delivery_date) {
         billData.estimatedDeliveryDate = values.estimated_delivery_date.toISOString();
       }
@@ -407,6 +408,19 @@ const BillGeneratorUnified = () => {
         {isAdvancePayment && (
           <Form.Item name="estimated_delivery_date" label="Estimated Delivery Date">
             <DatePicker className="w-full" />
+          </Form.Item>
+        )}
+
+        {isAdvancePayment && (
+          <Form.Item
+            name="customer_phone"
+            label="Customer Contact Number"
+            rules={[
+              { required: true, message: 'Please enter customer contact number' },
+              { pattern: /^07\d{8}$/, message: 'Enter a valid Sri Lankan mobile number (07XXXXXXXX)' }
+            ]}
+          >
+            <Input maxLength={10} placeholder="0701234567" />
           </Form.Item>
         )}
 

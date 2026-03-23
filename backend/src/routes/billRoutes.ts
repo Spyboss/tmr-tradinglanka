@@ -7,6 +7,7 @@ import { authenticate, requireAdmin, requireOwnership, AuthRequest } from '../au
 import { createBill, updateBillStatus } from '../controllers/billController.js';
 
 const router = express.Router();
+const SRI_LANKA_MOBILE_REGEX = /^07\d{8}$/;
 
 // Get all bills with pagination and filtering - Protected route
 router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
@@ -162,6 +163,27 @@ router.put('/:id', authenticate, async (req: AuthRequest, res: Response) => {
     // Don't allow changing the owner
     if (req.body.owner && !isAdmin) {
       delete req.body.owner;
+    }
+
+    const willBeAdvance = req.body.isAdvancePayment === true || bill.isAdvancePayment === true;
+    const incomingPhone = typeof req.body.customerPhone === 'string'
+      ? req.body.customerPhone.trim()
+      : bill.customerPhone;
+
+    if (willBeAdvance && !incomingPhone) {
+      return res.status(400).json({
+        error: 'Customer contact number is required for advance payments (format: 07XXXXXXXX)'
+      });
+    }
+
+    if (incomingPhone && !SRI_LANKA_MOBILE_REGEX.test(incomingPhone)) {
+      return res.status(400).json({
+        error: 'Customer contact number must be in 07XXXXXXXX format'
+      });
+    }
+
+    if (incomingPhone) {
+      req.body.customerPhone = incomingPhone;
     }
 
     const updatedBill = await Bill.findByIdAndUpdate(
