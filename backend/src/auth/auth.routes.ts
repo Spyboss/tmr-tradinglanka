@@ -3,7 +3,7 @@ import * as authController from './auth.controller.js';
 import { authenticate } from './auth.middleware.js';
 import { enforceVerification } from './verification-enforce.middleware.js';
 import { validateRegistration, validateLogin } from './auth.validation.js';
-import { loginRateLimit, registrationRateLimit } from './rate-limit.middleware.js';
+import { loginRateLimit, registrationRateLimit, createAdminRateLimit } from './rate-limit.middleware.js';
 import * as verificationController from './verification.controller.js';
 import { verifyRateLimit } from './verify-rate-limit.middleware.js';
 import {
@@ -67,7 +67,7 @@ router.put('/password', authenticate, enforceVerification, validatePasswordChang
  * @desc   Create an admin user (protected by setup key)
  * @access Public (but protected by setup key)
  */
-router.post('/create-admin', authController.createAdmin);
+router.post('/create-admin', createAdminRateLimit, authController.createAdmin);
 
 /**
  * @route  POST /api/auth/verify/request

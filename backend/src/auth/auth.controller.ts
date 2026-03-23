@@ -547,6 +547,7 @@ const hashTokenLegacy = (token: string): string => {
 export const createAdmin = async (req: Request, res: Response): Promise<void> => {
   try {
     const { email, password, name, setupKey } = req.body;
+    const allowMultipleAdminsFromBootstrap = (process.env.ADMIN_SETUP_ALLOW_MULTIPLE ?? 'false').toLowerCase() === 'true';
 
     // Verify setup key (this should be a strong, unique key known only to administrators)
     const expectedSetupKey = process.env.ADMIN_SETUP_KEY;
@@ -559,6 +560,14 @@ export const createAdmin = async (req: Request, res: Response): Promise<void> =>
     if (setupKey !== expectedSetupKey) {
       res.status(403).json({ message: 'Invalid setup key' });
       return;
+    }
+
+    if (!allowMultipleAdminsFromBootstrap) {
+      const existingAdmin = await User.exists({ role: 'admin' });
+      if (existingAdmin) {
+        res.status(403).json({ message: 'Admin setup has already been completed' });
+        return;
+      }
     }
 
     // Check if user already exists

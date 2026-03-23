@@ -7,6 +7,9 @@ import { AppError } from '../middleware/errorHandler.js';
 import { AuthRequest } from '../auth/auth.middleware.js';
 import { generateInventoryPDF } from '../services/inventoryPdfService.js';
 
+const MAX_SEARCH_LENGTH = 64;
+const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 /**
  * Get all bikes in inventory with filtering
  * @route GET /api/inventory
@@ -52,9 +55,11 @@ export const getAllInventory = async (req: AuthRequest, res: Response, next: Nex
 
     // Search by motor or chassis number
     if (search) {
+      const normalizedSearch = String(search).trim().slice(0, MAX_SEARCH_LENGTH);
+      const safeSearchRegex = new RegExp(escapeRegExp(normalizedSearch), 'i');
       filter.$or = [
-        { motorNumber: { $regex: search, $options: 'i' } },
-        { chassisNumber: { $regex: search, $options: 'i' } }
+        { motorNumber: { $regex: safeSearchRegex } },
+        { chassisNumber: { $regex: safeSearchRegex } }
       ];
     }
 

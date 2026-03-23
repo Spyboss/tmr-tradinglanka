@@ -6,6 +6,8 @@ import { generateQuotationPDF } from '../services/quotationPdfService.js';
 import { authenticate, requireAdmin, AuthRequest } from '../auth/auth.middleware.js';
 
 const router = express.Router();
+const MAX_SEARCH_LENGTH = 64;
+const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 // Get all quotations with pagination and filtering - Protected route
 router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
@@ -39,10 +41,12 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
 
     // Add search filter
     if (search) {
+      const normalizedSearch = String(search).trim().slice(0, MAX_SEARCH_LENGTH);
+      const safeSearchRegex = new RegExp(escapeRegExp(normalizedSearch), 'i');
       filter.$or = [
-        { quotationNumber: { $regex: search, $options: 'i' } },
-        { customerName: { $regex: search, $options: 'i' } },
-        { claimNumber: { $regex: search, $options: 'i' } }
+        { quotationNumber: { $regex: safeSearchRegex } },
+        { customerName: { $regex: safeSearchRegex } },
+        { claimNumber: { $regex: safeSearchRegex } }
       ];
     }
 
@@ -289,9 +293,11 @@ router.get('/customers/suggestions', authenticate, async (req: AuthRequest, res:
     }
 
     if (search) {
+      const normalizedSearch = String(search).trim().slice(0, MAX_SEARCH_LENGTH);
+      const safeSearchRegex = new RegExp(escapeRegExp(normalizedSearch), 'i');
       filter.$or = [
-        { customerName: { $regex: search, $options: 'i' } },
-        { customerNIC: { $regex: search, $options: 'i' } }
+        { customerName: { $regex: safeSearchRegex } },
+        { customerNIC: { $regex: safeSearchRegex } }
       ];
     }
 

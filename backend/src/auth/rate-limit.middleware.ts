@@ -56,6 +56,14 @@ const registrationLimiter = createRedisRateLimiter({
   blockDuration: process.env.NODE_ENV === 'production' ? 30 * 60 : 60, // Reduced block time
 });
 
+// Admin bootstrap limiter: very strict in production
+const createAdminLimiter = createRedisRateLimiter({
+  keyPrefix: 'rl:create-admin',
+  points: process.env.NODE_ENV === 'production' ? 3 : 10,
+  duration: 60 * 60,
+  blockDuration: process.env.NODE_ENV === 'production' ? 60 * 60 : 60,
+});
+
 /**
  * Check if an IP is a private/local network address
  */
@@ -253,5 +261,34 @@ export const registrationRateLimit = async (req: Request, res: Response, next: N
       return;
     }
     next();
+  }
+};
+
+/**
+ * Apply specific rate limiting for admin bootstrap endpoint
+ */
+export const createAdminRateLimit = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
+    return next();
+  }
+
+  const clientIp = req.ip || 'unknown';
+
+  if (isPrivateIP(clientIp)) {
+    return next();
+  }
+
+  try {
+    await createAdminLimiter.consume(clientIp);
+    next();
+  } catch (error) {
+    const limiterRes = error as RateLimiterRes;
+    const retryAfter = Math.ceil(limiterRes.msBeforeNext / 1000) || 3600;
+
+    res.set('Retry-After', String(retryAfter));
+    res.status(429).json({
+      message: 'Too many admin setup attempts - please try again later',
+      retryAfter
+    });
   }
 };
