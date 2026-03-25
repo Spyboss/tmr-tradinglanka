@@ -148,6 +148,13 @@ const QuotationEdit = () => {
 
   const itemColumns = [
     {
+      title: '#',
+      key: 'index',
+      width: 60,
+      align: 'center',
+      render: (text, record, index) => index + 1,
+    },
+    {
       title: 'Description',
       dataIndex: 'description',
       key: 'description',
