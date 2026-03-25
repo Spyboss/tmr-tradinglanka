@@ -177,23 +177,32 @@ const generateCustomerInformation = (doc: PDFKit.PDFDocument, bill: any): void =
   // Add padding between name and NIC
   currentY += 5;
   
-  // Draw NIC and address with calculated positions
-  doc
-    .text('NIC:', 50, currentY)
-    .text(bill.customerNIC || bill.customer_nic || '', 150, currentY, { width: 200 });
-  
-  currentY += 15;
-  
-  doc
-    .text('Address:', 50, currentY)
-    .text(bill.customerAddress || bill.customer_address || '', 150, currentY, { width: 200 });
+  const detailLabelX = 50;
+  const detailValueX = 150;
+  const detailValueWidth = 200;
+  const detailRowGap = 5;
+
+  const drawDetailRow = (label: string, value: string, y: number): number => {
+    const safeValue = value || '';
+    const labelText = `${label}:`;
+
+    doc
+      .font('Helvetica')
+      .text(labelText, detailLabelX, y)
+      .text(safeValue, detailValueX, y, { width: detailValueWidth });
+
+    const labelHeight = doc.heightOfString(labelText);
+    const valueHeight = doc.heightOfString(safeValue, { width: detailValueWidth });
+
+    return y + Math.max(labelHeight, valueHeight) + detailRowGap;
+  };
+
+  currentY = drawDetailRow('NIC', bill.customerNIC || bill.customer_nic || '', currentY);
+  currentY = drawDetailRow('Address', bill.customerAddress || bill.customer_address || '', currentY);
 
   const customerPhone = bill.customerPhone || bill.customer_phone || '';
   if (customerPhone) {
-    currentY += 15;
-    doc
-      .text('Contact No:', 50, currentY)
-      .text(customerPhone, 150, currentY, { width: 200 });
+    currentY = drawDetailRow('Contact No', customerPhone, currentY);
   }
   
   // Add spacing before vehicle details
