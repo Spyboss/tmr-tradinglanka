@@ -1,22 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Spin, Statistic, Table, Tag, Button, Row, Col, Divider, Progress, Alert, Typography, Select } from 'antd';
-import { DownloadOutlined, PrinterOutlined, ReloadOutlined, ArrowUpOutlined, ArrowDownOutlined, WarningOutlined, CheckCircleOutlined } from '@ant-design/icons';
-import { useNavigate } from 'react-router-dom';
+import { Card, Spin, Statistic, Table, Tag, Button, Row, Col, Divider, Progress, Typography, Select, Space } from 'antd';
+import { DownloadOutlined, PrinterOutlined, ReloadOutlined, ArrowUpOutlined, ArrowDownOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import { getInventorySummary, getInventoryAnalytics } from '../../services/inventoryService';
 import apiClient from '../../config/apiClient';
 import { format } from 'date-fns';
 
-const { Title, Text, Paragraph } = Typography;
-
-const statusColors = {
-  available: 'green',
-  sold: 'blue',
-  reserved: 'orange',
-  damaged: 'red'
-};
+const { Title, Text } = Typography;
 
 const InventoryReport = () => {
-  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [summary, setSummary] = useState([]);
   const [statusTotals, setStatusTotals] = useState([]);
@@ -413,45 +404,217 @@ const InventoryReport = () => {
     document.body.removeChild(link);
   };
 
+  const getStatusTotal = (status) => statusTotals.find(s => s.status === status)?.count || 0;
+
+  const availableUnits = getStatusTotal('available');
+  const soldUnits = getStatusTotal('sold');
+  const reservedUnits = getStatusTotal('reserved');
+  const damagedUnits = getStatusTotal('damaged');
+  const totalUnits = availableUnits + soldUnits + reservedUnits + damagedUnits;
+  const sellThroughRate = totalUnits > 0 ? (soldUnits / totalUnits) * 100 : 0;
+
+  const modelRows = (analytics?.modelPerformance || summary).map((item, index) => {
+    const fromAnalytics = !!analytics?.modelPerformance;
+    const available = fromAnalytics ? (item.availableUnits || 0) : (item.statusCounts?.find(s => s.status === 'available')?.count || 0);
+    const sold = fromAnalytics ? (item.soldUnits || 0) : (item.statusCounts?.find(s => s.status === 'sold')?.count || 0);
+    const reserved = fromAnalytics ? (item.reservedUnits || 0) : (item.statusCounts?.find(s => s.status === 'reserved')?.count || 0);
+    const damaged = fromAnalytics ? (item.damagedUnits || 0) : (item.statusCounts?.find(s => s.status === 'damaged')?.count || 0);
+    const units = fromAnalytics ? (item.totalUnits || 0) : (item.totalCount || 0);
+    const rate = fromAnalytics ? (item.sellThroughRate || 0) : (units > 0 ? (sold / units) * 100 : 0);
+    const onHand = available + reserved;
+    const price = item.price || 0;
+
+    return {
+      key: item.modelId || item.modelName || index,
+      modelName: item.modelName,
+      isEbicycle: !!item.isEbicycle,
+      isTricycle: !!item.isTricycle,
+      price,
+      available,
+      sold,
+      reserved,
+      damaged,
+      units,
+      onHand,
+      stockValue: onHand * price,
+      revenue: fromAnalytics ? (item.soldValue || 0) : sold * price,
+      sellThroughRate: rate,
+      stockHealth: item.stockHealth
+    };
+  });
+
+  const lowStockModels = modelRows
+    .filter(row => row.onHand > 0 && row.onHand <= 2)
+    .sort((a, b) => a.onHand - b.onHand)
+    .slice(0, 6);
+
+  const screenColumns = [
+    {
+      title: '#',
+      key: 'index',
+      width: 60,
+      align: 'center',
+      render: (_, __, index) => index + 1
+    },
+    {
+      title: 'Model',
+      dataIndex: 'modelName',
+      key: 'modelName',
+      render: (text, record) => (
+        <Space direction="vertical" size={2}>
+          <Text strong>{text}</Text>
+          <Space size={4}>
+            {record.isEbicycle && <Tag color="cyan">E-Bicycle</Tag>}
+            {record.isTricycle && <Tag color="purple">Tricycle</Tag>}
+          </Space>
+        </Space>
+      )
+    },
+    {
+      title: 'On Hand',
+      key: 'onHand',
+      width: 120,
+      align: 'right',
+      render: (_, record) => <Text strong>{record.onHand}</Text>
+    },
+    {
+      title: 'Sold',
+      dataIndex: 'sold',
+      key: 'sold',
+      width: 110,
+      align: 'right',
+      render: value => <Text style={{ color: '#1677ff' }}>{value}</Text>
+    },
+    {
+      title: 'Sell-Through',
+      key: 'sellThroughRate',
+      width: 150,
+      render: (_, record) => (
+        <Progress
+          percent={record.sellThroughRate}
+          size="small"
+          status={record.sellThroughRate >= 50 ? 'success' : record.sellThroughRate >= 25 ? 'normal' : 'exception'}
+          format={p => `${(p || 0).toFixed(0)}%`}
+        />
+      )
+    },
+    {
+      title: 'Stock Value',
+      key: 'stockValue',
+      width: 150,
+      align: 'right',
+      render: (_, record) => `Rs. ${record.stockValue.toLocaleString()}`
+    },
+    {
+      title: 'Revenue',
+      key: 'revenue',
+      width: 150,
+      align: 'right',
+      render: (_, record) => <Text strong style={{ color: '#722ed1' }}>Rs. {record.revenue.toLocaleString()}</Text>
+    }
+  ];
+
   return (
     <div className="inventory-report-container">
-      {/* Screen Controls */}
-      <div className="flex justify-between items-center mb-6 print:hidden">
-        <h1 className="text-2xl font-semibold">Professional Inventory Report</h1>
-        <div className="space-x-2">
-          <Button
-            icon={<ReloadOutlined />}
-            onClick={fetchData}
-          >
-            Refresh
-          </Button>
-          <Select
-            value={pdfSortMode}
-            onChange={setPdfSortMode}
-            style={{ width: 260 }}
-            options={[
-              { value: 'date', label: 'PDF Sort: Added Date (current)' },
-              { value: 'model', label: 'PDF Sort: Group by Bike Model' }
-            ]}
-          />
-          <Button
-            icon={<PrinterOutlined />}
-            onClick={handlePrint}
-          >
-            Print Report
-          </Button>
-          <Button
-            type="primary"
-            icon={<DownloadOutlined />}
-            onClick={handleExportAnalytics}
-          >
-            Export Analytics
-          </Button>
+      <div className="print:hidden">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between mb-6">
+          <div>
+            <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Inventory Operations Dashboard</h1>
+            <Text type="secondary">Clear stock position, movement, and value by model.</Text>
+          </div>
+          <Space wrap>
+            <Button icon={<ReloadOutlined />} onClick={fetchData}>Refresh</Button>
+            <Select
+              value={pdfSortMode}
+              onChange={setPdfSortMode}
+              style={{ width: 260 }}
+              options={[
+                { value: 'date', label: 'PDF Sort: Added Date (current)' },
+                { value: 'model', label: 'PDF Sort: Group by Bike Model' }
+              ]}
+            />
+            <Button icon={<PrinterOutlined />} onClick={handlePrint}>Print Report</Button>
+            <Button
+              type="primary"
+              icon={<DownloadOutlined />}
+              onClick={analytics?.modelPerformance ? handleExportAnalytics : handleExport}
+            >
+              Export CSV
+            </Button>
+          </Space>
         </div>
+
+        <Row gutter={[16, 16]} className="mb-4">
+          <Col xs={24} sm={12} xl={6}>
+            <Card size="small">
+              <Statistic title="Total Inventory Value" value={inventoryValue.totalValue} prefix="Rs. " />
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} xl={6}>
+            <Card size="small">
+              <Statistic title="Units On Hand" value={availableUnits + reservedUnits} valueStyle={{ color: '#52c41a' }} />
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} xl={6}>
+            <Card size="small">
+              <Statistic title="Units Sold" value={soldUnits} valueStyle={{ color: '#1677ff' }} />
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} xl={6}>
+            <Card size="small">
+              <Statistic title="Sell-Through Rate" value={sellThroughRate} precision={1} suffix="%" />
+            </Card>
+          </Col>
+        </Row>
+
+        <Row gutter={[16, 16]} className="mb-6">
+          <Col xs={24} xl={16}>
+            <Card title="Inventory by Model" size="small">
+              <Table
+                columns={screenColumns}
+                dataSource={modelRows}
+                rowKey="key"
+                size="small"
+                pagination={{ pageSize: 10, showSizeChanger: false }}
+                scroll={{ x: 900 }}
+              />
+            </Card>
+          </Col>
+          <Col xs={24} xl={8}>
+            <Card title="Stock Summary" size="small" className="mb-4">
+              <Space direction="vertical" style={{ width: '100%' }} size={10}>
+                <div className="flex justify-between"><Text>Available</Text><Text strong style={{ color: '#52c41a' }}>{availableUnits}</Text></div>
+                <div className="flex justify-between"><Text>Reserved</Text><Text strong style={{ color: '#fa8c16' }}>{reservedUnits}</Text></div>
+                <div className="flex justify-between"><Text>Sold</Text><Text strong style={{ color: '#1677ff' }}>{soldUnits}</Text></div>
+                <div className="flex justify-between"><Text>Damaged</Text><Text strong style={{ color: '#ff4d4f' }}>{damagedUnits}</Text></div>
+                <Divider style={{ margin: '8px 0' }} />
+                <div className="flex justify-between"><Text strong>Total Units</Text><Text strong>{totalUnits}</Text></div>
+              </Space>
+            </Card>
+
+            <Card title="Low Stock Attention" size="small">
+              {lowStockModels.length === 0 ? (
+                <Text type="secondary">No urgent low-stock models right now.</Text>
+              ) : (
+                <Space direction="vertical" style={{ width: '100%' }} size={8}>
+                  {lowStockModels.map(model => (
+                    <div key={model.key} className="flex items-center justify-between rounded border border-amber-200 bg-amber-50 px-3 py-2 dark:border-amber-900 dark:bg-amber-950/30">
+                      <div>
+                        <Text strong>{model.modelName}</Text>
+                        <div><Text type="secondary" style={{ fontSize: 12 }}>On Hand: {model.onHand}</Text></div>
+                      </div>
+                      <Tag color="orange">Low</Tag>
+                    </div>
+                  ))}
+                </Space>
+              )}
+            </Card>
+          </Col>
+        </Row>
       </div>
 
       {/* Professional Print Layout */}
-      <div className="professional-report print:block">
+      <div className="hidden print:block">
         {/* Header Section */}
         <div className="report-header text-center mb-8 print:mb-6">
           <div className="company-logo-section mb-4">
