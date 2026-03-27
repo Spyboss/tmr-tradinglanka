@@ -134,50 +134,94 @@ const renderHeader = (
   params: { title: string; docNo: string; y: number; left: number; right: number }
 ): number => {
   const { title, docNo, y, left, right } = params;
-  let logoRightEdge = left;
+  const pageWidth = right;
+  const centerX = left + (pageWidth - left) / 2;
+  const rightSectionX = right - 130;
+  const rightSectionWidth = 130;
 
+  const leftSectionWidth = 180;
+  const centerSectionWidth = 220;
+  
+  let logoY = y;
   if (logoBuffer) {
     try {
-      doc.image(logoBuffer, left, y + 2, { width: 110 });
-      logoRightEdge = left + 110;
-    } catch {
-      logoRightEdge = left;
-    }
+      doc.image(logoBuffer, left, logoY + 2, { width: 100 });
+    } catch {}
   }
 
-  doc
-    .font('Helvetica-Bold')
-    .fontSize(26)
-    .fillColor('#111827')
-    .text(title, left, y + 18, { width: right - left, align: 'center' });
-
-  doc
-    .font('Helvetica-Bold')
-    .fontSize(20)
-    .text(String(docNo), right - 120, y + 8, { width: 120, align: 'right' });
-
-  const brandLine = branding.brandPartner || branding.dealerName;
-  if (brandLine) {
+  const dealerName = branding.brandPartner || branding.dealerName;
+  if (dealerName) {
     doc
-      .font('Helvetica')
-      .fontSize(10)
-      .fillColor('#4b5563')
-      .text(brandLine, logoRightEdge + 12, y + 2, { width: right - (logoRightEdge + 12), align: 'left' });
+      .font('Helvetica-Bold')
+      .fontSize(11)
+      .fillColor('#111827')
+      .text(dealerName, left, logoY + (logoBuffer ? 52 : 2), { width: leftSectionWidth, align: 'left' });
   }
 
+  let addressY = logoY + (logoBuffer ? 66 : 16);
   if (branding.addressLine1) {
     doc
+      .font('Helvetica')
       .fontSize(9)
-      .text(branding.addressLine1, logoRightEdge + 12, y + 15, { width: right - (logoRightEdge + 12), align: 'left' });
+      .fillColor('#4b5563')
+      .text(branding.addressLine1, left, addressY, { width: leftSectionWidth, align: 'left' });
+    addressY += 12;
   }
-
   if (branding.addressLine2) {
     doc
+      .font('Helvetica')
       .fontSize(9)
-      .text(branding.addressLine2, logoRightEdge + 12, y + 27, { width: right - (logoRightEdge + 12), align: 'left' });
+      .fillColor('#4b5563')
+      .text(branding.addressLine2, left, addressY, { width: leftSectionWidth, align: 'left' });
   }
 
-  return y + 72;
+  doc
+    .font('Helvetica-Bold')
+    .fontSize(24)
+    .fillColor('#111827')
+    .text(title, centerX - centerSectionWidth / 2, y + 20, { width: centerSectionWidth, align: 'center' });
+
+  const rightBlockY = y + (logoBuffer ? 15 : 8);
+  const rightBlockHeight = logoBuffer ? 55 : 40;
+  
+  doc
+    .rect(rightSectionX - 10, rightBlockY - 5, rightSectionWidth + 10, rightBlockHeight)
+    .lineWidth(0.8)
+    .strokeColor('#d1d5db')
+    .stroke();
+
+  const rightPadding = rightSectionX;
+  
+  doc
+    .font('Helvetica-Bold')
+    .fontSize(10)
+    .fillColor('#374151')
+    .text('Invoice No', rightPadding, rightBlockY + 3, { width: rightSectionWidth, align: 'left' });
+  
+  doc
+    .font('Helvetica-Bold')
+    .fontSize(14)
+    .fillColor('#111827')
+    .text(String(docNo), rightPadding, rightBlockY + 15, { width: rightSectionWidth, align: 'left' });
+  
+  doc
+    .font('Helvetica-Bold')
+    .fontSize(10)
+    .fillColor('#374151')
+    .text('Date', rightPadding, rightBlockY + 34, { width: rightSectionWidth, align: 'left' });
+  
+  const today = new Date();
+  const day = today.getUTCDate().toString().padStart(2, '0');
+  const month = (today.getUTCMonth() + 1).toString().padStart(2, '0');
+  const year = today.getUTCFullYear();
+  
+  doc
+    .font('Helvetica')
+    .fontSize(12)
+    .fillColor('#111827')
+    .text(`${day}/${month}/${year}`, rightPadding, rightBlockY + 46, { width: rightSectionWidth, align: 'left' });
+
+  return y + 90;
 };
 
 const renderPartiesSection = (
