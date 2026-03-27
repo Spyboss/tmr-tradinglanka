@@ -89,7 +89,6 @@ export const generateProformaPDF = async (bill: BillForProforma): Promise<Buffer
         y,
         left,
         contentWidth,
-        issueDate: proforma.issueDate || bill.billDate,
         customerName: bill.customerName,
         customerAddress: bill.customerAddress,
         customerNIC: bill.customerNIC,
@@ -182,7 +181,7 @@ const renderHeader = (
   const titleY = headerBaseY + 25;
   doc
     .font('Helvetica-Bold')
-    .fontSize(28)
+    .fontSize(22)
     .fillColor('#111827')
     .text(title, centerX - centerSectionWidth / 2, titleY, { width: centerSectionWidth, align: 'center' });
 
@@ -234,7 +233,6 @@ const renderPartiesSection = (
     y: number;
     left: number;
     contentWidth: number;
-    issueDate?: string | Date;
     customerName?: string;
     customerAddress?: string;
     customerNIC?: string;
@@ -251,9 +249,6 @@ const renderPartiesSection = (
   const rightX = left + colWidth + gap;
 
   let currentY = y;
-
-  currentY = drawFieldRow(doc, leftX, currentY, colWidth, 'Date', formatDate(params.issueDate), 24);
-  currentY += 8;
 
   const leftBlockStart = currentY;
   currentY = drawFieldRow(doc, leftX, currentY, colWidth, 'Customer Name', params.customerName || '-', 28);
