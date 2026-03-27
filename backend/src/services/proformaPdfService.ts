@@ -143,16 +143,16 @@ const renderHeader = (
   const centerSectionWidth = 260;
 
   const headerBaseY = y + 10;
-  const logoHeight = logoBuffer ? 55 : 0;
+  const logoHeight = logoBuffer ? 70 : 0;
   
   if (logoBuffer) {
     try {
-      doc.image(logoBuffer, left, headerBaseY, { width: 65 });
+      doc.image(logoBuffer, left, headerBaseY, { width: 85 });
     } catch {}
   }
 
   const dealerName = branding.brandPartner || branding.dealerName;
-  const nameY = headerBaseY + logoHeight + 2;
+  const nameY = headerBaseY + logoHeight - 2;
   if (dealerName) {
     doc
       .font('Helvetica-Bold')
@@ -161,14 +161,14 @@ const renderHeader = (
       .text(dealerName, left, nameY, { width: leftSectionWidth, align: 'left' });
   }
 
-  let addressY = nameY + 12;
+  let addressY = nameY + 11;
   if (branding.addressLine1) {
     doc
       .font('Helvetica')
       .fontSize(8)
       .fillColor('#6b7280')
       .text(branding.addressLine1, left, addressY, { width: leftSectionWidth, align: 'left' });
-    addressY += 10;
+    addressY += 9;
   }
   if (branding.addressLine2) {
     doc
@@ -178,10 +178,10 @@ const renderHeader = (
       .text(branding.addressLine2, left, addressY, { width: leftSectionWidth, align: 'left' });
   }
 
-  const titleY = headerBaseY + 20;
+  const titleY = headerBaseY + 22;
   doc
     .font('Helvetica-Bold')
-    .fontSize(20)
+    .fontSize(18)
     .fillColor('#111827')
     .text(title, centerX - centerSectionWidth / 2, titleY, { width: centerSectionWidth, align: 'center' });
 
