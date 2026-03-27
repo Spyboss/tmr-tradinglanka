@@ -77,7 +77,8 @@ export const generateProformaPDF = async (bill: BillForProforma): Promise<Buffer
 
       y = renderHeader(doc, branding, logoBuffer, {
         title: 'PROFORMA INVOICE',
-        docNo: proforma.documentNumber || bill.billNumber || bill.bill_number || '-',
+        docNo: proforma.documentNumber || '-',
+        issueDate: proforma.issueDate,
         y,
         left,
         right
@@ -131,13 +132,13 @@ const renderHeader = (
   doc: PDFKit.PDFDocument,
   branding: BrandingData,
   logoBuffer: Buffer | undefined,
-  params: { title: string; docNo: string; y: number; left: number; right: number }
+  params: { title: string; docNo: string; issueDate?: string | Date; y: number; left: number; right: number }
 ): number => {
-  const { title, docNo, y, left, right } = params;
+  const { title, docNo, issueDate, y, left, right } = params;
   const pageWidth = right;
   const centerX = left + (pageWidth - left) / 2;
-  const rightSectionX = right - 140;
-  const rightSectionWidth = 140;
+  const rightSectionX = right - 150;
+  const rightSectionWidth = 150;
 
   const leftSectionWidth = 180;
   const centerSectionWidth = 260;
@@ -186,45 +187,43 @@ const renderHeader = (
     .text(title, centerX - centerSectionWidth / 2, titleY, { width: centerSectionWidth, align: 'center' });
 
   const rightBlockY = headerBaseY;
-  const rightBlockHeight = 75;
-  const boxPadding = 12;
+  const rightBlockHeight = 72;
+  const boxPadding = 10;
   
   doc
-    .rect(rightSectionX - boxPadding, rightBlockY - 5, rightSectionWidth + boxPadding * 2, rightBlockHeight)
+    .rect(rightSectionX - boxPadding, rightBlockY - 4, rightSectionWidth + boxPadding * 2, rightBlockHeight)
     .lineWidth(0.7)
     .strokeColor('#d1d5db')
     .stroke();
 
   const rightContentX = rightSectionX;
+  const lineHeight = 16;
   
   doc
     .font('Helvetica')
     .fontSize(9)
     .fillColor('#6b7280')
-    .text('Invoice No', rightContentX, rightBlockY + 3, { width: rightSectionWidth, align: 'left' });
+    .text('Invoice No', rightContentX, rightBlockY + 2, { width: rightSectionWidth, align: 'left' });
   
   doc
     .font('Helvetica-Bold')
-    .fontSize(15)
+    .fontSize(14)
     .fillColor('#111827')
-    .text(String(docNo), rightContentX, rightBlockY + 14, { width: rightSectionWidth, align: 'left' });
+    .text(String(docNo), rightContentX, rightBlockY + lineHeight, { width: rightSectionWidth, align: 'left' });
   
   doc
     .font('Helvetica')
     .fontSize(9)
     .fillColor('#6b7280')
-    .text('Date', rightContentX, rightBlockY + 34, { width: rightSectionWidth, align: 'left' });
+    .text('Date', rightContentX, rightBlockY + lineHeight * 2 + 2, { width: rightSectionWidth, align: 'left' });
   
-  const today = new Date();
-  const day = today.getUTCDate().toString().padStart(2, '0');
-  const month = (today.getUTCMonth() + 1).toString().padStart(2, '0');
-  const year = today.getUTCFullYear();
+  const dateStr = formatDate(issueDate);
   
   doc
     .font('Helvetica')
     .fontSize(12)
     .fillColor('#111827')
-    .text(`${day}/${month}/${year}`, rightContentX, rightBlockY + 45, { width: rightSectionWidth, align: 'left' });
+    .text(dateStr, rightContentX, rightBlockY + lineHeight * 3 - 2, { width: rightSectionWidth, align: 'left' });
 
   return y + 110;
 };

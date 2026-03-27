@@ -47,10 +47,20 @@ const buildDefaultProforma = (bill: any) => {
   const unitPrice = Number(bill.bikePrice || 0);
   const downPayment = Number(bill.downPayment || 0);
   const amountToBeLeased = Math.max(unitPrice - downPayment, 0);
+  
+  const today = new Date();
+  const day = today.getUTCDate().toString().padStart(2, '0');
+  const month = (today.getUTCMonth() + 1).toString().padStart(2, '0');
+  const year = today.getUTCFullYear().toString().slice(-2);
+  const dateStr = `${day}${month}${year}`;
+  
+  const billIdPart = (bill.billNumber || bill.bill_number || String(bill._id)).replace(/^(PF-|BILL-)/i, '');
+  const docNum = `PF-${dateStr}-${billIdPart}`;
+  
   return {
     type: 'leasing',
-    documentNumber: `PF-${bill.billNumber || bill.bill_number || bill._id}`,
-    issueDate: bill.billDate || new Date(),
+    documentNumber: docNum,
+    issueDate: bill.billDate || today.toISOString(),
     financeCompanyName: '',
     financeCompanyAddress: '',
     financeCompanyContact: '',
