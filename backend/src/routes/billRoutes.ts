@@ -3,6 +3,7 @@ import { ObjectId } from 'mongodb';
 import Bill from '../models/Bill.js';
 import { connectToDatabase } from '../config/database.js';
 import { generatePDF } from '../services/pdfService.js';
+import { generateProformaPDF } from '../services/proformaPdfService.js';
 import { authenticate, requireAdmin, requireOwnership, AuthRequest } from '../auth/auth.middleware.js';
 import { createBill, updateBillStatus } from '../controllers/billController.js';
 
@@ -135,6 +136,35 @@ router.get('/:id', authenticate, async (req: AuthRequest, res: Response) => {
     res.status(200).json(bill);
   } catch (error) {
     res.status(500).json({ error: (error as Error).message });
+  }
+});
+
+// Generate proforma PDF from form payload - Protected route
+router.post('/proforma/preview', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const proformaPayload = {
+      ...req.body,
+      owner: req.user?.id
+    };
+
+    const pdfBuffer = await generateProformaPDF(proformaPayload);
+
+    const rawProformaNumber = String(req.body?.proformaNumber || req.body?.proforma_number || 'PROFORMA')
+      .trim()
+      .replace(/[^a-zA-Z0-9-_]/g, '_');
+
+    const fallbackDate = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    const filenameNumber = rawProformaNumber || `PF-${fallbackDate}`;
+    const isDownload = String(req.query.download || '').toLowerCase() === 'true';
+    const disposition = isDownload ? 'attachment' : 'inline';
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `${disposition}; filename=TMR_Proforma_${filenameNumber}.pdf`);
+    res.send(pdfBuffer);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to generate proforma invoice PDF';
+    const isValidationError = /required|format|must|cannot/i.test(message);
+    res.status(isValidationError ? 400 : 500).json({ error: message });
   }
 });
 
