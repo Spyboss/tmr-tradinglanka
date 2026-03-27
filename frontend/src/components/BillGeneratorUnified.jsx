@@ -6,12 +6,27 @@ import toast from 'react-hot-toast';
 import { getAvailableBikesByModel, getInventory, addToInventory, updateInventory } from '../services/inventoryService';
 
 const { Option } = Select;
+const DOCUMENT_MODE = {
+  BILL: 'bill',
+  PROFORMA: 'proforma'
+};
+
+const createClientProformaNumber = () => {
+  const now = new Date();
+  const year = String(now.getFullYear()).slice(-2);
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const hour = String(now.getHours()).padStart(2, '0');
+  const minute = String(now.getMinutes()).padStart(2, '0');
+  return `PF-${year}${month}${day}-${hour}${minute}`;
+};
 
 const BillGeneratorUnified = () => {
   const [form] = Form.useForm();
   const navigate = useNavigate();
   const [bikeModels, setBikeModels] = useState([]);
   const [selectedModel, setSelectedModel] = useState(null);
+  const [documentMode, setDocumentMode] = useState(DOCUMENT_MODE.BILL);
   const [billType, setBillType] = useState('cash');
   const [isAdvancePayment, setIsAdvancePayment] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -24,6 +39,13 @@ const BillGeneratorUnified = () => {
   const [availableBikes, setAvailableBikes] = useState([]);
   const [loadingInventory, setLoadingInventory] = useState(false);
   const [selectedInventoryItem, setSelectedInventoryItem] = useState(null);
+
+  const proformaUnitPrice = Form.useWatch('proforma_unit_price', form);
+  const proformaDownPayment = Form.useWatch('down_payment', form);
+  const computedAmountToBeLeased = Math.max(
+    (Number(proformaUnitPrice) || 0) - (Number(proformaDownPayment) || 0),
+    0
+  );
 
   useEffect(() => {
     fetchBikeModels();
@@ -44,7 +66,10 @@ const BillGeneratorUnified = () => {
     const model = bikeModels.find(m => m._id === modelId);
     if (model) {
       setSelectedModel(model);
-      form.setFieldsValue({ bike_price: model.price });
+      form.setFieldsValue({
+        bike_price: model.price,
+        proforma_unit_price: model.price
+      });
 
       if (model.is_ebicycle || model.is_tricycle) {
         setBillType('cash');
@@ -104,6 +129,64 @@ const BillGeneratorUnified = () => {
     if (model.is_ebicycle || model.is_tricycle) return price;
     if (billType === 'leasing') return values.down_payment || 0;
     return price + 13000;
+  };
+
+  const handleDocumentModeChange = (mode) => {
+    setDocumentMode(mode);
+
+    if (mode === DOCUMENT_MODE.PROFORMA) {
+      setBillType('leasing');
+      setIsAdvancePayment(false);
+
+      form.setFieldsValue({
+        bill_type: 'leasing',
+        is_advance_payment: false,
+        proforma_number: form.getFieldValue('proforma_number') || createClientProformaNumber(),
+        finance_provider_type: form.getFieldValue('finance_provider_type') || 'leasing',
+        validity_days: form.getFieldValue('validity_days') || 10,
+        proforma_unit_price: form.getFieldValue('proforma_unit_price') || selectedModel?.price || 0,
+        down_payment: form.getFieldValue('down_payment') || 0
+      });
+      return;
+    }
+
+    form.setFieldsValue({
+      bill_type: 'cash',
+      is_advance_payment: false
+    });
+    setBillType('cash');
+    setIsAdvancePayment(false);
+  };
+
+  const buildProformaData = (values) => {
+    const unitPrice = parseFloat(values.proforma_unit_price ?? selectedModel?.price ?? 0);
+    const downPayment = parseFloat(values.down_payment ?? 0);
+    const amountToBeLeased = Math.max(unitPrice - downPayment, 0);
+
+    return {
+      proformaNumber: (values.proforma_number || '').trim() || createClientProformaNumber(),
+      issueDate: values.bill_date ? values.bill_date.toISOString() : new Date().toISOString(),
+      validityDays: parseInt(values.validity_days, 10) || 10,
+      customerName: values.customer_name,
+      customerNIC: values.customer_nic,
+      customerAddress: values.customer_address,
+      customerPhone: values.customer_phone?.trim(),
+      facilityProviderType: values.finance_provider_type,
+      facilityProviderName: values.finance_provider_name,
+      facilityProviderAddress: values.finance_provider_address,
+      facilityProviderPhone: values.finance_provider_phone?.trim(),
+      bikeModel: selectedModel?.name || '',
+      manufacturedYear: values.manufactured_year,
+      color: values.vehicle_color,
+      motorPower: values.motor_power,
+      chassisNumber: values.chassis_number,
+      motorNumber: values.motor_number,
+      unitPrice,
+      downPayment,
+      amountToBeLeased,
+      totalAmount: unitPrice,
+      authorizedDealerLabel: 'Authorized Dealer'
+    };
   };
 
   const buildBillData = async (values, forPreview = false) => {
@@ -177,14 +260,20 @@ const BillGeneratorUnified = () => {
       await form.validateFields();
       setPreviewLoading(true);
       const values = form.getFieldsValue();
-      const billData = await buildBillData(values, true);
-      const blob = await apiClient.post('/bills/preview', billData, { responseType: 'blob' });
+      const isProformaMode = documentMode === DOCUMENT_MODE.PROFORMA;
+      const payload = isProformaMode
+        ? buildProformaData(values)
+        : await buildBillData(values, true);
+      const endpoint = isProformaMode ? '/bills/proforma/preview' : '/bills/preview';
+      const blob = await apiClient.post(endpoint, payload, { responseType: 'blob' });
       const url = URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
       setPreviewUrl(url);
       setPreviewVisible(true);
     } catch (error) {
       console.error('Error generating preview:', error);
-      message.error('Please fill in all required fields');
+      message.error(documentMode === DOCUMENT_MODE.PROFORMA
+        ? 'Please fill in all required proforma fields'
+        : 'Please fill in all required fields');
     } finally {
       setPreviewLoading(false);
     }
@@ -218,6 +307,31 @@ const BillGeneratorUnified = () => {
 
       if (!selectedModel) {
         toast.error('Please select a vehicle model');
+        return;
+      }
+
+      if (documentMode === DOCUMENT_MODE.PROFORMA) {
+        const proformaData = buildProformaData(values);
+        const blob = await apiClient.post('/bills/proforma/preview?download=true', proformaData, { responseType: 'blob' });
+
+        const safeNumber = (proformaData.proformaNumber || 'PROFORMA').replace(/[^a-zA-Z0-9-_]/g, '_');
+        const fileName = `TMR_Proforma_${safeNumber}.pdf`;
+        const url = URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setTimeout(() => URL.revokeObjectURL(url), 100);
+
+        if (previewUrl) {
+          URL.revokeObjectURL(previewUrl);
+          setPreviewUrl('');
+        }
+        setPreviewVisible(false);
+
+        toast.success('Proforma invoice generated successfully');
         return;
       }
 
@@ -293,8 +407,12 @@ const BillGeneratorUnified = () => {
         navigate(`/bills/${billId}`);
       }
     } catch (error) {
-      console.error('Error generating bill:', error);
-      toast.error('Failed to generate bill');
+      console.error('Error generating document:', error);
+      if (documentMode === DOCUMENT_MODE.PROFORMA) {
+        toast.error(error?.message || 'Failed to generate proforma invoice');
+      } else {
+        toast.error('Failed to generate bill');
+      }
     } finally {
       setLoading(false);
     }
@@ -312,16 +430,18 @@ const BillGeneratorUnified = () => {
 
   return (
     <div className="max-w-2xl mx-auto p-6 dark:bg-slate-800 rounded-lg shadow-lg">
-      <h1 className="text-2xl font-semibold mb-6 text-gray-900 dark:text-gray-100">Create Bill</h1>
+      <h1 className="text-2xl font-semibold mb-6 text-gray-900 dark:text-gray-100">
+        {documentMode === DOCUMENT_MODE.PROFORMA ? 'Generate Proforma Invoice' : 'Create Bill'}
+      </h1>
 
-      {selectedModel?.is_ebicycle && (
+      {documentMode === DOCUMENT_MODE.BILL && selectedModel?.is_ebicycle && (
         <div className="bg-blue-50 dark:bg-blue-900/30 p-4 mb-6 rounded border border-blue-200 dark:border-blue-700">
           <h3 className="text-blue-800 dark:text-blue-300 font-medium">E-Bicycle Selected</h3>
           <p className="text-blue-600 dark:text-blue-400 text-sm mt-1">Only cash sales; no RMV charges.</p>
         </div>
       )}
 
-      {selectedModel?.is_tricycle && (
+      {documentMode === DOCUMENT_MODE.BILL && selectedModel?.is_tricycle && (
         <div className="bg-green-50 dark:bg-green-900/30 p-4 mb-6 rounded border border-green-200 dark:border-green-700">
           <h3 className="text-green-800 dark:text-green-300 font-medium">E-Tricycle Selected</h3>
           <p className="text-green-600 dark:text-green-400 text-sm mt-1">Only cash sales; no RMV charges.</p>
@@ -347,13 +467,32 @@ const BillGeneratorUnified = () => {
         layout="vertical"
         onFinish={handleSubmit}
         initialValues={{
+          document_mode: DOCUMENT_MODE.BILL,
           bill_type: 'cash',
           is_advance_payment: false,
           bill_date: null,
-          estimated_delivery_date: null
+          estimated_delivery_date: null,
+          finance_provider_type: 'leasing',
+          validity_days: 10,
+          down_payment: 0,
+          proforma_number: createClientProformaNumber()
         }}
       >
-        <Form.Item name="model_id" label="Vehicle Model" rules={[{ required: true, message: 'Please select a vehicle model' }]}>
+        <Form.Item
+          name="document_mode"
+          label="Document Type"
+          rules={[{ required: true, message: 'Please select document type' }]}
+        >
+          <Select
+            onChange={handleDocumentModeChange}
+            options={[
+              { label: 'Sales Bill', value: DOCUMENT_MODE.BILL },
+              { label: 'Proforma Invoice', value: DOCUMENT_MODE.PROFORMA }
+            ]}
+          />
+        </Form.Item>
+
+        <Form.Item name="model_id" label="Vehicle Model" rules={[{ required: true, message: 'Please select a vehicle model' }]}> 
           <Select
             onChange={handleModelChange}
             placeholder="Select vehicle model"
@@ -371,20 +510,162 @@ const BillGeneratorUnified = () => {
           </Button>
         </div>
 
-        <Form.Item name="bill_type" label="Bill Type">
-          <Select
-            value={billType}
-            onChange={(value) => setBillType(value)}
-            disabled={selectedModel?.is_ebicycle || selectedModel?.is_tricycle}
-            options={[
-              { label: 'Cash', value: 'cash' },
-              { label: 'Leasing', value: 'leasing', disabled: selectedModel?.is_ebicycle || selectedModel?.is_tricycle }
+        {documentMode === DOCUMENT_MODE.BILL && (
+          <Form.Item name="bill_type" label="Bill Type">
+            <Select
+              value={billType}
+              onChange={(value) => setBillType(value)}
+              disabled={selectedModel?.is_ebicycle || selectedModel?.is_tricycle}
+              options={[
+                { label: 'Cash', value: 'cash' },
+                { label: 'Leasing', value: 'leasing', disabled: selectedModel?.is_ebicycle || selectedModel?.is_tricycle }
+              ]}
+            />
+          </Form.Item>
+        )}
+
+        {documentMode === DOCUMENT_MODE.PROFORMA && (
+          <>
+            <Form.Item
+              name="proforma_number"
+              label="Proforma Number"
+              rules={[{ required: true, message: 'Please enter proforma number' }]}
+              getValueFromEvent={e => e?.target?.value?.toUpperCase?.() || ''}
+            >
+              <Input style={{ textTransform: 'uppercase' }} autoCapitalize="characters" placeholder="PF-YYMMDD-XXXX" />
+            </Form.Item>
+
+            <Form.Item
+              name="validity_days"
+              label="Validity (Days)"
+              rules={[{ required: true, message: 'Please enter validity period' }]}
+            >
+              <InputNumber min={1} max={90} style={{ width: '100%' }} />
+            </Form.Item>
+
+            <Form.Item
+              name="finance_provider_type"
+              label="Facility Type"
+              rules={[{ required: true, message: 'Please select facility type' }]}
+            >
+              <Select
+                options={[
+                  { label: 'Leasing', value: 'leasing' },
+                  { label: 'Finance', value: 'finance' },
+                  { label: 'Insurance', value: 'insurance' }
+                ]}
+              />
+            </Form.Item>
+
+            <Form.Item
+              name="finance_provider_name"
+              label="Leasing / Finance / Insurance By"
+              rules={[{ required: true, message: 'Please enter provider name' }]}
+              getValueFromEvent={e => e?.target?.value?.toUpperCase?.() || ''}
+            >
+              <Input style={{ textTransform: 'uppercase' }} autoCapitalize="characters" />
+            </Form.Item>
+
+            <Form.Item
+              name="finance_provider_address"
+              label="Provider Address"
+              rules={[{ required: true, message: 'Please enter provider address' }]}
+              getValueFromEvent={e => e?.target?.value?.toUpperCase?.() || ''}
+            >
+              <Input.TextArea style={{ textTransform: 'uppercase' }} autoCapitalize="characters" rows={2} />
+            </Form.Item>
+
+            <Form.Item
+              name="finance_provider_phone"
+              label="Provider Contact Number"
+              rules={[
+                { required: true, message: 'Please enter provider contact number' },
+                { pattern: /^[0-9+()\-\s]{7,20}$/, message: 'Enter a valid contact number' }
+              ]}
+            >
+              <Input maxLength={20} placeholder="0112345678 / 0701234567" />
+            </Form.Item>
+
+            <Form.Item
+              name="manufactured_year"
+              label="Manufactured Year"
+              rules={[
+                { required: true, message: 'Please enter manufactured year' },
+                { pattern: /^\d{4}$/, message: 'Enter a valid year (YYYY)' }
+              ]}
+            >
+              <Input maxLength={4} placeholder="2025" />
+            </Form.Item>
+
+            <Form.Item
+              name="vehicle_color"
+              label="Vehicle Color"
+              rules={[{ required: true, message: 'Please enter vehicle color' }]}
+              getValueFromEvent={e => e?.target?.value?.toUpperCase?.() || ''}
+            >
+              <Input style={{ textTransform: 'uppercase' }} autoCapitalize="characters" />
+            </Form.Item>
+
+            <Form.Item
+              name="motor_power"
+              label="Motor Power"
+              rules={[{ required: true, message: 'Please enter motor power' }]}
+              getValueFromEvent={e => e?.target?.value?.toUpperCase?.() || ''}
+            >
+              <Input style={{ textTransform: 'uppercase' }} autoCapitalize="characters" placeholder="e.g. 2000W" />
+            </Form.Item>
+
+            <Form.Item
+              name="proforma_unit_price"
+              label="Unit Price"
+              rules={[{ required: true, message: 'Please enter unit price' }]}
+            >
+              <InputNumber
+                min={0}
+                addonBefore="Rs."
+                style={{ width: '100%' }}
+                formatter={v => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                parser={v => v.replace(/\₹\s?|(,*)/g, '')}
+              />
+            </Form.Item>
+          </>
+        )}
+
+        {(billType === 'leasing' || documentMode === DOCUMENT_MODE.PROFORMA) && (
+          <Form.Item
+            name="down_payment"
+            label={documentMode === DOCUMENT_MODE.PROFORMA ? 'Down Payment' : 'Down Payment'}
+            rules={[
+              {
+                required: billType === 'leasing' || documentMode === DOCUMENT_MODE.PROFORMA,
+                message: 'Please enter down payment amount'
+              }
             ]}
-          />
-        </Form.Item>
+          >
+            <InputNumber
+              min={0}
+              addonBefore="Rs."
+              style={{ width: '100%' }}
+              formatter={v => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+              parser={v => v.replace(/\₹\s?|(,*)/g, '')}
+            />
+          </Form.Item>
+        )}
 
-        {billType === 'leasing' && (
-          <Form.Item name="down_payment" label="Down Payment" rules={[{ required: billType === 'leasing', message: 'Please enter down payment amount' }]}>
+        {documentMode === DOCUMENT_MODE.PROFORMA && (
+          <Form.Item label="Amount to be Leased">
+            <Input value={`Rs. ${computedAmountToBeLeased.toLocaleString()}`} disabled />
+          </Form.Item>
+        )}
+
+        {documentMode === DOCUMENT_MODE.BILL && (
+          <Form.Item label="Advance Payment" name="is_advance_payment" valuePropName="checked">
+            <Switch onChange={(checked) => setIsAdvancePayment(checked)} />
+          </Form.Item>
+        )}
+
+        {documentMode === DOCUMENT_MODE.BILL && isAdvancePayment && (
+          <Form.Item name="advance_amount" label="Advance Amount" rules={[{ required: isAdvancePayment, message: 'Please enter advance amount' }]}> 
             <InputNumber min={0} addonBefore="Rs." style={{ width: '100%' }}
               formatter={v => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
               parser={v => v.replace(/\₹\s?|(,*)/g, '')}
@@ -392,26 +673,13 @@ const BillGeneratorUnified = () => {
           </Form.Item>
         )}
 
-        <Form.Item label="Advance Payment" name="is_advance_payment" valuePropName="checked">
-          <Switch onChange={(checked) => setIsAdvancePayment(checked)} />
-        </Form.Item>
-
-        {isAdvancePayment && (
-          <Form.Item name="advance_amount" label="Advance Amount" rules={[{ required: isAdvancePayment, message: 'Please enter advance amount' }]}>
-            <InputNumber min={0} addonBefore="Rs." style={{ width: '100%' }}
-              formatter={v => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-              parser={v => v.replace(/\₹\s?|(,*)/g, '')}
-            />
-          </Form.Item>
-        )}
-
-        {isAdvancePayment && (
+        {documentMode === DOCUMENT_MODE.BILL && isAdvancePayment && (
           <Form.Item name="estimated_delivery_date" label="Estimated Delivery Date">
             <DatePicker className="w-full" />
           </Form.Item>
         )}
 
-        {isAdvancePayment && (
+        {(isAdvancePayment || documentMode === DOCUMENT_MODE.PROFORMA) && (
           <Form.Item
             name="customer_phone"
             label="Customer Contact Number"
@@ -473,14 +741,18 @@ const BillGeneratorUnified = () => {
           <Input />
         </Form.Item>
 
-        <Form.Item name="bill_date" label="Bill Date">
+        <Form.Item name="bill_date" label={documentMode === DOCUMENT_MODE.PROFORMA ? 'Issue Date' : 'Bill Date'}>
           <DatePicker className="w-full" />
         </Form.Item>
 
         <div className="flex justify-end space-x-4 mt-6">
           <Button onClick={() => navigate('/bills')}>Cancel</Button>
-          <Button type="default" onClick={handlePreview} loading={previewLoading}>Preview</Button>
-          <Button type="primary" htmlType="submit" loading={loading}>Generate Bill</Button>
+          <Button type="default" onClick={handlePreview} loading={previewLoading}>
+            {documentMode === DOCUMENT_MODE.PROFORMA ? 'Preview Proforma' : 'Preview'}
+          </Button>
+          <Button type="primary" htmlType="submit" loading={loading}>
+            {documentMode === DOCUMENT_MODE.PROFORMA ? 'Download Proforma' : 'Generate Bill'}
+          </Button>
         </div>
       </Form>
 
@@ -504,17 +776,23 @@ const BillGeneratorUnified = () => {
       </Modal>
 
       <Modal
-        title="Bill Preview"
+        title={documentMode === DOCUMENT_MODE.PROFORMA ? 'Proforma Preview' : 'Bill Preview'}
         open={previewVisible}
         onCancel={() => { setPreviewVisible(false); URL.revokeObjectURL(previewUrl); }}
         width={800}
         footer={[
           <Button key="close" onClick={() => { setPreviewVisible(false); URL.revokeObjectURL(previewUrl); }}>Close</Button>,
-          <Button key="submit" type="primary" onClick={() => form.submit()}>Generate Bill</Button>,
+          <Button key="submit" type="primary" onClick={() => form.submit()}>
+            {documentMode === DOCUMENT_MODE.PROFORMA ? 'Download Proforma' : 'Generate Bill'}
+          </Button>,
         ]}
       >
         <div className="h-[700px]">
-          <iframe src={previewUrl} title="Bill Preview" className="w-full h-full border-0" />
+          <iframe
+            src={previewUrl}
+            title={documentMode === DOCUMENT_MODE.PROFORMA ? 'Proforma Preview' : 'Bill Preview'}
+            className="w-full h-full border-0"
+          />
         </div>
       </Modal>
     </div>
