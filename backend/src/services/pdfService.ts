@@ -4,6 +4,19 @@ import Branding from '../models/Branding.js';
 import https from 'https';
 import http from 'http';
 
+type FooterMetrics = {
+  left: number;
+  width: number;
+  lineGap: number;
+  blockHeight: number;
+  thankYouText: string;
+  footerNoteText: string;
+  addressLine2Text: string;
+  thankYouHeight: number;
+  footerNoteHeight: number;
+  addressLine2Height: number;
+};
+
 /**
  * Generate a PDF for a bill
  * @param bill The bill object
@@ -31,10 +44,11 @@ export const generatePDF = async (bill: any): Promise<Buffer> => {
       doc.on('error', reject);
 
       // Start adding content to the PDF
+      const footerMetrics = getFooterMetrics(doc, branding);
       generateHeader(doc, branding, logoBuffer);
       generateCustomerInformation(doc, bill);
-      generateInvoiceTable(doc, bill);
-      generateFooter(doc, branding);
+      generateInvoiceTable(doc, bill, footerMetrics);
+      generateFooter(doc, footerMetrics);
 
       // Finalize the PDF
       doc.end();
@@ -230,10 +244,35 @@ const generateCustomerInformation = (doc: PDFKit.PDFDocument, bill: any): void =
 /**
  * Generate the invoice table with payment details
  */
-const generateInvoiceTable = (doc: PDFKit.PDFDocument, bill: any): void => {
+const generateInvoiceTable = (doc: PDFKit.PDFDocument, bill: any, footerMetrics: FooterMetrics): void => {
   // Get the Y position after customer and vehicle details
   let y = (doc as any)._lastDetailY || 320;
   y += 18;
+
+  const getContentBottomY = (): number => {
+    return doc.page.height - doc.page.margins.bottom - footerMetrics.blockHeight - 20;
+  };
+
+  const shouldIncludeRmvCharge = (bill.rmvCharge > 0 || bill.rmv_charge > 0) && (bill.billType === 'cash' || bill.bill_type === 'cash');
+  const shouldIncludeLeasingRmv = bill.billType === 'leasing' || bill.bill_type === 'leasing';
+  const shouldIncludeDownPayment = shouldIncludeLeasingRmv && (bill.downPayment || bill.down_payment);
+  const isAdvancePayment = (bill.isAdvancePayment || bill.is_advance_payment) && (bill.advanceAmount || bill.advance_amount);
+  const shouldIncludeRmvCondition = (bill.billType === 'cash' || bill.bill_type === 'cash') &&
+    !(bill.isEbicycle || bill.is_ebicycle) &&
+    !(bill.isAdvancePayment || bill.is_advance_payment);
+
+  const tableRowsCount = 1 + 1 + (shouldIncludeRmvCharge ? 1 : 0) + (shouldIncludeLeasingRmv ? 1 : 0) + (shouldIncludeDownPayment ? 1 : 0) + (isAdvancePayment ? 3 : 1);
+  const termsLineCount = 3 + (shouldIncludeRmvCondition ? 1 : 0);
+
+  const paymentTitleHeight = 25;
+  const tableHeight = tableRowsCount * 25;
+  const termsAndSignatureHeight = 50 + 20 + (termsLineCount * 15) + 70 + 25;
+  const totalRequiredHeight = paymentTitleHeight + tableHeight + termsAndSignatureHeight;
+
+  if (y + totalRequiredHeight > getContentBottomY()) {
+    doc.addPage();
+    y = doc.page.margins.top;
+  }
   
   doc
     .fontSize(14)
@@ -297,7 +336,7 @@ const generateInvoiceTable = (doc: PDFKit.PDFDocument, bill: any): void => {
   y += itemRowHeight;
   
   // Add RMV charge if applicable
-  if ((bill.rmvCharge > 0 || bill.rmv_charge > 0) && (bill.billType === 'cash' || bill.bill_type === 'cash')) {
+  if (shouldIncludeRmvCharge) {
     // Draw row background
     doc
       .rect(50, y, col1Width, itemRowHeight)
@@ -311,7 +350,7 @@ const generateInvoiceTable = (doc: PDFKit.PDFDocument, bill: any): void => {
       .text(formatAmount(bill.rmvCharge || bill.rmv_charge || 13000), 50 + col1Width, y + 7, { width: col2Width - 20, align: 'right' });
     
     y += itemRowHeight;
-  } else if ((bill.billType === 'leasing' || bill.bill_type === 'leasing')) {
+  } else if (shouldIncludeLeasingRmv) {
     // Draw row background
     doc
       .rect(50, y, col1Width, itemRowHeight)
@@ -328,7 +367,7 @@ const generateInvoiceTable = (doc: PDFKit.PDFDocument, bill: any): void => {
   }
   
   // Add down payment if leasing
-  if ((bill.billType === 'leasing' || bill.bill_type === 'leasing') && (bill.downPayment || bill.down_payment)) {
+  if (shouldIncludeDownPayment) {
     // Draw row background
     doc
       .rect(50, y, col1Width, itemRowHeight)
@@ -345,7 +384,7 @@ const generateInvoiceTable = (doc: PDFKit.PDFDocument, bill: any): void => {
   }
   
   // If advance payment, show advance amount and balance
-  if ((bill.isAdvancePayment || bill.is_advance_payment) && (bill.advanceAmount || bill.advance_amount)) {
+  if (isAdvancePayment) {
     // Draw total row
     doc
       .rect(50, y, col1Width, itemRowHeight)
@@ -397,6 +436,8 @@ const generateInvoiceTable = (doc: PDFKit.PDFDocument, bill: any): void => {
       .text('Balance', 60, y + 7)
       .text(formatAmount(bill.balanceAmount || bill.balance_amount || 0), 50 + col1Width, y + 7, { width: col2Width - 20, align: 'right' })
       .font('Helvetica'); // Reset font
+
+    y += itemRowHeight;
   } else {
     // Draw the total row with gray background
     doc
@@ -444,9 +485,7 @@ const generateInvoiceTable = (doc: PDFKit.PDFDocument, bill: any): void => {
   doc.text('3. This is a computer-generated bill.', 50, y);
   
   // Add additional condition for RMV if applicable
-  if ((bill.billType === 'cash' || bill.bill_type === 'cash') && 
-      !(bill.isEbicycle || bill.is_ebicycle) && 
-      !(bill.isAdvancePayment || bill.is_advance_payment)) {
+  if (shouldIncludeRmvCondition) {
     y += 15;
     doc.text('4. RMV registration will be completed within 30 days.', 50, y);
   }
@@ -471,23 +510,70 @@ const generateInvoiceTable = (doc: PDFKit.PDFDocument, bill: any): void => {
 /**
  * Generate footer section
  */
-const generateFooter = (doc: PDFKit.PDFDocument, branding?: any): void => {
+const getFooterMetrics = (doc: PDFKit.PDFDocument, branding?: any): FooterMetrics => {
+  const left = 50;
+  const width = 500;
+  const lineGap = 4;
+
+  const thankYouText = 'Thank you for your business!';
+  const footerNoteText = branding?.footerNote || '';
+  const addressLine2Text = branding?.addressLine2 || '';
+
+  const thankYouHeight = doc.font('Helvetica').fontSize(10).heightOfString(thankYouText, { width, align: 'center' });
+  const footerNoteHeight = footerNoteText
+    ? doc.font('Helvetica').fontSize(9).heightOfString(footerNoteText, { width, align: 'center' })
+    : 0;
+  const addressLine2Height = addressLine2Text
+    ? doc.font('Helvetica').fontSize(9).heightOfString(addressLine2Text, { width, align: 'center' })
+    : 0;
+
+  const blockHeight = thankYouHeight + (footerNoteHeight ? lineGap + footerNoteHeight : 0) + (addressLine2Height ? lineGap + addressLine2Height : 0);
+
+  return {
+    left,
+    width,
+    lineGap,
+    blockHeight,
+    thankYouText,
+    footerNoteText,
+    addressLine2Text,
+    thankYouHeight,
+    footerNoteHeight,
+    addressLine2Height
+  };
+};
+
+const generateFooter = (doc: PDFKit.PDFDocument, footerMetrics: FooterMetrics): void => {
+  const footerTopY = doc.page.height - doc.page.margins.bottom - footerMetrics.blockHeight;
+  let currentY = footerTopY;
+
   // Thank you line
   doc
     .fillColor('#000000')
     .fontSize(10)
-    .text('Thank you for your business!', 50, 740, { align: 'center', width: 500 });
+    .text(footerMetrics.thankYouText, footerMetrics.left, currentY, { align: 'center', width: footerMetrics.width });
 
-  // Contact/footer info in muted gray beneath
-  doc
-    .fillColor('#6b7280')
-    .fontSize(9)
-    .text(branding?.footerNote || '', 50, 758, { align: 'center', width: 500 });
+  currentY += footerMetrics.thankYouHeight;
 
-  doc
-    .fillColor('#6b7280')
-    .fontSize(9)
-    .text(branding?.addressLine2 || '', 50, 772, { align: 'center', width: 500 });
+  if (footerMetrics.footerNoteText) {
+    currentY += footerMetrics.lineGap;
+
+    doc
+      .fillColor('#6b7280')
+      .fontSize(9)
+      .text(footerMetrics.footerNoteText, footerMetrics.left, currentY, { align: 'center', width: footerMetrics.width });
+
+    currentY += footerMetrics.footerNoteHeight;
+  }
+
+  if (footerMetrics.addressLine2Text) {
+    currentY += footerMetrics.lineGap;
+
+    doc
+      .fillColor('#6b7280')
+      .fontSize(9)
+      .text(footerMetrics.addressLine2Text, footerMetrics.left, currentY, { align: 'center', width: footerMetrics.width });
+  }
 };
 
 // Load branding document with safe defaults
