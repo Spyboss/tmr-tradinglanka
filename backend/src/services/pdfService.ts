@@ -17,6 +17,19 @@ type FooterMetrics = {
   addressLine2Height: number;
 };
 
+type InvoiceLayout = {
+  tableRowHeight: number;
+  tableTextOffsetY: number;
+  sectionGapBeforeTerms: number;
+  termsHeadingSize: number;
+  termsBodySize: number;
+  termsHeadingGap: number;
+  termsLineGap: number;
+  signatureGap: number;
+  signatureLabelOffset: number;
+  termsAsParagraph: boolean;
+};
+
 /**
  * Generate a PDF for a bill
  * @param bill The bill object
@@ -63,6 +76,43 @@ export const generatePDF = async (bill: any): Promise<Buffer> => {
  * Generate the header section of the bill
  */
 const COMPANY_BRAND = process.env.COMPANY_BRAND || 'TMR TRADING LANKA (Pvt) Ltd';
+
+const truncateToFitLines = (
+  doc: PDFKit.PDFDocument,
+  text: string,
+  options: { width: number; maxLines: number; font: string; fontSize: number }
+): string => {
+  const value = (text || '').trim();
+  if (!value) return '';
+
+  const { width, maxLines, font, fontSize } = options;
+  const lineHeight = doc.font(font).fontSize(fontSize).currentLineHeight();
+  const maxHeight = lineHeight * maxLines;
+
+  const fits = (candidate: string): boolean => {
+    const height = doc.heightOfString(candidate, { width, lineGap: 0 });
+    return height <= maxHeight;
+  };
+
+  if (fits(value)) return value;
+
+  let low = 0;
+  let high = value.length;
+  let best = '';
+
+  while (low <= high) {
+    const mid = Math.floor((low + high) / 2);
+    const candidate = `${value.slice(0, mid).trimEnd()}...`;
+    if (fits(candidate)) {
+      best = candidate;
+      low = mid + 1;
+    } else {
+      high = mid - 1;
+    }
+  }
+
+  return best || value.slice(0, 3) + '...';
+};
 
 const generateHeader = (doc: PDFKit.PDFDocument, branding: any, logoBuffer?: Buffer): void => {
   try {
@@ -139,88 +189,64 @@ const generateCustomerInformation = (doc: PDFKit.PDFDocument, bill: any): void =
     .fontSize(14)
     .text('Customer Details:', 50, 160);
   
-  // For the customer name, explicitly handle long names by manually breaking them into multiple lines
-  const nameText = bill.customerName || bill.customer_name || '';
+  const customerName = bill.customerName || bill.customer_name || '';
   
   // Set starting Y position for customer details
   let currentY = 180;
   
-  // Draw the "Name:" label
-  doc
-    .fontSize(10)
-    .text('Name:', 50, currentY);
-  
-  // Handle the customer name with explicit line breaking
-  doc.font('Helvetica-Bold');
-  if (nameText.length > 20) {
-    // Split long names into chunks of roughly 20 characters
-    // This ensures even very long names display correctly
-    const chunks = [];
-    let currentChunk = '';
-    const words = nameText.split(' ');
-    
-    words.forEach(word => {
-      if ((currentChunk + ' ' + word).length <= 20) {
-        currentChunk += (currentChunk ? ' ' : '') + word;
-      } else {
-        if (currentChunk) chunks.push(currentChunk);
-        currentChunk = word;
-      }
-    });
-    
-    if (currentChunk) chunks.push(currentChunk);
-    
-    // Render the first chunk at the initial position
-    doc.text(chunks[0], 150, currentY);
-    currentY += 15;
-    
-    // Render any additional chunks on new lines
-    for (let i = 1; i < chunks.length; i++) {
-      doc.text(chunks[i], 150, currentY);
-      currentY += 15;
-    }
-  } else {
-    // For short names, render in a single line
-    doc.text(nameText, 150, currentY);
-    currentY += 15;
-  }
-  
-  // Switch back to normal font
-  doc.font('Helvetica');
-  
-  // Add padding between name and NIC
-  currentY += 5;
-  
   const detailLabelX = 50;
   const detailValueX = 150;
-  const detailValueWidth = 200;
-  const detailRowGap = 5;
+  const detailValueWidth = 220;
+  const detailRowGap = 4;
 
-  const drawDetailRow = (label: string, value: string, y: number): number => {
-    const safeValue = value || '';
+  const drawDetailRow = (
+    label: string,
+    value: string,
+    y: number,
+    options?: { valueFont?: string; maxLines?: number }
+  ): number => {
     const labelText = `${label}:`;
+    const safeValue = value || '';
+    const valueFont = options?.valueFont || 'Helvetica';
+    const maxLines = options?.maxLines;
+    const renderedValue = typeof maxLines === 'number'
+      ? truncateToFitLines(doc, safeValue, {
+        width: detailValueWidth,
+        maxLines,
+        font: valueFont,
+        fontSize: 10
+      })
+      : safeValue;
 
     doc
       .font('Helvetica')
-      .text(labelText, detailLabelX, y)
-      .text(safeValue, detailValueX, y, { width: detailValueWidth });
+      .fontSize(10)
+      .text(labelText, detailLabelX, y);
 
-    const labelHeight = doc.heightOfString(labelText);
-    const valueHeight = doc.heightOfString(safeValue, { width: detailValueWidth });
+    doc
+      .font(valueFont)
+      .fontSize(10)
+      .text(renderedValue, detailValueX, y, { width: detailValueWidth, lineGap: 0 });
+
+    doc.font('Helvetica');
+
+    const labelHeight = doc.heightOfString(labelText, { width: 80, lineGap: 0 });
+    const valueHeight = doc.heightOfString(renderedValue, { width: detailValueWidth, lineGap: 0 });
 
     return y + Math.max(labelHeight, valueHeight) + detailRowGap;
   };
 
-  currentY = drawDetailRow('NIC', bill.customerNIC || bill.customer_nic || '', currentY);
-  currentY = drawDetailRow('Address', bill.customerAddress || bill.customer_address || '', currentY);
+  currentY = drawDetailRow('Name', customerName, currentY, { valueFont: 'Helvetica-Bold', maxLines: 2 });
+  currentY = drawDetailRow('NIC', bill.customerNIC || bill.customer_nic || '', currentY, { maxLines: 1 });
+  currentY = drawDetailRow('Address', bill.customerAddress || bill.customer_address || '', currentY, { maxLines: 2 });
 
   const customerPhone = bill.customerPhone || bill.customer_phone || '';
   if (customerPhone) {
-    currentY = drawDetailRow('Contact No', customerPhone, currentY);
+    currentY = drawDetailRow('Contact No', customerPhone, currentY, { maxLines: 1 });
   }
   
   // Add spacing before vehicle details
-  currentY += 30;
+  currentY += 18;
   
   doc
     .fontSize(14)
@@ -249,9 +275,7 @@ const generateInvoiceTable = (doc: PDFKit.PDFDocument, bill: any, footerMetrics:
   let y = (doc as any)._lastDetailY || 320;
   y += 18;
 
-  const getContentBottomY = (): number => {
-    return doc.page.height - doc.page.margins.bottom - footerMetrics.blockHeight - 20;
-  };
+  const contentBottomY = doc.page.height - doc.page.margins.bottom - footerMetrics.blockHeight - 14;
 
   const shouldIncludeRmvCharge = (bill.rmvCharge > 0 || bill.rmv_charge > 0) && (bill.billType === 'cash' || bill.bill_type === 'cash');
   const shouldIncludeLeasingRmv = bill.billType === 'leasing' || bill.bill_type === 'leasing';
@@ -262,16 +286,91 @@ const generateInvoiceTable = (doc: PDFKit.PDFDocument, bill: any, footerMetrics:
     !(bill.isAdvancePayment || bill.is_advance_payment);
 
   const tableRowsCount = 1 + 1 + (shouldIncludeRmvCharge ? 1 : 0) + (shouldIncludeLeasingRmv ? 1 : 0) + (shouldIncludeDownPayment ? 1 : 0) + (isAdvancePayment ? 3 : 1);
-  const termsLineCount = 3 + (shouldIncludeRmvCondition ? 1 : 0);
 
-  const paymentTitleHeight = 25;
-  const tableHeight = tableRowsCount * 25;
-  const termsAndSignatureHeight = 50 + 20 + (termsLineCount * 15) + 70 + 25;
-  const totalRequiredHeight = paymentTitleHeight + tableHeight + termsAndSignatureHeight;
+  const layoutPresets: InvoiceLayout[] = [
+    {
+      tableRowHeight: 25,
+      tableTextOffsetY: 7,
+      sectionGapBeforeTerms: 50,
+      termsHeadingSize: 12,
+      termsBodySize: 10,
+      termsHeadingGap: 20,
+      termsLineGap: 15,
+      signatureGap: 70,
+      signatureLabelOffset: 10,
+      termsAsParagraph: false
+    },
+    {
+      tableRowHeight: 22,
+      tableTextOffsetY: 6,
+      sectionGapBeforeTerms: 34,
+      termsHeadingSize: 11,
+      termsBodySize: 9,
+      termsHeadingGap: 16,
+      termsLineGap: 13,
+      signatureGap: 52,
+      signatureLabelOffset: 8,
+      termsAsParagraph: false
+    },
+    {
+      tableRowHeight: 20,
+      tableTextOffsetY: 5,
+      sectionGapBeforeTerms: 24,
+      termsHeadingSize: 10,
+      termsBodySize: 9,
+      termsHeadingGap: 12,
+      termsLineGap: 11,
+      signatureGap: 40,
+      signatureLabelOffset: 7,
+      termsAsParagraph: false
+    },
+    {
+      tableRowHeight: 18,
+      tableTextOffsetY: 4,
+      sectionGapBeforeTerms: 14,
+      termsHeadingSize: 10,
+      termsBodySize: 8,
+      termsHeadingGap: 8,
+      termsLineGap: 10,
+      signatureGap: 28,
+      signatureLabelOffset: 6,
+      termsAsParagraph: true
+    }
+  ];
 
-  if (y + totalRequiredHeight > getContentBottomY()) {
-    doc.addPage();
-    y = doc.page.margins.top;
+  const getTermsHeight = (layout: InvoiceLayout): number => {
+    if (layout.termsAsParagraph) {
+      const compactTerms = [
+        '1. All prices are inclusive of taxes.',
+        '2. Warranty is subject to terms and conditions.',
+        '3. This is a computer-generated bill.'
+      ];
+      if (shouldIncludeRmvCondition) {
+        compactTerms.push('4. RMV registration will be completed within 30 days.');
+      }
+      const paragraph = compactTerms.join(' ');
+      return doc.font('Helvetica').fontSize(layout.termsBodySize).heightOfString(paragraph, { width: 500, lineGap: 0 });
+    }
+
+    const lines = 3 + (shouldIncludeRmvCondition ? 1 : 0);
+    return lines * layout.termsLineGap;
+  };
+
+  const getRequiredHeight = (layout: InvoiceLayout): number => {
+    const paymentTitleHeight = 25;
+    const tableHeight = tableRowsCount * layout.tableRowHeight;
+    const termsHeight = getTermsHeight(layout);
+    const termsAndSignatureHeight = layout.sectionGapBeforeTerms + layout.termsHeadingGap + termsHeight + layout.signatureGap + (layout.signatureLabelOffset + 14);
+    return paymentTitleHeight + tableHeight + termsAndSignatureHeight;
+  };
+
+  const availableHeight = contentBottomY - y;
+  let layout = layoutPresets[layoutPresets.length - 1];
+  for (const preset of layoutPresets) {
+    if (getRequiredHeight(preset) <= availableHeight) {
+      layout = preset;
+      break;
+    }
   }
   
   doc
@@ -282,7 +381,7 @@ const generateInvoiceTable = (doc: PDFKit.PDFDocument, bill: any, footerMetrics:
   
   // Draw table with borders
   const tableTop = y;
-  const itemRowHeight = 25;
+  const itemRowHeight = layout.tableRowHeight;
   const tableWidth = 500;
   
   // Set column widths
@@ -313,8 +412,8 @@ const generateInvoiceTable = (doc: PDFKit.PDFDocument, bill: any, footerMetrics:
   
   // Header text
   doc
-    .text('Description', 60, tableTop + 7)
-    .text('Amount (Rs.)', 50 + col1Width, tableTop + 7, { width: col2Width - 20, align: 'right' });
+    .text('Description', 60, tableTop + layout.tableTextOffsetY)
+    .text('Amount (Rs.)', 50 + col1Width, tableTop + layout.tableTextOffsetY, { width: col2Width - 20, align: 'right' });
   
   doc.font('Helvetica');
   
@@ -330,8 +429,8 @@ const generateInvoiceTable = (doc: PDFKit.PDFDocument, bill: any, footerMetrics:
   
   // Row content
   doc
-    .text('Bike Price', 60, y + 7)
-    .text(formatAmount(bill.bikePrice || bill.bike_price), 50 + col1Width, y + 7, { width: col2Width - 20, align: 'right' });
+    .text('Bike Price', 60, y + layout.tableTextOffsetY)
+    .text(formatAmount(bill.bikePrice || bill.bike_price), 50 + col1Width, y + layout.tableTextOffsetY, { width: col2Width - 20, align: 'right' });
   
   y += itemRowHeight;
   
@@ -346,8 +445,8 @@ const generateInvoiceTable = (doc: PDFKit.PDFDocument, bill: any, footerMetrics:
     
     // Row content
     doc
-      .text('RMV Charge', 60, y + 7)
-      .text(formatAmount(bill.rmvCharge || bill.rmv_charge || 13000), 50 + col1Width, y + 7, { width: col2Width - 20, align: 'right' });
+      .text('RMV Charge', 60, y + layout.tableTextOffsetY)
+      .text(formatAmount(bill.rmvCharge || bill.rmv_charge || 13000), 50 + col1Width, y + layout.tableTextOffsetY, { width: col2Width - 20, align: 'right' });
     
     y += itemRowHeight;
   } else if (shouldIncludeLeasingRmv) {
@@ -360,8 +459,8 @@ const generateInvoiceTable = (doc: PDFKit.PDFDocument, bill: any, footerMetrics:
     
     // Row content
     doc
-      .text('RMV Charge - CPZ', 60, y + 7)
-      .text(formatAmount(bill.rmvCharge || bill.rmv_charge || 13500), 50 + col1Width, y + 7, { width: col2Width - 20, align: 'right' });
+      .text('RMV Charge - CPZ', 60, y + layout.tableTextOffsetY)
+      .text(formatAmount(bill.rmvCharge || bill.rmv_charge || 13500), 50 + col1Width, y + layout.tableTextOffsetY, { width: col2Width - 20, align: 'right' });
     
     y += itemRowHeight;
   }
@@ -377,8 +476,8 @@ const generateInvoiceTable = (doc: PDFKit.PDFDocument, bill: any, footerMetrics:
     
     // Row content
     doc
-      .text('Down Payment', 60, y + 7)
-      .text(formatAmount(bill.downPayment || bill.down_payment), 50 + col1Width, y + 7, { width: col2Width - 20, align: 'right' });
+      .text('Down Payment', 60, y + layout.tableTextOffsetY)
+      .text(formatAmount(bill.downPayment || bill.down_payment), 50 + col1Width, y + layout.tableTextOffsetY, { width: col2Width - 20, align: 'right' });
     
     y += itemRowHeight;
   }
@@ -394,8 +493,8 @@ const generateInvoiceTable = (doc: PDFKit.PDFDocument, bill: any, footerMetrics:
     
     doc
       .font('Helvetica-Bold')
-      .text('Total Amount', 60, y + 7)
-      .text(formatAmount(bill.totalAmount || bill.total_amount), 50 + col1Width, y + 7, { width: col2Width - 20, align: 'right' });
+       .text('Total Amount', 60, y + layout.tableTextOffsetY)
+       .text(formatAmount(bill.totalAmount || bill.total_amount), 50 + col1Width, y + layout.tableTextOffsetY, { width: col2Width - 20, align: 'right' });
     
     doc.font('Helvetica');
     
@@ -409,8 +508,8 @@ const generateInvoiceTable = (doc: PDFKit.PDFDocument, bill: any, footerMetrics:
       .stroke();
     
     doc
-      .text('Advance Amount', 60, y + 7)
-      .text(formatAmount(bill.advanceAmount || bill.advance_amount), 50 + col1Width, y + 7, { width: col2Width - 20, align: 'right' });
+      .text('Advance Amount', 60, y + layout.tableTextOffsetY)
+      .text(formatAmount(bill.advanceAmount || bill.advance_amount), 50 + col1Width, y + layout.tableTextOffsetY, { width: col2Width - 20, align: 'right' });
     
     y += itemRowHeight;
     
@@ -433,8 +532,8 @@ const generateInvoiceTable = (doc: PDFKit.PDFDocument, bill: any, footerMetrics:
     
     doc
       .font('Helvetica-Bold') // Make the balance bold
-      .text('Balance', 60, y + 7)
-      .text(formatAmount(bill.balanceAmount || bill.balance_amount || 0), 50 + col1Width, y + 7, { width: col2Width - 20, align: 'right' })
+      .text('Balance', 60, y + layout.tableTextOffsetY)
+      .text(formatAmount(bill.balanceAmount || bill.balance_amount || 0), 50 + col1Width, y + layout.tableTextOffsetY, { width: col2Width - 20, align: 'right' })
       .font('Helvetica'); // Reset font
 
     y += itemRowHeight;
@@ -459,39 +558,57 @@ const generateInvoiceTable = (doc: PDFKit.PDFDocument, bill: any, footerMetrics:
   doc
     .fontSize(10)
     .font('Helvetica-Bold')
-    .text('Total Amount', 60, y + 7)
-    .text(formatAmount(bill.totalAmount || bill.total_amount), 50 + col1Width, y + 7, { width: col2Width - 20, align: 'right' });
+    .text('Total Amount', 60, y + layout.tableTextOffsetY)
+    .text(formatAmount(bill.totalAmount || bill.total_amount), 50 + col1Width, y + layout.tableTextOffsetY, { width: col2Width - 20, align: 'right' });
     
     doc.font('Helvetica');
   }
   
   // Terms and Conditions
-  y += 50;
+  y += layout.sectionGapBeforeTerms;
   doc
     .fillColor('#444444')  // Explicitly set color to match other sections
-    .fontSize(12)
+    .fontSize(layout.termsHeadingSize)
     .font('Helvetica-Bold')  // Make the header bold
     .text('Terms and Conditions:', 50, y);
   
-  y += 20;
+  y += layout.termsHeadingGap;
   doc
     .font('Helvetica')  // Reset to regular font
-    .fontSize(10);
-  
-  doc.text('1. All prices are inclusive of taxes.', 50, y);
-  y += 15;
-  doc.text('2. Warranty is subject to terms and conditions.', 50, y);
-  y += 15;
-  doc.text('3. This is a computer-generated bill.', 50, y);
-  
-  // Add additional condition for RMV if applicable
-  if (shouldIncludeRmvCondition) {
-    y += 15;
-    doc.text('4. RMV registration will be completed within 30 days.', 50, y);
+    .fontSize(layout.termsBodySize);
+
+  if (layout.termsAsParagraph) {
+    const compactTerms = [
+      '1. All prices are inclusive of taxes.',
+      '2. Warranty is subject to terms and conditions.',
+      '3. This is a computer-generated bill.'
+    ];
+    if (shouldIncludeRmvCondition) {
+      compactTerms.push('4. RMV registration will be completed within 30 days.');
+    }
+    const paragraph = compactTerms.join(' ');
+    doc.text(paragraph, 50, y, { width: 500, lineGap: 0 });
+    y += doc.heightOfString(paragraph, { width: 500, lineGap: 0 });
+  } else {
+    doc.text('1. All prices are inclusive of taxes.', 50, y);
+    y += layout.termsLineGap;
+    doc.text('2. Warranty is subject to terms and conditions.', 50, y);
+    y += layout.termsLineGap;
+    doc.text('3. This is a computer-generated bill.', 50, y);
+
+    if (shouldIncludeRmvCondition) {
+      y += layout.termsLineGap;
+      doc.text('4. RMV registration will be completed within 30 days.', 50, y);
+    }
   }
   
   // Signature areas
-  y += 70;
+  y += layout.signatureGap;
+  const maxSignatureY = contentBottomY - (layout.signatureLabelOffset + 14);
+  if (y > maxSignatureY) {
+    y = maxSignatureY;
+  }
+
   doc
     .moveTo(50, y)
     .lineTo(200, y)
@@ -503,8 +620,9 @@ const generateInvoiceTable = (doc: PDFKit.PDFDocument, bill: any, footerMetrics:
     .stroke();
   
   doc
-    .text('Dealer Signature', 70, y + 10)
-    .text('Rubber Stamp', 390, y + 10);
+    .fontSize(layout.termsBodySize)
+    .text('Dealer Signature', 70, y + layout.signatureLabelOffset)
+    .text('Rubber Stamp', 390, y + layout.signatureLabelOffset);
 };
 
 /**
