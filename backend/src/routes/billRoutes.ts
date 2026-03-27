@@ -3,11 +3,99 @@ import { ObjectId } from 'mongodb';
 import Bill from '../models/Bill.js';
 import { connectToDatabase } from '../config/database.js';
 import { generatePDF } from '../services/pdfService.js';
+import { generateProformaPDF } from '../services/proformaPdfService.js';
 import { authenticate, requireAdmin, requireOwnership, AuthRequest } from '../auth/auth.middleware.js';
 import { createBill, updateBillStatus } from '../controllers/billController.js';
 
 const router = express.Router();
 const SRI_LANKA_MOBILE_REGEX = /^07\d{8}$/;
+
+const PROFORMA_TYPES = new Set(['leasing', 'finance', 'insurance']);
+
+const toTrimmedString = (value: unknown): string | undefined => {
+  if (typeof value !== 'string') return undefined;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+};
+
+const toNumberOrUndefined = (value: unknown): number | undefined => {
+  if (value === null || value === undefined || value === '') return undefined;
+  const parsed = typeof value === 'string' ? Number(value) : Number(value);
+  return Number.isFinite(parsed) ? parsed : undefined;
+};
+
+const ensureBillAccess = async (req: AuthRequest, res: Response, id: string) => {
+  const bill = await Bill.findById(id);
+  if (!bill) {
+    res.status(404).json({ error: 'Bill not found' });
+    return null;
+  }
+
+  const user = await req.app.locals.models?.User.findById(req.user?.id);
+  const isAdmin = user?.role === 'admin';
+  const isOwner = bill.owner && bill.owner.toString() === req.user?.id;
+
+  if (!isAdmin && !isOwner) {
+    res.status(403).json({ error: 'You do not have permission to view this bill' });
+    return null;
+  }
+
+  return bill;
+};
+
+const buildDefaultProforma = (bill: any) => {
+  const unitPrice = Number(bill.bikePrice || 0);
+  const downPayment = Number(bill.downPayment || 0);
+  const amountToBeLeased = Math.max(unitPrice - downPayment, 0);
+  return {
+    type: 'leasing',
+    documentNumber: `PF-${bill.billNumber || bill.bill_number || bill._id}`,
+    issueDate: bill.billDate || new Date(),
+    financeCompanyName: '',
+    financeCompanyAddress: '',
+    financeCompanyContact: '',
+    manufactureYear: '',
+    color: '',
+    motorPower: '',
+    unitPrice,
+    downPayment,
+    amountToBeLeased
+  };
+};
+
+const normalizeProformaPayload = (input: any, fallback: any) => {
+  const type = toTrimmedString(input?.type)?.toLowerCase();
+  const normalizedType = type && PROFORMA_TYPES.has(type) ? type : (fallback?.type || 'leasing');
+
+  const unitPrice = toNumberOrUndefined(input?.unitPrice) ?? toNumberOrUndefined(fallback?.unitPrice) ?? 0;
+  const downPayment = toNumberOrUndefined(input?.downPayment) ?? toNumberOrUndefined(fallback?.downPayment) ?? 0;
+
+  const providedAmount = toNumberOrUndefined(input?.amountToBeLeased);
+  const amountToBeLeased = providedAmount ?? Math.max(unitPrice - downPayment, 0);
+
+  const issueDateRaw = input?.issueDate || fallback?.issueDate;
+  const issueDate = issueDateRaw ? new Date(issueDateRaw) : new Date();
+
+  if (Number.isNaN(issueDate.getTime())) {
+    throw new Error('Invalid issue date');
+  }
+
+  return {
+    type: normalizedType,
+    documentNumber: toTrimmedString(input?.documentNumber) || toTrimmedString(fallback?.documentNumber),
+    issueDate,
+    financeCompanyName: toTrimmedString(input?.financeCompanyName) || '',
+    financeCompanyAddress: toTrimmedString(input?.financeCompanyAddress) || '',
+    financeCompanyContact: toTrimmedString(input?.financeCompanyContact) || '',
+    manufactureYear: toTrimmedString(input?.manufactureYear) || '',
+    color: toTrimmedString(input?.color) || '',
+    motorPower: toTrimmedString(input?.motorPower) || '',
+    unitPrice,
+    downPayment,
+    amountToBeLeased,
+    updatedAt: new Date()
+  };
+};
 
 // Get all bills with pagination and filtering - Protected route
 router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
@@ -219,6 +307,89 @@ router.delete('/:id', authenticate, async (req: AuthRequest, res: Response) => {
 
     await Bill.findByIdAndDelete(req.params.id);
     res.status(200).json({ message: 'Bill deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ error: (error as Error).message });
+  }
+});
+
+// Get proforma payload for a completed bill
+router.get('/:id/proforma', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const bill = await ensureBillAccess(req, res, req.params.id);
+    if (!bill) return;
+
+    const fallback = buildDefaultProforma(bill);
+    const proforma = { ...fallback, ...(bill.proforma || {}) };
+
+    res.status(200).json({
+      billId: bill._id,
+      status: bill.status,
+      proforma
+    });
+  } catch (error) {
+    res.status(500).json({ error: (error as Error).message });
+  }
+});
+
+// Save/Update proforma payload for a completed bill
+router.put('/:id/proforma', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const bill = await ensureBillAccess(req, res, req.params.id);
+    if (!bill) return;
+
+    if ((bill.status || '').toLowerCase() !== 'completed') {
+      return res.status(400).json({ error: 'Proforma invoice is only available for completed bills' });
+    }
+
+    const fallback = { ...buildDefaultProforma(bill), ...(bill.proforma || {}) };
+    const normalized = normalizeProformaPayload(req.body, fallback);
+
+    if (!normalized.financeCompanyName || !normalized.financeCompanyAddress || !normalized.financeCompanyContact) {
+      return res.status(400).json({
+        error: 'Leasing/Finance company name, address, and contact number are required'
+      });
+    }
+
+    bill.proforma = normalized;
+    await bill.save();
+
+    res.status(200).json({
+      message: 'Proforma details saved successfully',
+      proforma: bill.proforma
+    });
+  } catch (error) {
+    res.status(400).json({ error: (error as Error).message });
+  }
+});
+
+// Generate proforma PDF for a completed bill
+router.get('/:id/proforma/pdf', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const bill = await ensureBillAccess(req, res, req.params.id);
+    if (!bill) return;
+
+    if ((bill.status || '').toLowerCase() !== 'completed') {
+      return res.status(400).json({ error: 'Proforma invoice is only available for completed bills' });
+    }
+
+    const fallback = buildDefaultProforma(bill);
+    const proforma = { ...fallback, ...(bill.proforma || {}) };
+
+    if (!proforma.financeCompanyName || !proforma.financeCompanyAddress || !proforma.financeCompanyContact) {
+      return res.status(400).json({
+        error: 'Complete proforma details before generating PDF (finance company name, address, and contact are required)'
+      });
+    }
+
+    const pdfBuffer = await generateProformaPDF({
+      ...(bill.toObject ? bill.toObject() : bill),
+      proforma
+    });
+
+    const fileId = proforma.documentNumber || bill.billNumber || bill.bill_number || bill._id;
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename=TMR_Proforma_${fileId}.pdf`);
+    res.send(pdfBuffer);
   } catch (error) {
     res.status(500).json({ error: (error as Error).message });
   }

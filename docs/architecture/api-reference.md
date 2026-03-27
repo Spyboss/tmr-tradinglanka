@@ -47,6 +47,9 @@ All endpoints are prefixed with `/api`. JSON responses follow a consistent shape
 | PUT | `/api/bills/:id` | Authenticated | Update bill fields. Prevents owner reassignment. |
 | DELETE | `/api/bills/:id` | Authenticated | Delete bill. Admin bypass. |
 | GET | `/api/bills/:id/pdf` | Authenticated | Download branded PDF of bill. |
+| GET | `/api/bills/:id/proforma` | Authenticated | Load bill-linked proforma payload (defaults + saved values). |
+| PUT | `/api/bills/:id/proforma` | Authenticated | Save proforma details for a completed bill. |
+| GET | `/api/bills/:id/proforma/pdf` | Authenticated | Download generated proforma invoice PDF for a completed bill. |
 | GET | `/api/bills/preview` | Authenticated | Download sample PDF using mock data. |
 | GET | `/api/bills/preview/pdf` | Authenticated | Render PDF using `formData` JSON query string payload. |
 | POST | `/api/bills/preview` | Authenticated | Render PDF using request body bill payload. |

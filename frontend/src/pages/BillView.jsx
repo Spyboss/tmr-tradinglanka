@@ -1,19 +1,24 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Spin, Button, Badge, Descriptions, Card, Popconfirm, message, Alert, Tag, Modal } from 'antd';
-import { DownloadOutlined, DeleteOutlined, EditOutlined, PrinterOutlined, EyeOutlined } from '@ant-design/icons';
+import { Spin, Button, Badge, Descriptions, Card, Popconfirm, message, Alert, Tag, Modal, Form, Input, InputNumber, Select, DatePicker } from 'antd';
+import { DownloadOutlined, DeleteOutlined, EditOutlined, PrinterOutlined, EyeOutlined, FileDoneOutlined } from '@ant-design/icons';
 import toast from 'react-hot-toast';
 import apiClient from '../config/apiClient';
 import AdvancementConversion from '../components/AdvancementConversion';
+import dayjs from 'dayjs';
 
 const BillView = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [proformaForm] = Form.useForm();
   const [bill, setBill] = useState(null);
   const [loading, setLoading] = useState(true);
   const [previewVisible, setPreviewVisible] = useState(false);
   const [previewUrl, setPreviewUrl] = useState('');
   const [previewLoading, setPreviewLoading] = useState(false);
+  const [proformaVisible, setProformaVisible] = useState(false);
+  const [proformaLoading, setProformaLoading] = useState(false);
+  const [proformaSubmitting, setProformaSubmitting] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -188,6 +193,79 @@ const BillView = () => {
     }
   };
 
+  const openProformaModal = async () => {
+    try {
+      setProformaLoading(true);
+      const response = await apiClient.get(`/bills/${id}/proforma`);
+      const proforma = response?.proforma || {};
+
+      proformaForm.setFieldsValue({
+        type: proforma.type || 'leasing',
+        documentNumber: proforma.documentNumber || `PF-${bill?.billNumber || bill?._id || id}`,
+        issueDate: proforma.issueDate ? dayjs(proforma.issueDate) : dayjs(),
+        financeCompanyName: proforma.financeCompanyName || '',
+        financeCompanyAddress: proforma.financeCompanyAddress || '',
+        financeCompanyContact: proforma.financeCompanyContact || '',
+        manufactureYear: proforma.manufactureYear || '',
+        color: proforma.color || '',
+        motorPower: proforma.motorPower || '',
+        unitPrice: Number(proforma.unitPrice ?? bill?.bikePrice ?? 0),
+        downPayment: Number(proforma.downPayment ?? bill?.downPayment ?? 0),
+        amountToBeLeased: Number(proforma.amountToBeLeased ?? Math.max(Number(proforma.unitPrice ?? bill?.bikePrice ?? 0) - Number(proforma.downPayment ?? bill?.downPayment ?? 0), 0))
+      });
+
+      setProformaVisible(true);
+    } catch (error) {
+      console.error('Error loading proforma details:', error);
+      toast.error(error.message || 'Failed to load proforma details');
+    } finally {
+      setProformaLoading(false);
+    }
+  };
+
+  const handleProformaValuesChange = (_, allValues) => {
+    const unitPrice = Number(allValues.unitPrice || 0);
+    const downPayment = Number(allValues.downPayment || 0);
+    const amountToBeLeased = Math.max(unitPrice - downPayment, 0);
+    proformaForm.setFieldsValue({ amountToBeLeased });
+  };
+
+  const saveAndDownloadProforma = async () => {
+    try {
+      const values = await proformaForm.validateFields();
+      setProformaSubmitting(true);
+
+      const payload = {
+        ...values,
+        issueDate: values.issueDate ? values.issueDate.toISOString() : new Date().toISOString()
+      };
+
+      await apiClient.put(`/bills/${id}/proforma`, payload);
+
+      const pdfBlob = await apiClient.get(`/bills/${id}/proforma/pdf`, {
+        responseType: 'blob'
+      });
+
+      const blob = pdfBlob instanceof Blob ? pdfBlob : new Blob([pdfBlob], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `proforma-${bill?.billNumber || id}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      toast.success('Proforma invoice generated successfully');
+      setProformaVisible(false);
+    } catch (error) {
+      console.error('Error generating proforma:', error);
+      toast.error(error.message || 'Failed to generate proforma invoice');
+    } finally {
+      setProformaSubmitting(false);
+    }
+  };
+
   const getBillTypeTag = (type) => {
     if (!type) return <Tag color="default">Unknown</Tag>;
     
@@ -264,6 +342,14 @@ const BillView = () => {
             onClick={handleDownloadPDF}
           >
             Download PDF
+          </Button>
+          <Button
+            icon={<FileDoneOutlined />}
+            onClick={openProformaModal}
+            loading={proformaLoading}
+            disabled={(bill.status || '').toLowerCase() !== 'completed'}
+          >
+            Generate Proforma Invoice
           </Button>
           <Button 
             icon={<PrinterOutlined />} 
@@ -435,6 +521,100 @@ const BillView = () => {
             className="w-full h-full border-0"
           />
         </div>
+      </Modal>
+
+      <Modal
+        title="Proforma Invoice Details"
+        open={proformaVisible}
+        onCancel={() => setProformaVisible(false)}
+        width={820}
+        footer={[
+          <Button key="cancel" onClick={() => setProformaVisible(false)}>
+            Cancel
+          </Button>,
+          <Button
+            key="generate"
+            type="primary"
+            loading={proformaSubmitting}
+            onClick={saveAndDownloadProforma}
+          >
+            Save & Generate PDF
+          </Button>
+        ]}
+      >
+        <Form
+          form={proformaForm}
+          layout="vertical"
+          onValuesChange={handleProformaValuesChange}
+        >
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Form.Item name="type" label="Proforma Type" rules={[{ required: true, message: 'Select a type' }]}>
+              <Select
+                options={[
+                  { label: 'Leasing', value: 'leasing' },
+                  { label: 'Finance', value: 'finance' },
+                  { label: 'Insurance', value: 'insurance' }
+                ]}
+              />
+            </Form.Item>
+
+            <Form.Item name="documentNumber" label="Document Number">
+              <Input placeholder="PF-XXXX" />
+            </Form.Item>
+
+            <Form.Item name="issueDate" label="Issue Date" rules={[{ required: true, message: 'Select issue date' }]}>
+              <DatePicker className="w-full" format="DD/MM/YYYY" />
+            </Form.Item>
+
+            <Form.Item
+              name="financeCompanyContact"
+              label="Leasing/Finance Contact"
+              rules={[{ required: true, message: 'Enter finance company contact' }]}
+            >
+              <Input placeholder="Contact number" />
+            </Form.Item>
+          </div>
+
+          <Form.Item
+            name="financeCompanyName"
+            label="Leasing/Finance By"
+            rules={[{ required: true, message: 'Enter finance company name' }]}
+          >
+            <Input placeholder="Company name" />
+          </Form.Item>
+
+          <Form.Item
+            name="financeCompanyAddress"
+            label="Leasing/Finance Address"
+            rules={[{ required: true, message: 'Enter finance company address' }]}
+          >
+            <Input.TextArea rows={2} placeholder="Company address" />
+          </Form.Item>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Form.Item name="manufactureYear" label="Manufacture Year">
+              <Input placeholder="e.g. 2025" />
+            </Form.Item>
+            <Form.Item name="color" label="Color">
+              <Input placeholder="Vehicle color" />
+            </Form.Item>
+            <Form.Item name="motorPower" label="Motor Power">
+              <Input placeholder="e.g. 1500W" />
+            </Form.Item>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Form.Item name="unitPrice" label="Unit Price (LKR)" rules={[{ required: true, message: 'Enter unit price' }]}>
+              <InputNumber className="w-full" min={0} />
+            </Form.Item>
+            <Form.Item name="downPayment" label="Down Payment (LKR)">
+              <InputNumber className="w-full" min={0} />
+            </Form.Item>
+            <Form.Item name="amountToBeLeased" label="Amount To Be Leased (LKR)" rules={[{ required: true, message: 'Enter leased amount' }]}>
+              <InputNumber className="w-full" min={0} />
+            </Form.Item>
+          </div>
+        </Form>
       </Modal>
     </div>
   );

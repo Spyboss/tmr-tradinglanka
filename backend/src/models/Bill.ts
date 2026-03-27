@@ -48,6 +48,23 @@ export interface IBill extends Document {
   // Other details
   totalAmount: number;
 
+  // Optional per-bill proforma data
+  proforma?: {
+    type?: 'leasing' | 'finance' | 'insurance';
+    documentNumber?: string;
+    issueDate?: Date;
+    financeCompanyName?: string;
+    financeCompanyAddress?: string;
+    financeCompanyContact?: string;
+    manufactureYear?: string;
+    color?: string;
+    motorPower?: string;
+    unitPrice?: number;
+    downPayment?: number;
+    amountToBeLeased?: number;
+    updatedAt?: Date;
+  };
+
   // Owner reference (for authorization)
   owner: mongoose.Types.ObjectId;
 
@@ -186,6 +203,58 @@ const BillSchema = new Schema({
   totalAmount: {
     type: Number,
     required: true
+  },
+
+  // Optional proforma metadata for leasing/finance/insurance outputs
+  proforma: {
+    type: {
+      type: String,
+      enum: ['leasing', 'finance', 'insurance'],
+      default: 'leasing'
+    },
+    documentNumber: {
+      type: String,
+      trim: true
+    },
+    issueDate: {
+      type: Date
+    },
+    financeCompanyName: {
+      type: String,
+      trim: true
+    },
+    financeCompanyAddress: {
+      type: String,
+      trim: true
+    },
+    financeCompanyContact: {
+      type: String,
+      trim: true
+    },
+    manufactureYear: {
+      type: String,
+      trim: true
+    },
+    color: {
+      type: String,
+      trim: true
+    },
+    motorPower: {
+      type: String,
+      trim: true
+    },
+    unitPrice: {
+      type: Number
+    },
+    downPayment: {
+      type: Number
+    },
+    amountToBeLeased: {
+      type: Number
+    },
+    updatedAt: {
+      type: Date
+    }
   },
 
   // Owner reference (for authorization)
