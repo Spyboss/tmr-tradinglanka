@@ -136,79 +136,84 @@ const renderHeader = (
   const { title, docNo, y, left, right } = params;
   const pageWidth = right;
   const centerX = left + (pageWidth - left) / 2;
-  const rightSectionX = right - 130;
-  const rightSectionWidth = 130;
+  const rightSectionX = right - 140;
+  const rightSectionWidth = 140;
 
   const leftSectionWidth = 180;
-  const centerSectionWidth = 220;
+  const centerSectionWidth = 260;
+
+  const headerBaseY = y + 10;
+  const logoHeight = logoBuffer ? 70 : 0;
   
-  let logoY = y;
   if (logoBuffer) {
     try {
-      doc.image(logoBuffer, left, logoY + 2, { width: 100 });
+      doc.image(logoBuffer, left, headerBaseY, { width: 85 });
     } catch {}
   }
 
   const dealerName = branding.brandPartner || branding.dealerName;
+  const nameY = headerBaseY + logoHeight + 6;
   if (dealerName) {
     doc
       .font('Helvetica-Bold')
-      .fontSize(11)
+      .fontSize(13)
       .fillColor('#111827')
-      .text(dealerName, left, logoY + (logoBuffer ? 52 : 2), { width: leftSectionWidth, align: 'left' });
+      .text(dealerName, left, nameY, { width: leftSectionWidth, align: 'left' });
   }
 
-  let addressY = logoY + (logoBuffer ? 66 : 16);
+  let addressY = nameY + 14;
   if (branding.addressLine1) {
     doc
       .font('Helvetica')
-      .fontSize(9)
-      .fillColor('#4b5563')
+      .fontSize(8)
+      .fillColor('#6b7280')
       .text(branding.addressLine1, left, addressY, { width: leftSectionWidth, align: 'left' });
-    addressY += 12;
+    addressY += 10;
   }
   if (branding.addressLine2) {
     doc
       .font('Helvetica')
-      .fontSize(9)
-      .fillColor('#4b5563')
+      .fontSize(8)
+      .fillColor('#6b7280')
       .text(branding.addressLine2, left, addressY, { width: leftSectionWidth, align: 'left' });
   }
 
+  const titleY = headerBaseY + 25;
   doc
     .font('Helvetica-Bold')
-    .fontSize(24)
+    .fontSize(28)
     .fillColor('#111827')
-    .text(title, centerX - centerSectionWidth / 2, y + 20, { width: centerSectionWidth, align: 'center' });
+    .text(title, centerX - centerSectionWidth / 2, titleY, { width: centerSectionWidth, align: 'center' });
 
-  const rightBlockY = y + (logoBuffer ? 15 : 8);
-  const rightBlockHeight = logoBuffer ? 55 : 40;
+  const rightBlockY = headerBaseY;
+  const rightBlockHeight = 75;
+  const boxPadding = 12;
   
   doc
-    .rect(rightSectionX - 10, rightBlockY - 5, rightSectionWidth + 10, rightBlockHeight)
-    .lineWidth(0.8)
+    .rect(rightSectionX - boxPadding, rightBlockY - 5, rightSectionWidth + boxPadding * 2, rightBlockHeight)
+    .lineWidth(0.7)
     .strokeColor('#d1d5db')
     .stroke();
 
-  const rightPadding = rightSectionX;
+  const rightContentX = rightSectionX;
+  
+  doc
+    .font('Helvetica')
+    .fontSize(9)
+    .fillColor('#6b7280')
+    .text('Invoice No', rightContentX, rightBlockY + 3, { width: rightSectionWidth, align: 'left' });
   
   doc
     .font('Helvetica-Bold')
-    .fontSize(10)
-    .fillColor('#374151')
-    .text('Invoice No', rightPadding, rightBlockY + 3, { width: rightSectionWidth, align: 'left' });
-  
-  doc
-    .font('Helvetica-Bold')
-    .fontSize(14)
+    .fontSize(15)
     .fillColor('#111827')
-    .text(String(docNo), rightPadding, rightBlockY + 15, { width: rightSectionWidth, align: 'left' });
+    .text(String(docNo), rightContentX, rightBlockY + 14, { width: rightSectionWidth, align: 'left' });
   
   doc
-    .font('Helvetica-Bold')
-    .fontSize(10)
-    .fillColor('#374151')
-    .text('Date', rightPadding, rightBlockY + 34, { width: rightSectionWidth, align: 'left' });
+    .font('Helvetica')
+    .fontSize(9)
+    .fillColor('#6b7280')
+    .text('Date', rightContentX, rightBlockY + 34, { width: rightSectionWidth, align: 'left' });
   
   const today = new Date();
   const day = today.getUTCDate().toString().padStart(2, '0');
@@ -219,9 +224,9 @@ const renderHeader = (
     .font('Helvetica')
     .fontSize(12)
     .fillColor('#111827')
-    .text(`${day}/${month}/${year}`, rightPadding, rightBlockY + 46, { width: rightSectionWidth, align: 'left' });
+    .text(`${day}/${month}/${year}`, rightContentX, rightBlockY + 45, { width: rightSectionWidth, align: 'left' });
 
-  return y + 90;
+  return y + 110;
 };
 
 const renderPartiesSection = (
