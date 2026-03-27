@@ -62,7 +62,7 @@ export const generatePDF = async (bill: any): Promise<Buffer> => {
 /**
  * Generate the header section of the bill
  */
-export const COMPANY_BRAND = process.env.COMPANY_BRAND || 'TMR TRADING LANKA (Pvt) Ltd';
+const COMPANY_BRAND = process.env.COMPANY_BRAND || 'TMR TRADING LANKA (Pvt) Ltd';
 
 const generateHeader = (doc: PDFKit.PDFDocument, branding: any, logoBuffer?: Buffer): void => {
   try {
@@ -561,7 +561,7 @@ const generateFooter = (doc: PDFKit.PDFDocument, footerMetrics: FooterMetrics): 
 };
 
 // Load branding document with safe defaults
-export const loadBranding = async (userId?: any): Promise<{
+const loadBranding = async (userId?: any): Promise<{
   dealerName: string;
   logoUrl?: string;
   primaryColor?: string;
@@ -597,7 +597,7 @@ export const loadBranding = async (userId?: any): Promise<{
 };
 
 // Fetch remote logo into a Buffer with size and time safeguards
-export const loadLogoBuffer = async (url?: string): Promise<Buffer | undefined> => {
+const loadLogoBuffer = async (url?: string): Promise<Buffer | undefined> => {
   if (!url || !(url.startsWith('http://') || url.startsWith('https://'))) return undefined;
   const MAX_LOGO_BYTES = 1 * 1024 * 1024; // 1MB cap
   const REQUEST_TIMEOUT_MS = 5000; // 5s timeout
@@ -646,7 +646,7 @@ export const loadLogoBuffer = async (url?: string): Promise<Buffer | undefined> 
 /**
  * Format amount with thousands separator
  */
-export const formatAmount = (value: number | string): string => {
+const formatAmount = (value: number | string): string => {
   if (value === undefined || value === null) return '0';
   try {
     const amount = typeof value === 'string' ? parseFloat(value) : value;
@@ -664,7 +664,7 @@ export const formatAmount = (value: number | string): string => {
 /**
  * Format date
  */
-export const formatDate = (date: string | Date): string => {
+const formatDate = (date: string | Date): string => {
   if (!date) return '';
   try {
     const d = new Date(date);
