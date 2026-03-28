@@ -118,7 +118,7 @@ export const generateProformaPDF = async (bill: BillForProforma): Promise<Buffer
       y = renderTerms(doc, { y, left, contentWidth, terms: TERMS });
 
       y += 28;
-      renderSignatureArea(doc, { y, left, contentWidth });
+      renderSignatureArea(doc, { y, left, contentWidth, branding });
 
       doc.end();
     } catch (error) {
@@ -149,33 +149,6 @@ const renderHeader = (
     try {
       doc.image(logoBuffer, left, headerBaseY, { width: 85 });
     } catch {}
-  }
-
-  const dealerName = branding.brandPartner || branding.dealerName;
-  const nameY = headerBaseY + logoHeight - 2;
-  if (dealerName) {
-    doc
-      .font('Helvetica-Bold')
-      .fontSize(13)
-      .fillColor('#111827')
-      .text(dealerName, left, nameY, { width: leftSectionWidth, align: 'left' });
-  }
-
-  let addressY = nameY + 11;
-  if (branding.addressLine1) {
-    doc
-      .font('Helvetica')
-      .fontSize(8)
-      .fillColor('#6b7280')
-      .text(branding.addressLine1, left, addressY, { width: leftSectionWidth, align: 'left' });
-    addressY += 9;
-  }
-  if (branding.addressLine2) {
-    doc
-      .font('Helvetica')
-      .fontSize(8)
-      .fillColor('#6b7280')
-      .text(branding.addressLine2, left, addressY, { width: leftSectionWidth, align: 'left' });
   }
 
   const titleY = headerBaseY + 22;
@@ -224,7 +197,7 @@ const renderHeader = (
     .fillColor('#111827')
     .text(dateStr, rightContentX, rightBlockY + lineHeight * 3 - 2, { width: rightSectionWidth, align: 'left' });
 
-  return y + 110;
+  return y + 90;
 };
 
 const renderPartiesSection = (
@@ -430,12 +403,12 @@ const renderTerms = (
 
 const renderSignatureArea = (
   doc: PDFKit.PDFDocument,
-  params: { y: number; left: number; contentWidth: number }
+  params: { y: number; left: number; contentWidth: number; branding: BrandingData }
 ): void => {
   const lineWidth = 180;
   const leftX = params.left + 40;
   const rightX = params.left + params.contentWidth - (lineWidth + 40);
-  const y = Math.min(params.y, doc.page.height - 110);
+  const y = Math.min(params.y, doc.page.height - 70);
 
   doc
     .moveTo(leftX, y)
@@ -458,10 +431,27 @@ const renderSignatureArea = (
     .text('Customer Signature', leftX + 12, y + 10, { width: lineWidth - 20, align: 'center' })
     .text('Authorized Dealer for', rightX + 10, y + 10, { width: lineWidth - 20, align: 'center' });
 
+  const dealerInfo = params.branding.brandPartner || params.branding.dealerName;
+  const dealerAddress = params.branding.addressLine1;
+  
+  doc
+    .font('Helvetica-Bold')
+    .fontSize(10)
+    .fillColor('#111827')
+    .text(dealerInfo, rightX + 10, y + 24, { width: lineWidth - 20, align: 'center' });
+  
+  if (dealerAddress) {
+    doc
+      .font('Helvetica')
+      .fontSize(9)
+      .fillColor('#6b7280')
+      .text(dealerAddress, rightX + 10, y + 36, { width: lineWidth - 20, align: 'center' });
+  }
+
   doc
     .fontSize(10)
     .fillColor('#6b7280')
-    .text('........................................', rightX + 20, y + 28, { width: lineWidth - 30, align: 'center' });
+    .text('........................................', rightX + 20, y + 52, { width: lineWidth - 30, align: 'center' });
 };
 
 const formatAmount = (value: number): string => {
