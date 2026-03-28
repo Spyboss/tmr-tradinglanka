@@ -370,7 +370,7 @@ const renderVehicleTable = (
     .fillColor('#111827')
     .text(`Total Amount (LKR): ${formatAmount(params.amountToBeLeased)}`, left, currentY + 8, {
       width: contentWidth - 10,
-      align: 'center'
+      align: 'right'
     });
 
   return currentY + totalHeight;
