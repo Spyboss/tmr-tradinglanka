@@ -408,7 +408,7 @@ const renderSignatureArea = (
   const lineWidth = 180;
   const leftX = params.left + 40;
   const rightX = params.left + params.contentWidth - (lineWidth + 40);
-  const y = Math.min(params.y, doc.page.height - 70);
+  const y = Math.min(params.y, doc.page.height - 50);
 
   doc
     .moveTo(leftX, y)
@@ -448,10 +448,6 @@ const renderSignatureArea = (
       .text(dealerAddress, rightX + 10, y + 36, { width: lineWidth - 20, align: 'center' });
   }
 
-  doc
-    .fontSize(10)
-    .fillColor('#6b7280')
-    .text('........................................', rightX + 20, y + 52, { width: lineWidth - 30, align: 'center' });
 };
 
 const formatAmount = (value: number): string => {
