@@ -10,6 +10,7 @@ type ProformaPayload = {
   financeCompanyName?: string;
   financeCompanyAddress?: string;
   financeCompanyContact?: string;
+  customerContact?: string;
   manufactureYear?: string;
   color?: string;
   motorPower?: string;
@@ -92,7 +93,7 @@ export const generateProformaPDF = async (bill: BillForProforma): Promise<Buffer
         customerName: bill.customerName,
         customerAddress: bill.customerAddress,
         customerNIC: bill.customerNIC,
-        customerPhone: bill.customerPhone,
+        customerPhone: proforma.customerContact || bill.customerPhone,
         financeCompanyName: proforma.financeCompanyName,
         financeCompanyAddress: proforma.financeCompanyAddress,
         financeCompanyContact: proforma.financeCompanyContact

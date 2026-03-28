@@ -206,6 +206,7 @@ const BillView = () => {
         financeCompanyName: proforma.financeCompanyName || '',
         financeCompanyAddress: proforma.financeCompanyAddress || '',
         financeCompanyContact: proforma.financeCompanyContact || '',
+        customerContact: proforma.customerContact || bill?.customerPhone || '',
         manufactureYear: proforma.manufactureYear || '',
         color: proforma.color || '',
         motorPower: proforma.motorPower || '',
@@ -572,6 +573,13 @@ const BillView = () => {
               rules={[{ required: true, message: 'Enter finance company contact' }]}
             >
               <Input placeholder="Contact number" />
+            </Form.Item>
+
+            <Form.Item
+              name="customerContact"
+              label="Customer Contact No."
+            >
+              <Input placeholder="Customer contact number" />
             </Form.Item>
           </div>
 
