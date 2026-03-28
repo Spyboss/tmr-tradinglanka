@@ -408,7 +408,7 @@ const renderSignatureArea = (
   const lineWidth = 180;
   const leftX = params.left + 40;
   const rightX = params.left + params.contentWidth - (lineWidth + 40);
-  const y = Math.min(params.y, doc.page.height - 15);
+  const y = doc.page.height - doc.page.margins.bottom - 80;
 
   doc
     .moveTo(leftX, y)
