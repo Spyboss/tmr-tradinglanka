@@ -160,7 +160,7 @@ const renderHeader = (
     .text(title, centerX - centerSectionWidth / 2, titleY, { width: centerSectionWidth, align: 'center' });
 
   const rightBlockY = headerBaseY;
-  const rightBlockHeight = 72;
+  const rightBlockHeight = 64;
   const boxPadding = 10;
   
   doc
@@ -181,7 +181,7 @@ const renderHeader = (
   doc
     .font('Helvetica-Bold')
     .fontSize(14)
-    .fillColor('#111827')
+    .fillColor('#6b7280')
     .text(String(docNo), rightContentX, rightBlockY + lineHeight, { width: rightSectionWidth, align: 'left' });
   
   doc
@@ -198,7 +198,7 @@ const renderHeader = (
     .fillColor('#111827')
     .text(dateStr, rightContentX, rightBlockY + lineHeight * 3 - 2, { width: rightSectionWidth, align: 'left' });
 
-  return y + 90;
+  return y + 82;
 };
 
 const renderPartiesSection = (
