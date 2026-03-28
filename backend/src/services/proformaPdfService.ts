@@ -254,11 +254,11 @@ const drawFieldRow = (
 
   doc
     .font('Helvetica')
-    .fontSize(9)
-    .fillColor('#374151')
+    .fontSize(8)
+    .fillColor('#6b7280')
     .text(`${label}:`, x + paddingX, labelY, { width: width - (paddingX * 2) });
 
-  const valueY = y + 16;
+  const valueY = y + 17;
   doc
     .font('Helvetica-Bold')
     .fontSize(10)
