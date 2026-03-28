@@ -231,6 +231,10 @@ const BillSchema = new Schema({
       type: String,
       trim: true
     },
+    customerContact: {
+      type: String,
+      trim: true
+    },
     manufactureYear: {
       type: String,
       trim: true
