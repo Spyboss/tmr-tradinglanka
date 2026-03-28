@@ -227,13 +227,13 @@ const renderPartiesSection = (
   currentY = drawFieldRow(doc, leftX, currentY, colWidth, 'Customer Name', params.customerName || '-', 28);
   currentY = drawFieldRow(doc, leftX, currentY, colWidth, 'Address', params.customerAddress || '-', 50);
   currentY = drawFieldRow(doc, leftX, currentY, colWidth, 'NIC No', params.customerNIC || '-', 24);
-  currentY = drawFieldRow(doc, leftX, currentY, colWidth, 'Contact Number', params.customerPhone || '-', 24);
+  currentY = drawFieldRow(doc, leftX, currentY, colWidth, 'Contact No.', params.customerPhone || '-', 24);
 
   let rightY = leftBlockStart;
-  rightY = drawFieldRow(doc, rightX, rightY, colWidth, 'Leasing/Finance by', params.financeCompanyName || '-', 28);
+  rightY = drawFieldRow(doc, rightX, rightY, colWidth, 'Leasing / Finance Company', params.financeCompanyName || '-', 28);
   rightY = drawFieldRow(doc, rightX, rightY, colWidth, 'Address', params.financeCompanyAddress || '-', 78);
   rightY += 8;
-  rightY = drawFieldRow(doc, rightX, rightY, colWidth, 'Contact Number', params.financeCompanyContact || '-', 24);
+  rightY = drawFieldRow(doc, rightX, rightY, colWidth, 'Contact No.', params.financeCompanyContact || '-', 24);
 
   return Math.max(currentY, rightY);
 };
