@@ -1,6 +1,8 @@
 import express, { Request, Response } from 'express';
 import { ObjectId } from 'mongodb';
+import mongoose from 'mongoose';
 import Bill from '../models/Bill.js';
+import BikeInventory, { BikeStatus } from '../models/BikeInventory.js';
 import { connectToDatabase } from '../config/database.js';
 import { generatePDF } from '../services/pdfService.js';
 import { generateProformaPDF } from '../services/proformaPdfService.js';
@@ -109,6 +111,30 @@ const normalizeProformaPayload = (input: any, fallback: any) => {
   };
 };
 
+const calculateCompletedSaleAmounts = (bill: any) => {
+  const bikePrice = Number(bill.bikePrice || 0);
+  const rmvCharge = Number(bill.rmvCharge || 0);
+
+  if (bill.billType === 'leasing') {
+    return {
+      totalAmount: Number(bill.downPayment || 0),
+      rmvCharge: rmvCharge || 13500
+    };
+  }
+
+  if (bill.isEbicycle || bill.isTricycle) {
+    return {
+      totalAmount: bikePrice,
+      rmvCharge: 0
+    };
+  }
+
+  return {
+    totalAmount: bikePrice + (rmvCharge || 13000),
+    rmvCharge: rmvCharge || 13000
+  };
+};
+
 // Get all bills with pagination and filtering - Protected route
 router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
   try {
@@ -130,7 +156,12 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
     }
 
     if (status) filter.status = status;
-    if (billType) filter.billType = billType;
+    if (billType === 'advance') {
+      filter.isAdvancePayment = true;
+    } else if (billType) {
+      filter.billType = billType;
+      filter.isAdvancePayment = { $ne: true };
+    }
 
     if (startDate || endDate) {
       const range: any = {};
@@ -265,36 +296,137 @@ router.put('/:id', authenticate, async (req: AuthRequest, res: Response) => {
       delete req.body.owner;
     }
 
-    const willBeAdvance = req.body.isAdvancePayment === true || bill.isAdvancePayment === true;
-    const incomingPhone = typeof req.body.customerPhone === 'string'
+    const willBeAdvance = req.body.isAdvancePayment === true || (req.body.isAdvancePayment === undefined && bill.isAdvancePayment === true);
+    const hasIncomingPhone = typeof req.body.customerPhone === 'string';
+    const normalizedIncomingPhone = hasIncomingPhone
       ? req.body.customerPhone.trim()
+      : undefined;
+    const nextPhone = hasIncomingPhone
+      ? (normalizedIncomingPhone || undefined)
       : bill.customerPhone;
 
-    if (willBeAdvance && !incomingPhone) {
+    if (willBeAdvance && !nextPhone) {
       return res.status(400).json({
         error: 'Customer contact number is required for advance payments (format: 07XXXXXXXX)'
       });
     }
 
-    if (incomingPhone && !SRI_LANKA_MOBILE_REGEX.test(incomingPhone)) {
+    if (nextPhone && !SRI_LANKA_MOBILE_REGEX.test(nextPhone)) {
       return res.status(400).json({
         error: 'Customer contact number must be in 07XXXXXXXX format'
       });
     }
 
-    if (incomingPhone) {
-      req.body.customerPhone = incomingPhone;
+    if (hasIncomingPhone) {
+      req.body.customerPhone = nextPhone;
     }
 
-    const updatedBill = await Bill.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true, runValidators: true }
-    );
+    Object.entries(req.body).forEach(([key, value]) => {
+      (bill as any).set(key, value);
+    });
+
+    const updatedBill = await bill.save();
 
     res.status(200).json(updatedBill);
   } catch (error) {
     res.status(400).json({ error: (error as Error).message });
+  }
+});
+
+router.post('/:id/close-sale', authenticate, async (req: AuthRequest, res: Response) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const bill = await Bill.findById(req.params.id).session(session);
+
+    if (!bill) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(404).json({ error: 'Bill not found' });
+    }
+
+    const user = await req.app.locals.models?.User.findById(req.user?.id);
+    const isAdmin = user?.role === 'admin';
+    const isOwner = bill.owner && bill.owner.toString() === req.user?.id;
+
+    if (!isAdmin && !isOwner) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(403).json({ error: 'You do not have permission to close this sale' });
+    }
+
+    if (!bill.isAdvancePayment) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ error: 'Only advance bills can be closed as a final sale' });
+    }
+
+    if ((bill.status || '').toLowerCase() === 'converted') {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ error: 'This advance bill has already been converted to a final sale' });
+    }
+
+    const { totalAmount, rmvCharge } = calculateCompletedSaleAmounts(bill);
+    const finalBill = new Bill({
+      owner: bill.owner,
+      customerName: bill.customerName,
+      customerNIC: bill.customerNIC,
+      customerAddress: bill.customerAddress,
+      customerPhone: bill.customerPhone,
+      bikeModel: bill.bikeModel,
+      motorNumber: bill.motorNumber,
+      chassisNumber: bill.chassisNumber,
+      bikePrice: bill.bikePrice,
+      vehicleType: bill.vehicleType,
+      inventoryItemId: bill.inventoryItemId,
+      billType: bill.billType,
+      isEbicycle: bill.isEbicycle,
+      isTricycle: bill.isTricycle,
+      rmvCharge,
+      downPayment: bill.downPayment,
+      isAdvancePayment: false,
+      advanceAmount: undefined,
+      balanceAmount: 0,
+      estimatedDeliveryDate: bill.estimatedDeliveryDate,
+      isFirstTricycleSale: bill.isFirstTricycleSale,
+      totalAmount,
+      billDate: new Date(),
+      status: 'completed',
+      originalAdvanceBillId: bill._id
+    });
+
+    await finalBill.save({ session });
+
+    bill.status = 'converted';
+    bill.finalBillId = finalBill._id;
+    await bill.save({ session });
+
+    if (bill.inventoryItemId) {
+      await BikeInventory.findByIdAndUpdate(
+        bill.inventoryItemId,
+        {
+          status: BikeStatus.SOLD,
+          dateSold: new Date(),
+          billId: finalBill._id
+        },
+        { session }
+      );
+    }
+
+    await session.commitTransaction();
+    session.endSession();
+
+    res.status(201).json({
+      message: 'Final sale bill created successfully',
+      advanceBillId: bill._id,
+      finalBill
+    });
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    res.status(500).json({ error: (error as Error).message });
   }
 });
 

@@ -83,6 +83,30 @@ describe('GET /api/bills filters & pagination', () => {
     expect(res.status).toBe(200)
     expect(capturedFilter && capturedFilter.owner).toBe('test-user-id')
   })
+
+  it('maps advance bill filter to isAdvancePayment', async () => {
+    vi.spyOn(User, 'findById').mockResolvedValue({ _id: '6566f1f2a1b2c3d4e5f6a7b8', role: 'admin' } as any)
+
+    let capturedFilter: any = null
+    vi.spyOn(Bill, 'find').mockImplementation((filter: any) => {
+      capturedFilter = filter
+      return {
+        sort: vi.fn().mockReturnThis(),
+        skip: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockResolvedValue([])
+      } as any
+    })
+    vi.spyOn(Bill, 'countDocuments').mockResolvedValue(0 as any)
+
+    const res = await request(app)
+      .get('/api/bills')
+      .set('Authorization', 'Bearer test-token')
+      .query({ billType: 'advance' })
+
+    expect(res.status).toBe(200)
+    expect(capturedFilter.isAdvancePayment).toBe(true)
+    expect(capturedFilter.billType).toBeUndefined()
+  })
 })
 
 describe('GET /api/bills/suggestions', () => {

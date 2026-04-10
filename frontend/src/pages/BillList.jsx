@@ -239,7 +239,12 @@ const BillList = () => {
     }
   };
 
-  const getBillTypeBadge = (type) => {
+  const getBillTypeBadge = (record) => {
+    if (record?.isAdvancePayment) {
+      return <Tag color="orange">Advance Payment</Tag>;
+    }
+
+    const type = record?.billType;
     if (!type) return <Tag color="default">Unknown</Tag>;
 
     const typeMap = {
@@ -295,7 +300,7 @@ const BillList = () => {
       title: 'Type',
       dataIndex: 'billType',
       key: 'billType',
-      render: (type) => getBillTypeBadge(type),
+      render: (_, record) => getBillTypeBadge(record),
     },
     {
       title: 'Amount',
@@ -447,7 +452,8 @@ const BillList = () => {
             onChange={(v) => setFilters(prev => ({ ...prev, billType: v || '' }))}
             options={[
               { label: 'Cash', value: 'cash' },
-              { label: 'Leasing', value: 'leasing' }
+              { label: 'Leasing', value: 'leasing' },
+              { label: 'Advance Payment', value: 'advance' }
             ]}
           />
           <Space>

@@ -193,6 +193,28 @@ const BillView = () => {
     }
   };
 
+  const handleCloseSale = async () => {
+    try {
+      setLoading(true);
+      const response = await apiClient.post(`/bills/${id}/close-sale`, {});
+      const finalBillId = response?.finalBill?._id || response?.finalBill?.id;
+
+      toast.success('Final sale bill created successfully');
+
+      if (finalBillId) {
+        navigate(`/bills/${finalBillId}`);
+        return;
+      }
+
+      await fetchBill(id);
+    } catch (error) {
+      console.error('Error closing sale:', error);
+      toast.error(error.message || 'Failed to create final sale bill');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const openProformaModal = async () => {
     try {
       setProformaLoading(true);
@@ -287,6 +309,8 @@ const BillView = () => {
     return isNaN(numericAmount) ? 'Rs. 0' : `Rs. ${numericAmount.toLocaleString()}`;
   };
 
+  const isAdvanceBill = Boolean(bill?.isAdvancePayment);
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-screen dark:bg-slate-900">
@@ -321,7 +345,7 @@ const BillView = () => {
         <div>
           <h1 className="text-2xl font-semibold">Bill #{bill._id || bill.id}</h1>
           <div className="flex items-center mt-2">
-            {getBillTypeTag(bill.billType)}
+            {getBillTypeTag(isAdvanceBill ? 'advance' : bill.billType)}
             <Badge 
               status={getStatusBadgeClass(bill.status)} 
               text={bill.status} 
@@ -394,16 +418,30 @@ const BillView = () => {
           <Descriptions bordered column={1}>
             <Descriptions.Item label="Bill Number">{bill.billNumber || bill._id || bill.id}</Descriptions.Item>
             <Descriptions.Item label="Bill Date">{formatDate(bill.billDate || bill.createdAt)}</Descriptions.Item>
-            <Descriptions.Item label="Bill Type">{getBillTypeTag(bill.billType)}</Descriptions.Item>
+            <Descriptions.Item label="Bill Type">{getBillTypeTag(isAdvanceBill ? 'advance' : bill.billType)}</Descriptions.Item>
             <Descriptions.Item label="Status">
               <Badge 
                 status={getStatusBadgeClass(bill.status)} 
                 text={bill.status} 
               />
             </Descriptions.Item>
-            {(bill.billType === 'advance' || bill.billType === 'advancement') && bill.estimatedDeliveryDate && (
+            {isAdvanceBill && bill.estimatedDeliveryDate && (
               <Descriptions.Item label="Estimated Delivery Date">
                 {formatDate(bill.estimatedDeliveryDate)}
+              </Descriptions.Item>
+            )}
+            {bill.finalBillId && (
+              <Descriptions.Item label="Final Sale Bill">
+                <Button type="link" className="px-0" onClick={() => navigate(`/bills/${bill.finalBillId}`)}>
+                  View Final Bill
+                </Button>
+              </Descriptions.Item>
+            )}
+            {bill.originalAdvanceBillId && (
+              <Descriptions.Item label="Advance Bill">
+                <Button type="link" className="px-0" onClick={() => navigate(`/bills/${bill.originalAdvanceBillId}`)}>
+                  View Advance Bill
+                </Button>
               </Descriptions.Item>
             )}
           </Descriptions>
@@ -438,9 +476,9 @@ const BillView = () => {
               <Descriptions.Item label="RMV Charge">{formatAmount(bill.rmvCharge || 13000)}</Descriptions.Item>
             )}
             <Descriptions.Item label="Total Amount">{formatAmount(bill.totalAmount)}</Descriptions.Item>
-            {(bill.billType === 'advance' || bill.billType === 'advancement') && (
+            {isAdvanceBill && (
               <>
-                <Descriptions.Item label="Down Payment">{formatAmount(bill.downPayment)}</Descriptions.Item>
+                <Descriptions.Item label="Advance Received">{formatAmount(bill.advanceAmount ?? bill.downPayment)}</Descriptions.Item>
                 <Descriptions.Item label="Balance Amount">{formatAmount(bill.balanceAmount)}</Descriptions.Item>
               </>
             )}
@@ -452,7 +490,16 @@ const BillView = () => {
         </div>
 
       <div className="mt-6 flex flex-col sm:flex-row gap-3">
-        {bill.status !== 'completed' && (
+        {isAdvanceBill && bill.status !== 'converted' && (
+          <Button
+            type="primary"
+            onClick={handleCloseSale}
+          >
+            Close Sale
+          </Button>
+        )}
+
+        {!isAdvanceBill && bill.status !== 'completed' && (
           <Button
             type="primary"
                 onClick={() => handleStatusChange('completed')}

@@ -7,7 +7,7 @@ export interface IBill extends Document {
   billNumber: string;
   bill_number: string;
   billDate: Date;
-  status: 'pending' | 'completed' | 'cancelled';
+  status: 'pending' | 'completed' | 'cancelled' | 'converted';
 
   // Customer details
   customerName: string;
@@ -24,6 +24,8 @@ export interface IBill extends Document {
 
   // Inventory reference
   inventoryItemId?: mongoose.Types.ObjectId; // Reference to the inventory item
+  originalAdvanceBillId?: mongoose.Types.ObjectId;
+  finalBillId?: mongoose.Types.ObjectId;
 
   // Bill type
   billType: 'cash' | 'leasing';
@@ -90,7 +92,7 @@ const BillSchema = new Schema({
   },
   status: {
     type: String,
-    enum: ['pending', 'completed', 'cancelled'],
+    enum: ['pending', 'completed', 'cancelled', 'converted'],
     default: 'pending'
   },
 
@@ -149,6 +151,14 @@ const BillSchema = new Schema({
   inventoryItemId: {
     type: Schema.Types.ObjectId,
     ref: 'BikeInventory'
+  },
+  originalAdvanceBillId: {
+    type: Schema.Types.ObjectId,
+    ref: 'Bill'
+  },
+  finalBillId: {
+    type: Schema.Types.ObjectId,
+    ref: 'Bill'
   },
 
   // Bill type
