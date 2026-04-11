@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import mongoose from 'mongoose';
 import BikeInventory, { BikeStatus } from '../models/BikeInventory.js';
 import BikeModel from '../models/BikeModel.js';
+import Bill from '../models/Bill.js';
 import logger from '../utils/logger.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { AuthRequest } from '../auth/auth.middleware.js';
@@ -9,6 +10,44 @@ import { generateInventoryPDF } from '../services/inventoryPdfService.js';
 
 const MAX_SEARCH_LENGTH = 64;
 const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const MONTHLY_SALES_TARGET = 25;
+const MONTH_LABEL_FORMATTER = new Intl.DateTimeFormat('en', { month: 'short', year: 'numeric' });
+
+const getMonthStart = (date: Date) => new Date(date.getFullYear(), date.getMonth(), 1);
+const addMonths = (date: Date, months: number) => new Date(date.getFullYear(), date.getMonth() + months, 1);
+
+const getMonthKey = (date: Date) => {
+  const month = `${date.getMonth() + 1}`.padStart(2, '0');
+  return `${date.getFullYear()}-${month}`;
+};
+
+const getOwnershipContext = async (req: AuthRequest) => {
+  const user = await req.app.locals.models?.User.findById(req.user?.id);
+  const isAdmin = user?.role === 'admin';
+
+  return {
+    isAdmin,
+    inventoryMatch: !isAdmin && req.user?.id
+      ? { addedBy: new mongoose.Types.ObjectId(req.user.id) }
+      : {},
+    billMatch: !isAdmin && req.user?.id
+      ? { owner: new mongoose.Types.ObjectId(req.user.id) }
+      : {}
+  };
+};
+
+const getTrendDirection = (value: number) => {
+  if (value > 0.05) return 'increasing';
+  if (value < -0.05) return 'decreasing';
+  return 'stable';
+};
+
+const getPaceStatus = (paceGap: number) => {
+  if (paceGap >= 1) return 'ahead';
+  if (paceGap <= -1) return 'behind';
+  return 'on-track';
+};
 
 /**
  * Get all bikes in inventory with filtering
@@ -867,6 +906,377 @@ export const getInventoryAnalytics = async (req: AuthRequest, res: Response, nex
   } catch (error) {
     logger.error(`Error getting inventory analytics: ${(error as Error).message}`);
     next(new AppError(`Failed to get inventory analytics: ${(error as Error).message}`, 500));
+  }
+};
+
+/**
+ * Get focused analytics for the /inventory/report dashboard
+ * @route GET /api/inventory/report/analytics
+ * @access Private
+ */
+export const getInventoryReportAnalytics = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const now = new Date();
+    const currentMonthStart = getMonthStart(now);
+    const nextMonthStart = addMonths(currentMonthStart, 1);
+    const previousMonthStart = addMonths(currentMonthStart, -1);
+    const reportWindowStart = addMonths(currentMonthStart, -5);
+    const ninetyDaysAgo = new Date(now.getTime() - (90 * 24 * 60 * 60 * 1000));
+    const currentDayOfMonth = now.getDate();
+    const daysInCurrentMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    const previousMonthDays = new Date(previousMonthStart.getFullYear(), previousMonthStart.getMonth() + 1, 0).getDate();
+    const comparablePreviousDay = Math.min(currentDayOfMonth, previousMonthDays);
+    const previousComparableEnd = new Date(previousMonthStart.getFullYear(), previousMonthStart.getMonth(), comparablePreviousDay + 1);
+
+    const { inventoryMatch, billMatch } = await getOwnershipContext(req);
+
+    const [salesByModelRaw, agedStockRaw, revenueSeriesRaw, currentMonthSalesAgg, previousMonthSalesAgg] = await Promise.all([
+      BikeInventory.aggregate([
+        {
+          $match: {
+            isDeleted: { $ne: true },
+            status: BikeStatus.SOLD,
+            dateSold: { $gte: reportWindowStart, $lt: nextMonthStart },
+            ...inventoryMatch
+          }
+        },
+        {
+          $lookup: {
+            from: 'bike_models',
+            localField: 'bikeModelId',
+            foreignField: '_id',
+            as: 'model'
+          }
+        },
+        { $unwind: '$model' },
+        {
+          $group: {
+            _id: {
+              modelId: '$bikeModelId',
+              modelName: '$model.name',
+              year: { $year: '$dateSold' },
+              month: { $month: '$dateSold' }
+            },
+            soldUnits: { $sum: 1 }
+          }
+        },
+        {
+          $project: {
+            _id: 0,
+            modelId: '$_id.modelId',
+            modelName: '$_id.modelName',
+            year: '$_id.year',
+            month: '$_id.month',
+            soldUnits: 1
+          }
+        },
+        { $sort: { year: 1, month: 1, modelName: 1 } }
+      ]),
+      BikeInventory.aggregate([
+        {
+          $match: {
+            isDeleted: { $ne: true },
+            status: BikeStatus.AVAILABLE,
+            dateAdded: { $lte: ninetyDaysAgo },
+            ...inventoryMatch
+          }
+        },
+        {
+          $lookup: {
+            from: 'bike_models',
+            localField: 'bikeModelId',
+            foreignField: '_id',
+            as: 'model'
+          }
+        },
+        { $unwind: '$model' },
+        {
+          $group: {
+            _id: '$bikeModelId',
+            modelName: { $first: '$model.name' },
+            price: { $first: '$model.price' },
+            agedUnits: { $sum: 1 },
+            oldestDateAdded: { $min: '$dateAdded' },
+            averageAgeMs: {
+              $avg: {
+                $subtract: [now, '$dateAdded']
+              }
+            }
+          }
+        },
+        {
+          $addFields: {
+            oldestAgeDays: {
+              $round: [
+                {
+                  $divide: [
+                    { $subtract: [now, '$oldestDateAdded'] },
+                    86400000
+                  ]
+                },
+                0
+              ]
+            },
+            averageAgeDays: {
+              $round: [
+                { $divide: ['$averageAgeMs', 86400000] },
+                0
+              ]
+            },
+            stockValueAtRisk: { $multiply: ['$agedUnits', '$price'] }
+          }
+        },
+        {
+          $project: {
+            _id: 0,
+            modelId: '$_id',
+            modelName: 1,
+            price: 1,
+            agedUnits: 1,
+            oldestDateAdded: 1,
+            oldestAgeDays: 1,
+            averageAgeDays: 1,
+            stockValueAtRisk: 1
+          }
+        },
+        { $sort: { oldestAgeDays: -1, stockValueAtRisk: -1 } }
+      ]),
+      Bill.aggregate([
+        {
+          $match: {
+            billDate: { $gte: reportWindowStart, $lt: nextMonthStart },
+            ...billMatch
+          }
+        },
+        {
+          $addFields: {
+            revenueAmount: {
+              $switch: {
+                branches: [
+                  {
+                    case: {
+                      $and: [
+                        { $eq: ['$isAdvancePayment', true] },
+                        { $eq: [{ $ifNull: ['$finalBillId', null] }, null] },
+                        { $ne: ['$status', 'cancelled'] }
+                      ]
+                    },
+                    then: { $ifNull: ['$advanceAmount', 0] }
+                  },
+                  {
+                    case: {
+                      $and: [
+                        { $ne: ['$isAdvancePayment', true] },
+                        { $eq: ['$status', 'completed'] }
+                      ]
+                    },
+                    then: { $ifNull: ['$totalAmount', 0] }
+                  }
+                ],
+                default: 0
+              }
+            }
+          }
+        },
+        {
+          $group: {
+            _id: {
+              year: { $year: '$billDate' },
+              month: { $month: '$billDate' }
+            },
+            revenue: { $sum: '$revenueAmount' }
+          }
+        },
+        {
+          $project: {
+            _id: 0,
+            year: '$_id.year',
+            month: '$_id.month',
+            revenue: 1
+          }
+        },
+        { $sort: { year: 1, month: 1 } }
+      ]),
+      BikeInventory.aggregate([
+        {
+          $match: {
+            isDeleted: { $ne: true },
+            status: BikeStatus.SOLD,
+            dateSold: { $gte: currentMonthStart, $lt: nextMonthStart },
+            ...inventoryMatch
+          }
+        },
+        { $count: 'soldUnits' }
+      ]),
+      BikeInventory.aggregate([
+        {
+          $match: {
+            isDeleted: { $ne: true },
+            status: BikeStatus.SOLD,
+            dateSold: { $gte: previousMonthStart, $lt: previousComparableEnd },
+            ...inventoryMatch
+          }
+        },
+        { $count: 'soldUnits' }
+      ])
+    ]);
+
+    const months = Array.from({ length: 6 }, (_, index) => addMonths(reportWindowStart, index)).map(monthDate => ({
+      key: getMonthKey(monthDate),
+      label: MONTH_LABEL_FORMATTER.format(monthDate)
+    }));
+
+    const salesByModelMap = new Map<string, any>();
+    const monthTotalsMap = new Map<string, number>();
+
+    salesByModelRaw.forEach((entry: any) => {
+      const monthDate = new Date(entry.year, entry.month - 1, 1);
+      const monthKey = getMonthKey(monthDate);
+
+      if (!salesByModelMap.has(entry.modelName)) {
+        salesByModelMap.set(entry.modelName, {
+          modelId: String(entry.modelId),
+          modelName: entry.modelName,
+          totalSold: 0,
+          months: Object.fromEntries(months.map(month => [month.key, 0]))
+        });
+      }
+
+      const modelRow = salesByModelMap.get(entry.modelName);
+      modelRow.months[monthKey] = entry.soldUnits;
+      modelRow.totalSold += entry.soldUnits;
+      monthTotalsMap.set(monthKey, (monthTotalsMap.get(monthKey) || 0) + entry.soldUnits);
+    });
+
+    const salesRows = Array.from(salesByModelMap.values())
+      .sort((left, right) => right.totalSold - left.totalSold || left.modelName.localeCompare(right.modelName));
+
+    const currentMonthKey = getMonthKey(currentMonthStart);
+    const currentMonthTopModel = salesRows
+      .map((row: any) => ({ modelName: row.modelName, soldUnits: row.months[currentMonthKey] || 0 }))
+      .sort((left, right) => right.soldUnits - left.soldUnits || left.modelName.localeCompare(right.modelName))[0] || null;
+
+    const revenueByMonth = new Map<string, number>();
+    revenueSeriesRaw.forEach((entry: any) => {
+      const monthDate = new Date(entry.year, entry.month - 1, 1);
+      revenueByMonth.set(getMonthKey(monthDate), entry.revenue || 0);
+    });
+
+    const revenueSeries = months.map(month => ({
+      monthKey: month.key,
+      label: month.label,
+      revenue: revenueByMonth.get(month.key) || 0
+    }));
+
+    const soldUnitsMTD = currentMonthSalesAgg[0]?.soldUnits || 0;
+    const previousMonthSamePeriodUnits = previousMonthSalesAgg[0]?.soldUnits || 0;
+    const expectedUnitsByToday = Number(((MONTHLY_SALES_TARGET * currentDayOfMonth) / daysInCurrentMonth).toFixed(1));
+    const paceGap = Number((soldUnitsMTD - expectedUnitsByToday).toFixed(1));
+    const projectedMonthEndUnits = currentDayOfMonth > 0
+      ? Number(((soldUnitsMTD / currentDayOfMonth) * daysInCurrentMonth).toFixed(1))
+      : 0;
+
+    const currentMonthRevenue = revenueByMonth.get(currentMonthKey) || 0;
+    const previousMonthSamePeriodRevenue = await Bill.aggregate([
+      {
+        $match: {
+          billDate: { $gte: previousMonthStart, $lt: previousComparableEnd },
+          ...billMatch
+        }
+      },
+      {
+        $addFields: {
+          revenueAmount: {
+            $switch: {
+              branches: [
+                {
+                  case: {
+                    $and: [
+                      { $eq: ['$isAdvancePayment', true] },
+                      { $eq: [{ $ifNull: ['$finalBillId', null] }, null] },
+                      { $ne: ['$status', 'cancelled'] }
+                    ]
+                  },
+                  then: { $ifNull: ['$advanceAmount', 0] }
+                },
+                {
+                  case: {
+                    $and: [
+                      { $ne: ['$isAdvancePayment', true] },
+                      { $eq: ['$status', 'completed'] }
+                    ]
+                  },
+                  then: { $ifNull: ['$totalAmount', 0] }
+                }
+              ],
+              default: 0
+            }
+          }
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          revenue: { $sum: '$revenueAmount' }
+        }
+      }
+    ]);
+
+    const previousRevenueValue = previousMonthSamePeriodRevenue[0]?.revenue || 0;
+    const unitTrendPercent = previousMonthSamePeriodUnits > 0
+      ? (soldUnitsMTD - previousMonthSamePeriodUnits) / previousMonthSamePeriodUnits
+      : (soldUnitsMTD > 0 ? 1 : 0);
+    const revenueTrendPercent = previousRevenueValue > 0
+      ? (currentMonthRevenue - previousRevenueValue) / previousRevenueValue
+      : (currentMonthRevenue > 0 ? 1 : 0);
+
+    const stockPenaltyAlerts = agedStockRaw.map((entry: any) => ({
+      ...entry,
+      severity: entry.oldestAgeDays >= 150 ? 'critical' : entry.oldestAgeDays >= 120 ? 'high' : 'warning'
+    }));
+
+    res.status(200).json({
+      generatedAt: now,
+      monthlyPerformance: {
+        monthKey: currentMonthKey,
+        monthLabel: MONTH_LABEL_FORMATTER.format(currentMonthStart),
+        targetUnits: MONTHLY_SALES_TARGET,
+        soldUnitsMTD,
+        expectedUnitsByToday,
+        projectedMonthEndUnits,
+        paceGap,
+        paceStatus: getPaceStatus(paceGap),
+        remainingToTarget: Math.max(MONTHLY_SALES_TARGET - soldUnitsMTD, 0),
+        lastMonthSamePeriodUnits: previousMonthSamePeriodUnits,
+        unitTrendDirection: getTrendDirection(unitTrendPercent),
+        unitTrendPercent,
+        revenueMTD: currentMonthRevenue,
+        lastMonthSamePeriodRevenue: previousRevenueValue,
+        revenueTrendDirection: getTrendDirection(revenueTrendPercent),
+        revenueTrendPercent,
+        daysElapsed: currentDayOfMonth,
+        daysInMonth: daysInCurrentMonth
+      },
+      revenueSeries,
+      salesByModelPerMonth: {
+        months,
+        rows: salesRows,
+        totals: months.map(month => ({
+          monthKey: month.key,
+          soldUnits: monthTotalsMap.get(month.key) || 0
+        })),
+        currentMonthTopModel
+      },
+      stockPenaltyAlerts,
+      stockPenaltySummary: {
+        totalModels: stockPenaltyAlerts.length,
+        totalUnits: stockPenaltyAlerts.reduce((sum: number, entry: any) => sum + entry.agedUnits, 0),
+        totalValueAtRisk: stockPenaltyAlerts.reduce((sum: number, entry: any) => sum + entry.stockValueAtRisk, 0)
+      }
+    });
+  } catch (error) {
+    logger.error(`Error getting inventory report analytics: ${(error as Error).message}`);
+    next(new AppError(`Failed to get inventory report analytics: ${(error as Error).message}`, 500));
   }
 };
 

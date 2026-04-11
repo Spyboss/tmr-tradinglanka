@@ -44,6 +44,20 @@ export const getInventoryAnalytics = async () => {
 };
 
 /**
+ * Get focused analytics for the inventory report dashboard
+ * @returns {Promise} - Promise with inventory report analytics
+ */
+export const getInventoryReportAnalytics = async () => {
+  try {
+    const response = await apiClient.get('/inventory/report/analytics');
+    return response;
+  } catch (error) {
+    console.error('Error fetching inventory report analytics:', error);
+    throw error;
+  }
+};
+
+/**
  * Get available bikes for a specific model
  * @param {string} modelId - Bike model ID
  * @returns {Promise} - Promise with available bikes
@@ -138,6 +152,7 @@ export default {
   getInventory,
   getInventorySummary,
   getInventoryAnalytics,
+  getInventoryReportAnalytics,
   getAvailableBikesByModel,
   getInventoryById,
   addToInventory,

@@ -8,6 +8,7 @@ import {
   deleteInventory,
   getInventorySummary,
   getInventoryAnalytics,
+  getInventoryReportAnalytics,
   getAvailableBikesByModel,
   generateInventoryReportPDF
 } from '../controllers/bikeInventoryController.js';
@@ -38,6 +39,13 @@ router.get('/summary', getInventorySummary);
  * @access  Private
  */
 router.get('/analytics', getInventoryAnalytics);
+
+/**
+ * @route   GET /api/inventory/report/analytics
+ * @desc    Get focused analytics for the inventory report dashboard
+ * @access  Private
+ */
+router.get('/report/analytics', getInventoryReportAnalytics);
 
 /**
  * @route   GET /api/inventory/report/pdf
