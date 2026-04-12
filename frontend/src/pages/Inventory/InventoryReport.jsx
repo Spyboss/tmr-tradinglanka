@@ -139,10 +139,12 @@ const InventoryReport = () => {
     lines.push('');
 
     lines.push('3-Month Stock Penalty Alerts');
-    lines.push('Model,Aged Units,Oldest Age Days,Average Age Days,Value At Risk,Severity');
+    lines.push('Model,Chassis Numbers,Aged Units,Oldest Age Days,Average Age Days,Value At Risk,Severity');
     stockPenaltyAlerts.forEach(item => {
+      const chassisList = (item.chassisNumbers || []).join('; ');
       lines.push([
         item.modelName,
+        `"${chassisList}"`,
         item.agedUnits || 0,
         item.oldestAgeDays || 0,
         item.averageAgeDays || 0,
@@ -221,20 +223,33 @@ const InventoryReport = () => {
       title: 'Model',
       dataIndex: 'modelName',
       key: 'modelName',
+      width: 160,
       render: value => <Text strong>{value}</Text>
+    },
+    {
+      title: 'Chassis Numbers',
+      dataIndex: 'chassisNumbers',
+      key: 'chassisNumbers',
+      width: 220,
+      render: (value = []) => (
+        <Text type="secondary" className="text-xs">
+          {value.slice(0, 3).join(', ')}
+          {value.length > 3 && ` +${value.length - 3} more`}
+        </Text>
+      )
     },
     {
       title: 'Aged Units',
       dataIndex: 'agedUnits',
       key: 'agedUnits',
-      width: 110,
+      width: 100,
       align: 'right'
     },
     {
       title: 'Oldest Age',
       dataIndex: 'oldestAgeDays',
       key: 'oldestAgeDays',
-      width: 130,
+      width: 100,
       align: 'right',
       render: value => `${value} days`
     },
@@ -242,7 +257,7 @@ const InventoryReport = () => {
       title: 'Average Age',
       dataIndex: 'averageAgeDays',
       key: 'averageAgeDays',
-      width: 130,
+      width: 110,
       align: 'right',
       render: value => `${value} days`
     },
@@ -250,7 +265,7 @@ const InventoryReport = () => {
       title: 'Value At Risk',
       dataIndex: 'stockValueAtRisk',
       key: 'stockValueAtRisk',
-      width: 170,
+      width: 140,
       align: 'right',
       render: value => <Text strong>{formatCurrency(value)}</Text>
     },
@@ -258,7 +273,7 @@ const InventoryReport = () => {
       title: 'Severity',
       dataIndex: 'severity',
       key: 'severity',
-      width: 120,
+      width: 100,
       render: value => <Tag color={severityColor[value] || 'default'}>{String(value || '').toUpperCase()}</Tag>
     }
   ];
@@ -396,7 +411,7 @@ const InventoryReport = () => {
             dataSource={stockPenaltyAlerts.map(item => ({ ...item, key: item.modelId || item.modelName }))}
             pagination={false}
             size="small"
-            scroll={{ x: 860 }}
+            scroll={{ x: 950 }}
           />
         )}
       </Card>

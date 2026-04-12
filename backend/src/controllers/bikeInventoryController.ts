@@ -991,6 +991,21 @@ export const getInventoryReportAnalytics = async (req: AuthRequest, res: Respons
         },
         { $unwind: '$model' },
         {
+          $addFields: {
+            ageDays: {
+              $round: [
+                {
+                  $divide: [
+                    { $subtract: [now, '$dateAdded'] },
+                    86400000
+                  ]
+                },
+                0
+              ]
+            }
+          }
+        },
+        {
           $group: {
             _id: '$bikeModelId',
             modelName: { $first: '$model.name' },
@@ -1001,7 +1016,8 @@ export const getInventoryReportAnalytics = async (req: AuthRequest, res: Respons
               $avg: {
                 $subtract: [now, '$dateAdded']
               }
-            }
+            },
+            chassisNumbers: { $push: '$chassisNumber' }
           }
         },
         {
@@ -1036,7 +1052,8 @@ export const getInventoryReportAnalytics = async (req: AuthRequest, res: Respons
             oldestDateAdded: 1,
             oldestAgeDays: 1,
             averageAgeDays: 1,
-            stockValueAtRisk: 1
+            stockValueAtRisk: 1,
+            chassisNumbers: 1
           }
         },
         { $sort: { oldestAgeDays: -1, stockValueAtRisk: -1 } }
