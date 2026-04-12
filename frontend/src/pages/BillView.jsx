@@ -260,7 +260,7 @@ const BillView = () => {
 
       const payload = {
         ...values,
-        issueDate: values.issueDate ? values.issueDate.toISOString() : new Date().toISOString()
+        issueDate: values.issueDate ? values.issueDate.format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD')
       };
 
       await apiClient.put(`/bills/${id}/proforma`, payload);

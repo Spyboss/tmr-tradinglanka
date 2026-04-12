@@ -26,6 +26,30 @@ const toNumberOrUndefined = (value: unknown): number | undefined => {
   return Number.isFinite(parsed) ? parsed : undefined;
 };
 
+const parseIssueDate = (value: unknown): Date | null => {
+  if (!value) return null;
+
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? null : value;
+  }
+
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    const dateOnlyMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(trimmed);
+
+    if (dateOnlyMatch) {
+      const [, year, month, day] = dateOnlyMatch;
+      return new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)));
+    }
+
+    const parsed = new Date(trimmed);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+
+  const parsed = new Date(String(value));
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
 const ensureBillAccess = async (req: AuthRequest, res: Response, id: string) => {
   const bill = await Bill.findById(id);
   if (!bill) {
@@ -87,7 +111,7 @@ const normalizeProformaPayload = (input: any, fallback: any) => {
   const amountToBeLeased = providedAmount ?? Math.max(unitPrice - downPayment, 0);
 
   const issueDateRaw = input?.issueDate || fallback?.issueDate;
-  const issueDate = issueDateRaw ? new Date(issueDateRaw) : new Date();
+  const issueDate = parseIssueDate(issueDateRaw) ?? new Date();
 
   if (Number.isNaN(issueDate.getTime())) {
     throw new Error('Invalid issue date');

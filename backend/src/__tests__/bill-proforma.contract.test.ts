@@ -100,6 +100,38 @@ describe('Bill proforma routes', () => {
     expect(billDoc.proforma.amountToBeLeased).toBe(380000);
   });
 
+  it('preserves date-only issueDate values without timezone drift', async () => {
+    vi.spyOn(User, 'findById').mockResolvedValue({ _id: 'admin-id', role: 'admin' } as any);
+
+    const save = vi.fn(async () => true);
+    const billDoc: any = {
+      _id: billId,
+      owner: 'test-user-id',
+      status: 'completed',
+      billNumber: 'BILL-20260327-001',
+      billDate: new Date('2026-03-27T00:00:00.000Z'),
+      bikePrice: 480000,
+      downPayment: 100000,
+      save
+    };
+
+    vi.spyOn(Bill, 'findById').mockResolvedValue(billDoc);
+
+    const res = await request(app)
+      .put(`/api/bills/${billId}/proforma`)
+      .set('Authorization', 'Bearer test-token')
+      .send({
+        issueDate: '2026-03-19',
+        financeCompanyName: 'ABC Finance',
+        financeCompanyAddress: 'No 1, Main Street',
+        financeCompanyContact: '0712345678'
+      });
+
+    expect(res.status).toBe(200);
+    expect(save).toHaveBeenCalled();
+    expect(billDoc.proforma.issueDate.toISOString()).toBe('2026-03-19T00:00:00.000Z');
+  });
+
   it('generates proforma pdf when details are complete', async () => {
     vi.spyOn(User, 'findById').mockResolvedValue({ _id: 'admin-id', role: 'admin' } as any);
 
