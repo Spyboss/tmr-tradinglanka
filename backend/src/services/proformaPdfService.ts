@@ -2,6 +2,7 @@ import PDFDocument from 'pdfkit';
 import http from 'http';
 import https from 'https';
 import Branding from '../models/Branding.js';
+import { renderDocumentAttribution } from './pdfAttribution.js';
 
 type ProformaPayload = {
   type?: string;
@@ -448,6 +449,12 @@ const renderSignatureArea = (
       .fillColor('#6b7280')
       .text(dealerAddress, rightX + 10, y + 36, { width: lineWidth - 20, align: 'center' });
   }
+
+  renderDocumentAttribution(doc, {
+    left: params.left,
+    width: params.contentWidth,
+    y: doc.page.height - doc.page.margins.bottom - 12
+  });
 
 };
 

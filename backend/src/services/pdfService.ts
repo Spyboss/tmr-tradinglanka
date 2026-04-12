@@ -3,6 +3,7 @@ import { Readable } from 'stream';
 import Branding from '../models/Branding.js';
 import https from 'https';
 import http from 'http';
+import { getDocumentAttributionHeight, renderDocumentAttribution } from './pdfAttribution.js';
 
 type FooterMetrics = {
   left: number;
@@ -510,8 +511,13 @@ const getFooterMetrics = (doc: PDFKit.PDFDocument, branding?: any): FooterMetric
   const addressLine2Height = addressLine2Text
     ? doc.font('Helvetica').fontSize(9).heightOfString(addressLine2Text, { width, align: 'center' })
     : 0;
+  const attributionHeight = getDocumentAttributionHeight(doc, width);
 
-  const blockHeight = thankYouHeight + (footerNoteHeight ? lineGap + footerNoteHeight : 0) + (addressLine2Height ? lineGap + addressLine2Height : 0);
+  const blockHeight = thankYouHeight
+    + (footerNoteHeight ? lineGap + footerNoteHeight : 0)
+    + (addressLine2Height ? lineGap + addressLine2Height : 0)
+    + lineGap
+    + attributionHeight;
 
   return {
     left,
@@ -557,7 +563,16 @@ const generateFooter = (doc: PDFKit.PDFDocument, footerMetrics: FooterMetrics): 
       .fillColor('#6b7280')
       .fontSize(9)
       .text(footerMetrics.addressLine2Text, footerMetrics.left, currentY, { align: 'center', width: footerMetrics.width });
+
+    currentY += footerMetrics.addressLine2Height;
   }
+
+  currentY += footerMetrics.lineGap;
+  renderDocumentAttribution(doc, {
+    left: footerMetrics.left,
+    width: footerMetrics.width,
+    y: currentY
+  });
 };
 
 // Load branding document with safe defaults

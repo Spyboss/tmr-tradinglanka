@@ -3,6 +3,7 @@ import Branding from '../models/Branding.js';
 import { IQuotation } from '../models/Quotation.js';
 import http from 'http';
 import https from 'https';
+import { renderDocumentAttribution } from './pdfAttribution.js';
 
 /**
  * Utility function to wrap text properly within specified width
@@ -381,13 +382,18 @@ export const generateQuotationPDF = async (quotation: IQuotation): Promise<Buffe
       }
 
       // Footer with consistent spacing
-      const footerHeight = (sectionSpacing * 9) + 30;
+      const footerHeight = (sectionSpacing * 12) + 36;
       ensureSpace(footerHeight);
       yPos += (sectionSpacing * 8);
       doc.fontSize(10)
          .font('Helvetica')
          .text('Thank you for your business!', 50, yPos)
          .text('This is a computer-generated document.', 50, yPos + (sectionSpacing * 3));
+
+      renderDocumentAttribution(doc, {
+        left: 50,
+        width: 500
+      });
 
       // Company stamp area
       doc.fontSize(8)

@@ -1,5 +1,6 @@
 import PDFDocument from 'pdfkit';
 import Branding from '../models/Branding.js';
+import { getDocumentAttributionHeight, renderDocumentAttribution } from './pdfAttribution.js';
 
 interface BikeInventoryItem {
   _id: any;
@@ -368,7 +369,9 @@ const generateSignatureSection = (doc: PDFKit.PDFDocument, branding?: { addressL
   const bottomMargin = 50;
   const signatureBlockHeight = 70;
   const contactHeight = 16;
-  const requiredHeight = signatureBlockHeight + contactHeight + 10;
+  const attributionHeight = getDocumentAttributionHeight(doc, 515);
+  const attributionSpacing = 8;
+  const requiredHeight = signatureBlockHeight + contactHeight + attributionHeight + attributionSpacing + 10;
   const startY = doc.y + 10;
 
   if (startY + requiredHeight > pageHeight - bottomMargin) {
@@ -400,4 +403,10 @@ const generateSignatureSection = (doc: PDFKit.PDFDocument, branding?: { addressL
      .text(branding?.addressLine2 || 'For inquiries, contact:', 0, contactY, {
        align: 'center'
      });
+
+  renderDocumentAttribution(doc, {
+    left: 40,
+    width: 515,
+    y: contactY + attributionSpacing
+  });
 };
