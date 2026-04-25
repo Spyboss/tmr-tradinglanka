@@ -207,7 +207,7 @@ const BillList = () => {
 
   const handleStatusChange = async (billId, newStatus) => {
     try {
-      await apiClient.patch(`/bills/${billId}`, { status: newStatus })
+      await apiClient.patch(`/bills/${billId}/status`, { status: newStatus })
       toast.success(`Bill marked as ${newStatus}`);
       fetchBills();
     } catch (error) {

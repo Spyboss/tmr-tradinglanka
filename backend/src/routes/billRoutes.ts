@@ -473,6 +473,10 @@ router.delete('/:id', authenticate, async (req: AuthRequest, res: Response) => {
       return res.status(403).json({ error: 'You do not have permission to delete this bill' });
     }
 
+    if (!isAdmin && (bill.status || '').toLowerCase() !== 'cancelled') {
+      return res.status(400).json({ error: 'Cancel this bill before deleting it' });
+    }
+
     await Bill.findByIdAndDelete(req.params.id);
     res.status(200).json({ message: 'Bill deleted successfully' });
   } catch (error) {
