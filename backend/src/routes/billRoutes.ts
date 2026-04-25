@@ -299,11 +299,16 @@ router.post('/', authenticate, createBill);
 
 // Update bill - Protected route with ownership check
 router.put('/:id', authenticate, async (req: AuthRequest, res: Response) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
     // First check ownership
-    const bill = await Bill.findById(req.params.id);
+    const bill = await Bill.findById(req.params.id).session(session);
 
     if (!bill) {
+      await session.abortTransaction();
+      session.endSession();
       return res.status(404).json({ error: 'Bill not found' });
     }
 
@@ -313,6 +318,8 @@ router.put('/:id', authenticate, async (req: AuthRequest, res: Response) => {
     const isOwner = bill.owner && bill.owner.toString() === req.user?.id;
 
     if (!isAdmin && !isOwner) {
+      await session.abortTransaction();
+      session.endSession();
       return res.status(403).json({ error: 'You do not have permission to update this bill' });
     }
 
@@ -331,12 +338,16 @@ router.put('/:id', authenticate, async (req: AuthRequest, res: Response) => {
       : bill.customerPhone;
 
     if (willBeAdvance && !nextPhone) {
+      await session.abortTransaction();
+      session.endSession();
       return res.status(400).json({
         error: 'Customer contact number is required for advance payments (format: 07XXXXXXXX)'
       });
     }
 
     if (nextPhone && !SRI_LANKA_MOBILE_REGEX.test(nextPhone)) {
+      await session.abortTransaction();
+      session.endSession();
       return res.status(400).json({
         error: 'Customer contact number must be in 07XXXXXXXX format'
       });
@@ -346,14 +357,109 @@ router.put('/:id', authenticate, async (req: AuthRequest, res: Response) => {
       req.body.customerPhone = nextPhone;
     }
 
+    const oldInventoryItemId = bill.inventoryItemId ? String(bill.inventoryItemId) : null;
+    const newInventoryItemId = req.body.inventoryItemId
+      ? (mongoose.Types.ObjectId.isValid(req.body.inventoryItemId) ? req.body.inventoryItemId : null)
+      : null;
+
+    let releasedOldInventory: any = null;
+    let claimedNewInventory: any = null;
+
+    if (oldInventoryItemId && (!newInventoryItemId || newInventoryItemId !== oldInventoryItemId)) {
+      releasedOldInventory = await BikeInventory.findOneAndUpdate(
+        {
+          _id: oldInventoryItemId,
+          billId: bill._id,
+          isDeleted: { $ne: true }
+        },
+        {
+          status: BikeStatus.AVAILABLE,
+          dateSold: null,
+          billId: null
+        },
+        { new: true, session }
+      );
+    }
+
+    if (newInventoryItemId && newInventoryItemId !== oldInventoryItemId) {
+      const isCompleted = (req.body.status || bill.status || '').toLowerCase() === 'completed';
+      claimedNewInventory = await BikeInventory.findOneAndUpdate(
+        {
+          _id: newInventoryItemId,
+          status: BikeStatus.AVAILABLE,
+          isDeleted: { $ne: true }
+        },
+        {
+          status: isCompleted ? BikeStatus.SOLD : BikeStatus.RESERVED,
+          dateSold: isCompleted ? new Date() : null,
+          billId: bill._id
+        },
+        { new: true, session }
+      );
+
+      if (!claimedNewInventory) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(400).json({ error: 'Selected inventory item is not available' });
+      }
+    }
+
+    if (req.user?.id && mongoose.Types.ObjectId.isValid(req.user.id)) {
+      await UserActivity.create([{
+        userId: new mongoose.Types.ObjectId(req.user.id),
+        type: ActivityType.BILL_UPDATE,
+        description: releasedOldInventory && claimedNewInventory
+          ? `Updated bill ${bill.billNumber} and swapped inventory items`
+          : releasedOldInventory
+            ? `Updated bill ${bill.billNumber} and released inventory`
+            : claimedNewInventory
+              ? `Updated bill ${bill.billNumber} and claimed inventory`
+              : `Updated bill ${bill.billNumber}`,
+        metadata: {
+          resourceId: String(bill._id),
+          resourceType: 'bill',
+          oldValues: {
+            billNumber: bill.billNumber,
+            status: bill.status,
+            bikeModel: bill.bikeModel,
+            motorNumber: bill.motorNumber,
+            chassisNumber: bill.chassisNumber,
+            inventoryItemId: oldInventoryItemId
+          },
+          newValues: {
+            ...Object.fromEntries(
+              Object.entries(req.body).filter(([k]) => !['owner'].includes(k))
+            ),
+            inventoryItemId: newInventoryItemId || oldInventoryItemId,
+            inventoryReleased: Boolean(releasedOldInventory),
+            claimedInventoryId: claimedNewInventory?._id ? String(claimedNewInventory._id) : null
+          },
+          ipAddress: req.ip,
+          userAgent: req.get('User-Agent')
+        }
+      }], { session });
+    }
+
     Object.entries(req.body).forEach(([key, value]) => {
       (bill as any).set(key, value);
     });
 
-    const updatedBill = await bill.save();
+    const updatedBill = await bill.save({ session });
 
-    res.status(200).json(updatedBill);
+    await session.commitTransaction();
+    session.endSession();
+
+    res.locals.activityLogged = true;
+    res.status(200).json({
+      ...updatedBill.toObject ? updatedBill.toObject() : updatedBill,
+      previousInventoryReleased: Boolean(releasedOldInventory),
+      previousInventoryItemId: releasedOldInventory?._id || null,
+      newInventoryClaimed: Boolean(claimedNewInventory),
+      newInventoryItemId: claimedNewInventory?._id || null
+    });
   } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
     res.status(400).json({ error: (error as Error).message });
   }
 });
