@@ -1,10 +1,10 @@
 import request from 'supertest'
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import mongoose from 'mongoose'
-import app from '../server'
-import Bill from '../models/Bill'
-import BikeInventory from '../models/BikeInventory'
-import User from '../models/User'
+import app from '../server.js'
+import Bill from '../models/Bill.js'
+import BikeInventory from '../models/BikeInventory.js'
+import User from '../models/User.js'
 
 vi.mock('../auth/jwt.strategy.js', () => ({
   verifyToken: vi.fn(async () => ({ sub: '6566f1f2a1b2c3d4e5f6a7b8' }))

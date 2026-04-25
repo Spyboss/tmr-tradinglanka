@@ -1,10 +1,10 @@
 import request from 'supertest';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import app from '../server';
-import Branding from '../models/Branding';
-import User from '../models/User';
+import app from '../server.js';
+import Branding from '../models/Branding.js';
+import User from '../models/User.js';
 import * as jwtStrategy from '../auth/jwt.strategy.js';
-import { generatePDF } from '../services/pdfService';
+import { generatePDF } from '../services/pdfService.js';
 
 // Mock JWT verification
 vi.mock('../auth/jwt.strategy.js', () => ({
@@ -31,10 +31,10 @@ describe('Branding Isolation Security Tests', () => {
       vi.spyOn(User, 'findById').mockResolvedValue({ _id: adminId, role: 'admin' } as any);
       
       const systemBranding = { dealerName: 'System Default', userId: null };
-      vi.spyOn(Branding, 'findOne').mockImplementation((filter: any) => {
+      vi.spyOn(Branding, 'findOne').mockImplementation(((filter: any) => {
         if (filter.userId === null) return Promise.resolve(systemBranding as any);
         return Promise.resolve(null);
-      });
+      }) as any);
 
       const res = await request(app)
         .get('/api/branding')
@@ -49,10 +49,10 @@ describe('Branding Isolation Security Tests', () => {
       vi.spyOn(User, 'findById').mockResolvedValue({ _id: userId1, role: 'user' } as any);
       
       const userBranding = { dealerName: 'User 1 Store', userId: userId1 };
-      vi.spyOn(Branding, 'findOne').mockImplementation((filter: any) => {
+      vi.spyOn(Branding, 'findOne').mockImplementation(((filter: any) => {
         if (filter.userId === userId1) return Promise.resolve(userBranding as any);
         return Promise.resolve(null);
-      });
+      }) as any);
 
       const res = await request(app)
         .get('/api/branding')
@@ -67,10 +67,10 @@ describe('Branding Isolation Security Tests', () => {
       vi.spyOn(User, 'findById').mockResolvedValue({ _id: userId2, role: 'user' } as any);
       
       const systemBranding = { dealerName: 'System Default', userId: null };
-      vi.spyOn(Branding, 'findOne').mockImplementation((filter: any) => {
+      vi.spyOn(Branding, 'findOne').mockImplementation(((filter: any) => {
         if (filter.userId === null) return Promise.resolve(systemBranding as any);
         return Promise.resolve(null);
-      });
+      }) as any);
 
       const res = await request(app)
         .get('/api/branding')
@@ -134,10 +134,10 @@ describe('Branding Isolation Security Tests', () => {
       const bill = { owner: userId1 };
       const userBranding = { dealerName: 'User 1 Store', userId: userId1 };
       
-      const findOneSpy = vi.spyOn(Branding, 'findOne').mockImplementation((filter: any) => {
+      const findOneSpy = vi.spyOn(Branding, 'findOne').mockImplementation(((filter: any) => {
         if (filter.userId === userId1) return Promise.resolve(userBranding as any);
         return Promise.resolve(null);
-      });
+      }) as any);
 
       await generatePDF(bill);
 
@@ -149,10 +149,10 @@ describe('Branding Isolation Security Tests', () => {
       const bill = { owner: userId2 };
       const systemBranding = { dealerName: 'System Default', userId: null };
       
-      vi.spyOn(Branding, 'findOne').mockImplementation((filter: any) => {
+      vi.spyOn(Branding, 'findOne').mockImplementation(((filter: any) => {
         if (filter.userId === null) return Promise.resolve(systemBranding as any);
         return Promise.resolve(null);
-      });
+      }) as any);
 
       await generatePDF(bill);
 

@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import Branding from '../models/Branding';
+import Branding from '../models/Branding.js';
 import dotenv from 'dotenv';
 
 dotenv.config();

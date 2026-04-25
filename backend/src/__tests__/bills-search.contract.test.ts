@@ -1,8 +1,8 @@
 import request from 'supertest'
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import app from '../server'
-import Bill from '../models/Bill'
-import User from '../models/User'
+import app from '../server.js'
+import Bill from '../models/Bill.js'
+import User from '../models/User.js'
 
 vi.mock('../auth/jwt.strategy.js', () => ({
   verifyToken: vi.fn(async () => ({ sub: 'test-user-id' }))
@@ -22,14 +22,14 @@ describe('GET /api/bills filters & pagination', () => {
       { _id: 'b', customerName: 'Bob', billType: 'leasing', totalAmount: 2000 }
     ]
 
-    vi.spyOn(Bill, 'find').mockImplementation((filter: any) => {
+    vi.spyOn(Bill, 'find').mockImplementation(((filter: any) => {
       captured.push(filter)
       return {
         sort: vi.fn().mockReturnThis(),
         skip: vi.fn().mockReturnThis(),
         limit: vi.fn().mockResolvedValue(fakeBills)
       } as any
-    })
+    }) as any)
     vi.spyOn(Bill, 'countDocuments').mockResolvedValue(42 as any)
 
     const res = await request(app)
@@ -66,14 +66,14 @@ describe('GET /api/bills filters & pagination', () => {
     vi.spyOn(User, 'findById').mockResolvedValue({ _id: '6566f1f2a1b2c3d4e5f6a7b8', role: 'user' } as any)
 
     let capturedFilter: any = null
-    vi.spyOn(Bill, 'find').mockImplementation((filter: any) => {
+    vi.spyOn(Bill, 'find').mockImplementation(((filter: any) => {
       capturedFilter = filter
       return {
         sort: vi.fn().mockReturnThis(),
         skip: vi.fn().mockReturnThis(),
         limit: vi.fn().mockResolvedValue([])
       } as any
-    })
+    }) as any)
     vi.spyOn(Bill, 'countDocuments').mockResolvedValue(0 as any)
 
     const res = await request(app)
@@ -88,14 +88,14 @@ describe('GET /api/bills filters & pagination', () => {
     vi.spyOn(User, 'findById').mockResolvedValue({ _id: '6566f1f2a1b2c3d4e5f6a7b8', role: 'admin' } as any)
 
     let capturedFilter: any = null
-    vi.spyOn(Bill, 'find').mockImplementation((filter: any) => {
+    vi.spyOn(Bill, 'find').mockImplementation(((filter: any) => {
       capturedFilter = filter
       return {
         sort: vi.fn().mockReturnThis(),
         skip: vi.fn().mockReturnThis(),
         limit: vi.fn().mockResolvedValue([])
       } as any
-    })
+    }) as any)
     vi.spyOn(Bill, 'countDocuments').mockResolvedValue(0 as any)
 
     const res = await request(app)
@@ -118,14 +118,14 @@ describe('GET /api/bills/suggestions', () => {
     vi.spyOn(User, 'findById').mockResolvedValue({ _id: '6566f1f2a1b2c3d4e5f6a7b8', role: 'admin' } as any)
 
     const pipelines: any[] = []
-    vi.spyOn(Bill, 'aggregate').mockImplementation(async (pipeline: any) => {
+    vi.spyOn(Bill, 'aggregate').mockImplementation((async (pipeline: any) => {
       pipelines.push(pipeline)
       const match = pipeline[0]?.$match || {}
       if (match.customerName) return [{ _id: 'Alice' }, { _id: 'Bob' }]
       if (match.billNumber) return [{ _id: 'BILL-001' }]
       if (match.bikeModel) return [{ _id: 'X01' }, { _id: 'X02' }]
       return []
-    })
+    }) as any)
 
     const res = await request(app)
       .get('/api/bills/suggestions')
@@ -143,10 +143,10 @@ describe('GET /api/bills/suggestions', () => {
     vi.spyOn(User, 'findById').mockResolvedValue({ _id: '6566f1f2a1b2c3d4e5f6a7b8', role: 'user' } as any)
 
     let ownerMatched = false
-    vi.spyOn(Bill, 'aggregate').mockImplementation(async (pipeline: any) => {
+    vi.spyOn(Bill, 'aggregate').mockImplementation((async (pipeline: any) => {
       if (pipeline[0]?.$match?.owner === 'test-user-id') ownerMatched = true
       return [{ _id: 'Any' }]
-    })
+    }) as any)
 
     const res = await request(app)
       .get('/api/bills/suggestions')

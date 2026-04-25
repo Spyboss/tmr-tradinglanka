@@ -1,8 +1,8 @@
 import request from 'supertest'
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import app from '../server'
-import Bill from '../models/Bill'
-import User from '../models/User'
+import app from '../server.js'
+import Bill from '../models/Bill.js'
+import User from '../models/User.js'
 
 // Mock JWT verification to bypass authentication
 vi.mock('../auth/jwt.strategy.js', () => ({

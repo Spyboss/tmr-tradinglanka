@@ -24,7 +24,7 @@ export const activityLogger = (req: AuthRequest, res: Response, next: NextFuncti
   
   res.json = function(body: any) {
     // Only log on successful responses (2xx status codes)
-    if (res.statusCode >= 200 && res.statusCode < 300) {
+    if (res.statusCode >= 200 && res.statusCode < 300 && !res.locals.activityLogged) {
       // Determine activity type and description based on route and method
       const activityInfo = getActivityInfo(req);
       

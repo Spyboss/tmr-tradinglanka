@@ -3,6 +3,7 @@ import { ObjectId } from 'mongodb';
 import mongoose from 'mongoose';
 import Bill from '../models/Bill.js';
 import BikeInventory, { BikeStatus } from '../models/BikeInventory.js';
+import UserActivity, { ActivityType } from '../models/UserActivity.js';
 import { connectToDatabase } from '../config/database.js';
 import { generatePDF } from '../services/pdfService.js';
 import { generateProformaPDF } from '../services/proformaPdfService.js';
@@ -424,7 +425,7 @@ router.post('/:id/close-sale', authenticate, async (req: AuthRequest, res: Respo
     await finalBill.save({ session });
 
     bill.status = 'converted';
-    bill.finalBillId = finalBill._id;
+    bill.finalBillId = finalBill._id as mongoose.Types.ObjectId;
     await bill.save({ session });
 
     if (bill.inventoryItemId) {
@@ -456,11 +457,17 @@ router.post('/:id/close-sale', authenticate, async (req: AuthRequest, res: Respo
 
 // Delete bill - Protected route with ownership check
 router.delete('/:id', authenticate, async (req: AuthRequest, res: Response) => {
+  const session = await mongoose.startSession();
+
   try {
+    session.startTransaction();
+
     // First check ownership
-    const bill = await Bill.findById(req.params.id);
+    const bill = await Bill.findById(req.params.id).session(session);
 
     if (!bill) {
+      await session.abortTransaction();
+      session.endSession();
       return res.status(404).json({ error: 'Bill not found' });
     }
 
@@ -470,16 +477,80 @@ router.delete('/:id', authenticate, async (req: AuthRequest, res: Response) => {
     const isOwner = bill.owner && bill.owner.toString() === req.user?.id;
 
     if (!isAdmin && !isOwner) {
+      await session.abortTransaction();
+      session.endSession();
       return res.status(403).json({ error: 'You do not have permission to delete this bill' });
     }
 
     if (!isAdmin && (bill.status || '').toLowerCase() !== 'cancelled') {
+      await session.abortTransaction();
+      session.endSession();
       return res.status(400).json({ error: 'Cancel this bill before deleting it' });
     }
 
-    await Bill.findByIdAndDelete(req.params.id);
-    res.status(200).json({ message: 'Bill deleted successfully' });
+    let releasedInventoryItem: any = null;
+
+    if (bill.inventoryItemId) {
+      releasedInventoryItem = await BikeInventory.findOneAndUpdate(
+        {
+          _id: bill.inventoryItemId,
+          billId: bill._id,
+          isDeleted: { $ne: true }
+        },
+        {
+          status: BikeStatus.AVAILABLE,
+          dateSold: null,
+          billId: null
+        },
+        { new: true, session }
+      );
+    }
+
+    if (req.user?.id && mongoose.Types.ObjectId.isValid(req.user.id)) {
+      await UserActivity.create([{
+        userId: new mongoose.Types.ObjectId(req.user.id),
+        type: ActivityType.BILL_DELETE,
+        description: releasedInventoryItem
+          ? `Deleted bill ${bill.billNumber || bill._id} and released linked inventory item`
+          : `Deleted bill ${bill.billNumber || bill._id}`,
+        metadata: {
+          resourceId: String(bill._id),
+          resourceType: 'bill',
+          oldValues: {
+            billNumber: bill.billNumber,
+            status: bill.status,
+            customerName: bill.customerName,
+            bikeModel: bill.bikeModel,
+            motorNumber: bill.motorNumber,
+            chassisNumber: bill.chassisNumber,
+            inventoryItemId: bill.inventoryItemId ? String(bill.inventoryItemId) : null
+          },
+          newValues: {
+            billDeleted: true,
+            inventoryReleased: Boolean(releasedInventoryItem),
+            releasedInventoryItemId: releasedInventoryItem?._id ? String(releasedInventoryItem._id) : null,
+            releasedInventoryStatus: releasedInventoryItem?.status || null
+          },
+          ipAddress: req.ip,
+          userAgent: req.get('User-Agent')
+        }
+      }], { session });
+    }
+
+    await Bill.findByIdAndDelete(req.params.id, { session });
+
+    await session.commitTransaction();
+    session.endSession();
+
+    res.locals.activityLogged = true;
+    res.status(200).json({
+      message: 'Bill deleted successfully',
+      inventoryReleased: Boolean(releasedInventoryItem),
+      releasedInventoryItemId: releasedInventoryItem?._id || null
+    });
   } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
     res.status(500).json({ error: (error as Error).message });
   }
 });
