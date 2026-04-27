@@ -115,6 +115,10 @@ EmailVerificationStatus (emailverificationstatuses)
 - **User 1 — N Bill**: `owner` ensures non-admins only see their data.
 - **Bill 1 — 0..1 BikeInventory**: `inventoryItemId` links back to the physical bike if tracked.
 - **BikeModel 1 — N BikeInventory**: inventory entries reference models for price/type metadata.
+- **Bill ↔ BikeInventory**: When a bill is updated or deleted, inventory changes are handled transactionally:
+  - Bill update with new `inventoryItemId` releases the old inventory back to available and claims the new one
+  - Bill delete restores linked inventory to available status
+  - The `inventoryItemId` field tracks the bidirectional relationship
 - **Bill 1 — 0..N Quotation**: `referenceBillId` allows quotations to clone customer details.
 - **User 1 — N Quotation**: `owner` guards access similar to bills.
 - **User 1 — 0..1 EmailVerificationStatus**: toggles verification enforcement.

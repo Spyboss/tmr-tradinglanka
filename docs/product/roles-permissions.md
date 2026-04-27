@@ -11,7 +11,7 @@ Two primary roles exist today: **Admin** and **User**. Deleted accounts are pseu
 | Update profile/password | ✅ | ✅ |
 | Manage branding | ✅ | ❌ |
 | Manage bike models | ✅ (CRUD) | ❌ |
-| Manage bills | ✅ (all) | ✅ (own records only) |
+| Manage bills | ✅ (all) | ✅ (own records only, can only delete cancelled bills) |
 | Generate bill PDFs | ✅ | ✅ (own records only) |
 | Manage inventory | ✅ (full access) | ✅ (entries created by user) |
 | Delete inventory entries | ✅ (soft-delete, audited; allowed for sold items) | ❌ |

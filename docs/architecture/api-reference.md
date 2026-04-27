@@ -42,10 +42,13 @@ All endpoints are prefixed with `/api`. JSON responses follow a consistent shape
 | Method | Path | Auth | Description |
 | --- | --- | --- | --- |
 | GET | `/api/bills` | Authenticated | Paginated list. Non-admins filtered by `owner`. Supports `status`, `search`, `page`, `limit`. |
+| GET | `/api/bills/suggestions` | Authenticated | Search suggestions for customer names, bill numbers, and bike models. Query param `q` for search term. |
 | GET | `/api/bills/:id` | Authenticated | Fetch a bill by ID. Ownership enforced. |
 | POST | `/api/bills` | Authenticated | Create bill. Auto-generates bill number, encrypts NIC/address, links inventory when provided. |
-| PUT | `/api/bills/:id` | Authenticated | Update bill fields. Prevents owner reassignment. |
-| DELETE | `/api/bills/:id` | Authenticated | Delete bill. Admin bypass. |
+| PUT | `/api/bills/:id` | Authenticated | Update bill fields. Handles inventory item changes transactionally - releases old inventory and claims new inventory when changed. Prevents owner reassignment. |
+| DELETE | `/api/bills/:id` | Authenticated | Delete bill. Non-admins can only delete bills with `status: cancelled`. Runs in MongoDB transaction - releases linked inventory back to available status. Requires `res.locals.activityLogged = true` to prevent duplicate audit logging when route handles its own activity. |
+| PATCH | `/api/bills/:id/status` | Authenticated | Update bill status. Handles inventory status changes - marks inventory as sold when completing, releases to available when cancelling. Ownership enforced. |
+| POST | `/api/bills/:id/close-sale` | Authenticated | Convert an advance bill to a final sale. Creates a new completed bill with calculated amounts, marks original as converted, and updates linked inventory status to sold. Only for advance bills that haven't been converted yet. |
 | GET | `/api/bills/:id/pdf` | Authenticated | Download branded PDF of bill. |
 | GET | `/api/bills/:id/proforma` | Authenticated | Load bill-linked proforma payload (defaults + saved values). |
 | PUT | `/api/bills/:id/proforma` | Authenticated | Save proforma details for a completed bill. |
@@ -56,6 +59,23 @@ All endpoints are prefixed with `/api`. JSON responses follow a consistent shape
 
 > Contract note
 > Bill JSON uses camelCase keys (e.g., `bikeModel`, `bikePrice`, `billType`, `totalAmount`). Legacy snake_case keys are not accepted for updates.
+
+**Bill Update Response**
+
+When updating a bill that involves inventory changes, the response includes additional fields:
+
+```json
+{
+  "previousInventoryReleased": true,
+  "previousInventoryItemId": "...",
+  "newInventoryClaimed": true,
+  "newInventoryItemId": "..."
+}
+```
+
+- `previousInventoryReleased`: Set to `true` if the previously linked inventory item was released back to available status.
+- `newInventoryClaimed`: Set to `true` if a new inventory item was claimed (marked as sold for completed bills, or reserved for advance bills).
+- Non-admins can only delete bills where `status === 'cancelled'`.
 
 **Bill Payload Snippet**
 
@@ -97,7 +117,8 @@ All endpoints are prefixed with `/api`. JSON responses follow a consistent shape
 | GET | `/api/inventory/summary` | Authenticated | Aggregated counts by model and status. |
 | GET | `/api/inventory/analytics` | Authenticated | Extended statistics for dashboards (turnover, stock ageing). |
 | GET | `/api/inventory/available/:modelId` | Authenticated | Return available bikes for a model. |
-| GET | `/api/inventory/report/pdf` | Authenticated | Download inventory report PDF. |
+| GET | `/api/inventory/report/pdf` | Authenticated | Download inventory report PDF. Accepts `sortMode` query param (`date` or `model`). |
+| GET | `/api/inventory/report/analytics` | Authenticated | Enhanced analytics for the inventory report dashboard. Returns monthly performance metrics, sales pace tracking, revenue series, sales by model per month, and 3-Month Stock Penalty Alerts including chassis numbers for aged stock. |
 
 ## Quotations & Invoices
 
@@ -147,6 +168,7 @@ All endpoints are prefixed with `/api`. JSON responses follow a consistent shape
 | Method | Path | Auth | Description |
 | --- | --- | --- | --- |
 | GET | `/api/health` | Public | Liveness probe returning MongoDB and Redis status. |
+| GET | `/api/health/details` | Public (dev) / Authenticated (prod) | Detailed health with build info, environment, and system metrics. |
 | GET | `/api/health/metrics` | Authenticated (optional) | Prometheus-style metrics when enabled. |
 
 ## Error Handling

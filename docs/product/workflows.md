@@ -26,6 +26,50 @@ MongoDB Bill document persisted
 PDF button → GET /api/bills/:id/pdf (download invoice)
 ```
 
+## Bill Edit Flow (with Inventory Changes)
+
+```
+Sales Executive
+    │
+    │ 1. Navigate to existing bill → Edit
+    ▼
+Bill Edit Form (frontend/src/pages/BillEdit.jsx)
+    │  - Modify any bill fields
+    │  - Change linked inventory item (optional)
+    ▼
+PUT /api/bills/:id (authenticate)
+    │  - Runs in MongoDB transaction
+    │  - If inventory changed: releases old item to available, claims new item
+    │  - Records detailed audit with old/new values
+    ▼
+Bill updated, inventory statuses adjusted
+    │
+    │ Response includes: previousInventoryReleased, newInventoryClaimed
+    ▼
+Bill list refreshes with updated entry
+```
+
+## Advance to Final Sale Flow
+
+```
+Sales Executive
+    │
+    │ 1. Navigate to an advance bill → "Convert to Sale"
+    ▼
+POST /api/bills/:id/close-sale (authenticate)
+    │  - Validates bill is advance payment type
+    │  - Creates new completed bill with calculated amounts
+    │  - Marks original advance bill as converted
+    │  - Updates linked inventory to sold status
+    ▼
+Two bill records persisted
+    │
+    │ Original advance bill status = "converted"
+    │ New final bill status = "completed"
+    ▼
+Both PDFs available for download
+```
+
 ## Inventory Intake Flow
 
 ```
