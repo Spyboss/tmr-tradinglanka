@@ -146,11 +146,18 @@ curl -X POST http://localhost:8080/api/auth/create-admin \
 
 ## Testing
 
+Run pre-deploy checks before pushing to main:
+
 ```bash
-cd backend
-npm run lint
-npm run test
+# Run all checks (backend lint + typecheck + test + frontend build)
+npm run check
+
+# Or run individually
+npm run check:backend  # Lint, TypeScript check, and tests
+npm run check:frontend # Frontend build
 ```
+
+If all checks pass, it's safe to push. Railway and Cloudflare will auto-deploy.
 
 Frontend automated tests are on the roadmap; manual QA covers core journeys today.
 
