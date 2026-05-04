@@ -164,16 +164,30 @@ export const createBill = async (req: AuthRequest, res: Response, next: NextFunc
     const savedBill = await newBill.save({ session });
     
     // Update inventory item if provided
-    if (billData.inventoryItemId && savedBill.status === 'completed') {
-      await BikeInventory.findByIdAndUpdate(
-        billData.inventoryItemId,
-        {
-          status: BikeStatus.SOLD,
-          dateSold: new Date(),
-          billId: savedBill._id
-        },
-        { session }
-      );
+    if (billData.inventoryItemId) {
+      if (billData.isAdvancePayment) {
+        // Mark as reserved for advance payments
+        await BikeInventory.findByIdAndUpdate(
+          billData.inventoryItemId,
+          {
+            status: BikeStatus.RESERVED,
+            dateSold: null,
+            billId: savedBill._id
+          },
+          { session }
+        );
+      } else if (savedBill.status === 'completed') {
+        // Mark as sold for completed bills
+        await BikeInventory.findByIdAndUpdate(
+          billData.inventoryItemId,
+          {
+            status: BikeStatus.SOLD,
+            dateSold: new Date(),
+            billId: savedBill._id
+          },
+          { session }
+        );
+      }
     }
     
     // Commit the transaction
@@ -238,7 +252,7 @@ export const updateBillStatus = async (req: AuthRequest, res: Response, next: Ne
     // Handle inventory if bill has an inventory item
     if (bill.inventoryItemId) {
       if (status === 'completed') {
-        // Mark inventory item as sold
+        // Mark inventory item as sold (handles both reserved->sold and available->sold)
         await BikeInventory.findByIdAndUpdate(
           bill.inventoryItemId,
           {
@@ -248,8 +262,8 @@ export const updateBillStatus = async (req: AuthRequest, res: Response, next: Ne
           },
           { session }
         );
-      } else if (status === 'cancelled') {
-        // Return inventory item to available
+      } else if (status === 'cancelled' || status === 'pending') {
+        // Return inventory item to available (release reservation or sale)
         await BikeInventory.findByIdAndUpdate(
           bill.inventoryItemId,
           {
