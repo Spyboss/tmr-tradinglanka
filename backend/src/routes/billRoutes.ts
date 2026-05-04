@@ -210,7 +210,11 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
         { customerName: { $in: regexes } },
         { customerNIC: { $in: regexes } },
         { billNumber: { $in: regexes } },
-        { bikeModel: { $in: regexes } }
+        { bikeModel: { $in: regexes } },
+        { customerPhone: { $in: regexes } },
+        { customerAddress: { $in: regexes } },
+        { chassisNumber: { $in: regexes } },
+        { motorNumber: { $in: regexes } }
       ];
     }
 

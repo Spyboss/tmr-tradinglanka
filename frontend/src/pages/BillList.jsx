@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import apiClient from '../config/apiClient'
-import { Table, Tag, Button, Space, Popconfirm, message, Spin, Input, Badge, Select, Skeleton, Card, DatePicker, InputNumber, AutoComplete } from 'antd'
+import { Table, Tag, Button, Space, Popconfirm, message, Spin, Input, Badge, Select, Skeleton, Card, DatePicker, InputNumber } from 'antd'
 import { PlusOutlined, SearchOutlined, DownloadOutlined, EyeOutlined, EditOutlined, DeleteOutlined, FileExcelOutlined } from '@ant-design/icons'
 
 const BillList = () => {
@@ -10,9 +10,9 @@ const BillList = () => {
   const [bills, setBills] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchText, setSearchText] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
   const [pagination, setPagination] = useState({ current: 1, pageSize: 20, total: 0 })
   const [filters, setFilters] = useState({ status: '', billType: '', dateRange: [], minAmount: null, maxAmount: null })
-  const [suggestions, setSuggestions] = useState({ options: [] })
   const [bookmarks, setBookmarks] = useState(() => {
     try { return JSON.parse(localStorage.getItem('bill_bookmarks') || '[]') } catch { return [] }
   })
@@ -20,16 +20,25 @@ const BillList = () => {
     try { return JSON.parse(localStorage.getItem('bill_view_history') || '[]') } catch { return [] }
   })
 
+  const debounceSearch = useCallback((value) => {
+    const timer = setTimeout(() => setDebouncedSearch(value), 500)
+    return () => clearTimeout(timer)
+  }, [])
+
   useEffect(() => {
-    // Reset to first page when filters or search text changes
+    const cleanup = debounceSearch(searchText)
+    return cleanup
+  }, [searchText, debounceSearch])
+
+  useEffect(() => {
     if (pagination.current !== 1) {
       setPagination(prev => ({ ...prev, current: 1 }));
     }
-  }, [filters, searchText]);
+  }, [filters, debouncedSearch]);
 
   useEffect(() => {
     fetchBills()
-  }, [pagination.current, pagination.pageSize, filters, searchText])
+  }, [pagination.current, pagination.pageSize, filters, debouncedSearch])
 
   const fetchBills = async () => {
     try {
@@ -43,7 +52,7 @@ const BillList = () => {
         endDate: filters.dateRange?.[1]?.toISOString?.(),
         minAmount: filters.minAmount ?? undefined,
         maxAmount: filters.maxAmount ?? undefined,
-        search: searchText || undefined
+        search: debouncedSearch || undefined
       }
       const response = await apiClient.get('/bills', { params })
 
@@ -98,17 +107,8 @@ const BillList = () => {
     setPagination({ current: page, pageSize, total: pagination.total })
   }
 
-  const handleSuggest = async (value) => {
-    try {
-      setSearchText(value)
-      if (!value) { setSuggestions({ options: [] }); return }
-      const resp = await apiClient.get('/bills/suggestions', { params: { q: value } })
-      const opts = []
-      ;(resp.data?.customers || []).forEach(v => opts.push({ value: v }))
-      ;(resp.data?.billNumbers || []).forEach(v => opts.push({ value: v }))
-      ;(resp.data?.models || []).forEach(v => opts.push({ value: v }))
-      setSuggestions({ options: opts })
-    } catch {}
+  const handleSearch = (value) => {
+    setSearchText(value)
   }
 
   const toggleBookmark = (billId) => {
@@ -419,15 +419,15 @@ const BillList = () => {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Bills</h1>
         <div className="flex space-x-3">
-          <AutoComplete
+          <Input.Search
+            placeholder="Search by customer, bill no, phone, chassis..."
             value={searchText}
-            options={suggestions.options}
-            onSearch={handleSuggest}
-            onChange={(val) => setSearchText(val)}
-            style={{ width: 260 }}
-          >
-            <Input placeholder="Search bills..." prefix={<SearchOutlined />} />
-          </AutoComplete>
+            onChange={(e) => setSearchText(e.target.value)}
+            onSearch={(value) => setDebouncedSearch(value)}
+            style={{ width: 320 }}
+            allowClear
+            enterButton
+          />
           <DatePicker.RangePicker onChange={(v) => setFilters(prev => ({ ...prev, dateRange: v }))} />
           <InputNumber placeholder="Min" onChange={(v) => setFilters(prev => ({ ...prev, minAmount: v }))} />
           <InputNumber placeholder="Max" onChange={(v) => setFilters(prev => ({ ...prev, maxAmount: v }))} />

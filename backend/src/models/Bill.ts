@@ -360,9 +360,11 @@ BillSchema.pre('save', function(this: any, next) {
 BillSchema.plugin(encryptionPlugin);
 
 // Create indexes for better query performance
-// Note: billNumber already has an index from the unique: true in the schema
-BillSchema.index({ owner: 1 });
-BillSchema.index({ customerName: 'text' });
+  // Note: billNumber already has an index from the unique: true in the schema
+  BillSchema.index({ owner: 1 });
+  BillSchema.index({ customerName: 'text', customerNIC: 'text', billNumber: 'text', bikeModel: 'text', customerPhone: 'text', chassisNumber: 'text', motorNumber: 'text' });
+  BillSchema.index({ chassisNumber: 1 });
+  BillSchema.index({ customerPhone: 1 });
 
 const Bill = mongoose.model<IBill>('Bill', BillSchema);
 
