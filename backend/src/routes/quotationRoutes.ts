@@ -12,7 +12,7 @@ const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\
 // Get all quotations with pagination and filtering - Protected route
 router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
   try {
-    const { page = 1, limit = 20, status, search, type } = req.query;
+    const { page = 1, limit = 20, status, search, type, bikeRegNo } = req.query;
     const pageNum = parseInt(page as string) || 1;
     const limitNum = parseInt(limit as string) || 20;
     const skip = (pageNum - 1) * limitNum;
@@ -39,15 +39,22 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
       filter.type = type;
     }
 
-    // Add search filter
+    // Add search filter (searches quotationNumber, customerName, claimNumber, bikeRegNo)
     if (search) {
       const normalizedSearch = String(search).trim().slice(0, MAX_SEARCH_LENGTH);
       const safeSearchRegex = new RegExp(escapeRegExp(normalizedSearch), 'i');
       filter.$or = [
         { quotationNumber: { $regex: safeSearchRegex } },
         { customerName: { $regex: safeSearchRegex } },
-        { claimNumber: { $regex: safeSearchRegex } }
+        { claimNumber: { $regex: safeSearchRegex } },
+        { bikeRegNo: { $regex: safeSearchRegex } }
       ];
+    }
+
+    // Add dedicated bikeRegNo filter (exact match, case-insensitive)
+    if (bikeRegNo) {
+      const normalizedBikeReg = String(bikeRegNo).trim().toUpperCase();
+      filter.bikeRegNo = { $regex: new RegExp(`^${escapeRegExp(normalizedBikeReg)}$`, 'i') };
     }
 
     const quotations = await Quotation.find(filter)

@@ -20,7 +20,8 @@ const QuotationList = () => {
   const [filters, setFilters] = useState({
     search: '',
     status: '',
-    type: ''
+    type: '',
+    bikeRegNo: ''
   });
 
   useEffect(() => {
@@ -206,6 +207,12 @@ const QuotationList = () => {
       render: (text) => text || '-',
     },
     {
+      title: 'Bike Reg No',
+      dataIndex: 'bikeRegNo',
+      key: 'bikeRegNo',
+      render: (text) => text || '-',
+    },
+    {
       title: 'Actions',
       key: 'actions',
       render: (text, record) => (
@@ -275,13 +282,20 @@ const QuotationList = () => {
       </div>
 
       {/* Filters */}
-      <div className="mb-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="mb-6 grid grid-cols-1 md:grid-cols-5 gap-4">
         <Input
           placeholder="Search quotations..."
           value={filters.search}
           onChange={(e) => handleFilterChange('search', e.target.value)}
           prefix={<SearchOutlined />}
           allowClear
+        />
+        <Input
+          placeholder="Bike Reg No..."
+          value={filters.bikeRegNo}
+          onChange={(e) => handleFilterChange('bikeRegNo', e.target.value.toUpperCase())}
+          allowClear
+          style={{ textTransform: 'uppercase' }}
         />
         <Select
           placeholder="Filter by type"
