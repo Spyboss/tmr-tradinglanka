@@ -72,12 +72,20 @@ export default function Dashboard() {
         <div className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md">
           <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-100">Reports</h2>
           <p className="text-gray-600 dark:text-gray-300 mb-4">View inventory and sales reports</p>
-          <Link
-            to="/inventory/report"
-            className="inline-block px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 dark:hover:bg-indigo-500 text-center"
-          >
-            Inventory Report
-          </Link>
+          <div className="flex flex-col space-y-2">
+            <Link
+              to="/inventory/report"
+              className="inline-block px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 dark:hover:bg-indigo-500 text-center"
+            >
+              Inventory Report
+            </Link>
+            <Link
+              to="/warranty-claims"
+              className="inline-block px-4 py-2 bg-cyan-600 text-white rounded hover:bg-cyan-700 dark:hover:bg-cyan-500 text-center"
+            >
+              Warranty Claims
+            </Link>
+          </div>
         </div>
 
         <div className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md">

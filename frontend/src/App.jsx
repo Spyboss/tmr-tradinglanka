@@ -30,6 +30,11 @@ import BatchAddInventory from './pages/Inventory/BatchAddInventory';
 import EditInventoryItem from './pages/Inventory/EditInventoryItem';
 import InventoryReport from './pages/Inventory/InventoryReport';
 
+// Warranty Claim pages
+import WarrantyClaimList from './pages/WarrantyClaim/WarrantyClaimList';
+import WarrantyClaimForm from './pages/WarrantyClaim/WarrantyClaimForm';
+import WarrantyClaimView from './pages/WarrantyClaim/WarrantyClaimView';
+
 // Admin pages for Bike Models
 import BikeModelList from './pages/Admin/BikeModelList';
 import BikeModelForm from './pages/Admin/BikeModelForm';
@@ -59,6 +64,9 @@ const ProtectedQuotationList = () => <ProtectedRoute><QuotationList /></Protecte
 const ProtectedQuotationView = () => <ProtectedRoute><QuotationView /></ProtectedRoute>;
 const ProtectedQuotationEdit = () => <ProtectedRoute><QuotationEdit /></ProtectedRoute>;
 const ProtectedProfilePage = () => <ProtectedRoute><ProfilePage /></ProtectedRoute>;
+const ProtectedWarrantyClaimList = () => <ProtectedRoute><WarrantyClaimList /></ProtectedRoute>;
+const ProtectedWarrantyClaimForm = () => <ProtectedRoute><WarrantyClaimForm /></ProtectedRoute>;
+const ProtectedWarrantyClaimView = () => <ProtectedRoute><WarrantyClaimView /></ProtectedRoute>;
 
 // Inner component to access ThemeContext and apply Ant Design theme
 const AppContent = () => {
@@ -125,6 +133,11 @@ const AppContent = () => {
             <Route path="/quotations/new" element={<ProtectedQuotationGenerator />} />
             <Route path="/quotations/:id" element={<ProtectedQuotationView />} />
             <Route path="/quotations/:id/edit" element={<ProtectedQuotationEdit />} />
+
+            {/* Warranty Claim routes */}
+            <Route path="/warranty-claims" element={<ProtectedWarrantyClaimList />} />
+            <Route path="/warranty-claims/new" element={<ProtectedWarrantyClaimForm />} />
+            <Route path="/warranty-claims/:id" element={<ProtectedWarrantyClaimView />} />
 
             {/* User Management routes */}
             <Route path="/profile" element={<ProtectedProfilePage />} />

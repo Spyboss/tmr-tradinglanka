@@ -99,6 +99,7 @@ import gdprRoutes from './routes/gdprRoutes.js';
 import quotationRoutes from './routes/quotationRoutes.js';
 import brandingRoutes from './routes/brandingRoutes.js';
 import userRoutes from './routes/userRoutes.js';
+import warrantyClaimRoutes from './routes/warrantyClaimRoutes.js';
 import { apiRateLimit } from './auth/rate-limit.middleware.js';
 import { notFound, errorHandler } from './middleware/errorHandler.js';
 import { applySecurityMiddleware } from './middleware/security-middleware.js';
@@ -107,6 +108,7 @@ import Bill from './models/Bill.js';
 import Quotation from './models/Quotation.js';
 import UserPreferences from './models/UserPreferences.js';
 import UserActivity from './models/UserActivity.js';
+import WarrantyClaim from './models/WarrantyClaim.js';
 
 // Initialize express
 const app = express();
@@ -219,7 +221,8 @@ app.use((req, res, next) => {
     Bill,
     Quotation,
     UserPreferences,
-    UserActivity
+    UserActivity,
+    WarrantyClaim
   };
   next();
 });
@@ -250,6 +253,7 @@ app.use('/api/inventory', inventoryRoutes);
 app.use('/api/quotations', quotationRoutes);
 app.use('/api/branding', brandingRoutes);
 app.use('/api/gdpr', gdprRoutes);
+app.use('/api/warranty-claims', warrantyClaimRoutes);
 
 // Error handling
 app.use(notFound);
