@@ -135,8 +135,8 @@ export const generateWarrantyPDF = async (claim: any): Promise<Buffer> => {
       if (claim.formNumber) {
         doc.fillColor('red')
           .font('Helvetica-Bold')
-          .fontSize(11)
-          .text(`Form No : ${claim.formNumber}`, 280, headerY, { align: 'right', width: 275 });
+          .fontSize(13)
+          .text(String(claim.formNumber), 280, headerY, { align: 'right', width: 275 });
         doc.fillColor('black');
       }
 
