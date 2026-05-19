@@ -347,19 +347,24 @@ const WarrantyClaimForm = () => {
               </Col>
             </Row>
             <Row gutter={16}>
-              <Col xs={24} md={8}>
+              <Col xs={24} md={6}>
                 <Form.Item name="approvedBy" label="Approved By">
                   <Input placeholder="Name of approver" />
                 </Form.Item>
               </Col>
-              <Col xs={24} md={8}>
+              <Col xs={24} md={6}>
                 <Form.Item name="approvalDate" label="Approval Date">
                   <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" />
                 </Form.Item>
               </Col>
-              <Col xs={24} md={8}>
+              <Col xs={24} md={6}>
                 <Form.Item name="serialNumber" label="Serial Number (stamped)">
                   <Input placeholder="e.g. 5784" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} md={6}>
+                <Form.Item name="formNumber" label="Form Number">
+                  <Input placeholder="e.g. 0001" maxLength={4} />
                 </Form.Item>
               </Col>
             </Row>

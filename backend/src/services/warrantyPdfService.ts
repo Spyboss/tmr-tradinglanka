@@ -119,22 +119,26 @@ export const generateWarrantyPDF = async (claim: any): Promise<Buffer> => {
         }
       }
 
-      doc.font('Helvetica-Bold').fontSize(9).text(branding.dealerName || 'TMR TRADING LANKA', 280, 40, { align: 'right', width: 275 });
+      doc.font('Helvetica-Bold').fontSize(9).text('TMR TRADING LANKA', 280, 40, { align: 'right', width: 275 });
       doc.font('Helvetica').fontSize(7.5);
       let headerY = 52;
-      if (branding.addressLine1) {
-        doc.text(branding.addressLine1, 280, headerY, { align: 'right', width: 275 });
-        headerY += 10;
-      }
-      if (branding.addressLine2) {
-        doc.text(branding.addressLine2, 280, headerY, { align: 'right', width: 275 });
-        headerY += 10;
-      }
+      doc.text('Office Address : No.141/E, Megoda Thammita, Makewita', 280, headerY, { align: 'right', width: 275 });
+      headerY += 10;
+      doc.text('Showroom Address : No.145/2/A, Kandy Road, Yakkala', 280, headerY, { align: 'right', width: 275 });
+      headerY += 10;
       doc.text('Dealer department : 033 2 321 887', 280, headerY, { align: 'right', width: 275 });
       headerY += 10;
       doc.text('Email : finance.tmrtradinglanka@gmail.com', 280, headerY, { align: 'right', width: 275 });
       headerY += 10;
       doc.text('Mobile : + 94 777 585 986', 280, headerY, { align: 'right', width: 275 });
+      headerY += 10;
+      if (claim.formNumber) {
+        doc.fillColor('red')
+          .font('Helvetica-Bold')
+          .fontSize(11)
+          .text(`Form No : ${claim.formNumber}`, 280, headerY, { align: 'right', width: 275 });
+        doc.fillColor('black');
+      }
 
       if (claim.serialNumber) {
         doc.fillColor('red')
@@ -322,7 +326,7 @@ export const generateWarrantyPDF = async (claim: any): Promise<Buffer> => {
       printValue(claim.approvedBy, startX + 62, sigY, 250);
       printValue(formatDate(claim.approvalDate), startX + 342, sigY, 200);
 
-      const footerY = Math.min(grid4Y + box4H + 80, 790);
+      const footerY = grid4Y + box4H + 55;
       doc.moveTo(startX + 10, footerY).lineTo(startX + 130, footerY).stroke();
       doc.moveTo(startX + 210, footerY).lineTo(startX + 300, footerY).stroke();
       doc.moveTo(endX - 120, footerY).lineTo(endX - 10, footerY).stroke();

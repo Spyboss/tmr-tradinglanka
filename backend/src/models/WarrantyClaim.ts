@@ -9,6 +9,7 @@ export interface IWarrantyItem {
 
 export interface IWarrantyClaim extends Document {
   warrantyNumber: string;
+  formNumber: string;
   serialNumber: string;
   warrantyDate: Date;
   status: 'pending' | 'completed' | 'cancelled';
@@ -52,6 +53,10 @@ const WarrantyClaimSchema = new Schema<IWarrantyClaim>({
     type: String,
     required: true,
     unique: true
+  },
+  formNumber: {
+    type: String,
+    default: ''
   },
   serialNumber: {
     type: String,
