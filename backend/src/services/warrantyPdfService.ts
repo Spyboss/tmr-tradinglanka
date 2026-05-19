@@ -206,28 +206,30 @@ export const generateWarrantyPDF = async (claim: any): Promise<Buffer> => {
       drawLabel('Motor Number', 'මෝටර් නොම්බරය', startX + 5, grid1Y + (rowH1 * 4) + 4, labelW1);
       drawLabel('Color', 'පාට', colX_RightSide + 5, grid1Y + (rowH1 * 4) + 4, labelW3);
 
-      const valY1 = grid1Y + 20;
-      const valY2 = grid1Y + rowH1 + 20;
-      const valY3 = grid1Y + (rowH1 * 2) + 20;
-      const valY4 = grid1Y + (rowH1 * 3) + 20;
-      const valY5 = grid1Y + (rowH1 * 4) + 20;
+      const valLine1 = startX + 155;
+      const valLine2 = colX_MidLeft;
+      const valLine3 = colX_RightSide;
+      const valLine4 = colX_RightSide + 105;
+      const pad = 4;
 
-      printValue(claim.customerName, startX + 5, valY1, labelW1);
-      printValue(claim.customerPhone, colX_MidLeft + 5, valY1, labelW2);
-      printValue(formatDate(claim.dateOfSale), colX_RightSide + 5, valY1, labelW3);
+      const rowY = (r: number) => grid1Y + (rowH1 * r) + 4;
 
-      printValue(claim.customerAddress, startX + 5, valY2, labelW1);
-      printValue(claim.odometerReading, colX_RightSide + 5, valY2, labelW3);
+      printValue(claim.customerName, valLine1 + pad, rowY(0), valLine2 - valLine1 - pad);
+      printValue(claim.customerPhone, valLine2 + pad + 85, rowY(0), valLine3 - valLine2 - pad - 85);
+      printValue(formatDate(claim.dateOfSale), valLine4 + pad, rowY(0), endX - valLine4 - pad);
 
-      printValue(claim.chassisNumber, startX + 5, valY3, labelW1);
-      printValue(formatDate(claim.dateOfComplaint), colX_RightSide + 5, valY3, labelW3);
+      printValue(claim.customerAddress, valLine1 + pad, rowY(1), valLine3 - valLine1 - pad);
+      printValue(claim.odometerReading, valLine4 + pad, rowY(1), endX - valLine4 - pad);
 
-      printValue(claim.registerNo, startX + 5, valY4, labelW1);
-      printValue(claim.bikeModel, colX_MidLeft + 5, valY4, labelW2);
-      printValue(formatDate(claim.dateOfRepair), colX_RightSide + 5, valY4, labelW3);
+      printValue(claim.chassisNumber, valLine1 + pad, rowY(2), valLine3 - valLine1 - pad);
+      printValue(formatDate(claim.dateOfComplaint), valLine4 + pad, rowY(2), endX - valLine4 - pad);
 
-      printValue(claim.motorNumber, startX + 5, valY5, labelW1);
-      printValue(claim.color, colX_RightSide + 5, valY5, labelW3);
+      printValue(claim.registerNo, valLine1 + pad, rowY(3), valLine2 - valLine1 - pad);
+      printValue(claim.bikeModel, valLine2 + pad + 85, rowY(3), valLine3 - valLine2 - pad - 85);
+      printValue(formatDate(claim.dateOfRepair), valLine4 + pad, rowY(3), endX - valLine4 - pad);
+
+      printValue(claim.motorNumber, valLine1 + pad, rowY(4), valLine3 - valLine1 - pad);
+      printValue(claim.color, valLine4 + pad, rowY(4), endX - valLine4 - pad);
 
       const grid2Y = grid1Y + (rowH1 * 5) + 12;
       const rowH2 = 36;
