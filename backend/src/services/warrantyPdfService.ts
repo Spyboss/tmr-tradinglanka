@@ -152,6 +152,22 @@ export const generateWarrantyPDF = async (claim: any): Promise<Buffer> => {
         doc.font(useFont(false)).fontSize(7).text(sin, x, y + 9, w ? { width: w } : undefined);
       };
 
+      const printValue = (text: string, x: number, y: number, w?: number) => {
+        if (text) {
+          doc.font(useFont(false)).fontSize(8).text(String(text), x, y, w ? { width: w } : undefined);
+        }
+      };
+
+      const formatDate = (d: any): string => {
+        if (!d) return '';
+        const date = new Date(d);
+        if (isNaN(date.getTime())) return String(d);
+        const day = date.getDate().toString().padStart(2, '0');
+        const month = (date.getMonth() + 1).toString().padStart(2, '0');
+        const year = date.getFullYear();
+        return `${day}/${month}/${year}`;
+      };
+
       const grid1Y = 160;
       const rowH1 = 28;
 
@@ -190,6 +206,29 @@ export const generateWarrantyPDF = async (claim: any): Promise<Buffer> => {
       drawLabel('Motor Number', 'මෝටර් නොම්බරය', startX + 5, grid1Y + (rowH1 * 4) + 4, labelW1);
       drawLabel('Color', 'පාට', colX_RightSide + 5, grid1Y + (rowH1 * 4) + 4, labelW3);
 
+      const valY1 = grid1Y + 20;
+      const valY2 = grid1Y + rowH1 + 20;
+      const valY3 = grid1Y + (rowH1 * 2) + 20;
+      const valY4 = grid1Y + (rowH1 * 3) + 20;
+      const valY5 = grid1Y + (rowH1 * 4) + 20;
+
+      printValue(claim.customerName, startX + 5, valY1, labelW1);
+      printValue(claim.customerPhone, colX_MidLeft + 5, valY1, labelW2);
+      printValue(formatDate(claim.dateOfSale), colX_RightSide + 5, valY1, labelW3);
+
+      printValue(claim.customerAddress, startX + 5, valY2, labelW1);
+      printValue(claim.odometerReading, colX_RightSide + 5, valY2, labelW3);
+
+      printValue(claim.chassisNumber, startX + 5, valY3, labelW1);
+      printValue(formatDate(claim.dateOfComplaint), colX_RightSide + 5, valY3, labelW3);
+
+      printValue(claim.registerNo, startX + 5, valY4, labelW1);
+      printValue(claim.bikeModel, colX_MidLeft + 5, valY4, labelW2);
+      printValue(formatDate(claim.dateOfRepair), colX_RightSide + 5, valY4, labelW3);
+
+      printValue(claim.motorNumber, startX + 5, valY5, labelW1);
+      printValue(claim.color, colX_RightSide + 5, valY5, labelW3);
+
       const grid2Y = grid1Y + (rowH1 * 5) + 12;
       const rowH2 = 36;
 
@@ -204,6 +243,17 @@ export const generateWarrantyPDF = async (claim: any): Promise<Buffer> => {
       drawLabel('Probale cause', 'නියතයෙන්ම සිදුවී තිබූ දේ', startX + 5, grid2Y + rowH2 + 4, labelW4);
       drawLabel('Action taken', 'මේ සඳහා ගනු ලැබූ පියවර', startX + 5, grid2Y + (rowH2 * 2) + 4, labelW4);
       drawLabel('Suggestion', 'අදහස', startX + 5, grid2Y + (rowH2 * 3) + 4, labelW4);
+
+      const valG2Y1 = grid2Y + 4;
+      const valG2Y2 = grid2Y + rowH2 + 4;
+      const valG2Y3 = grid2Y + (rowH2 * 2) + 4;
+      const valG2Y4 = grid2Y + (rowH2 * 3) + 4;
+      const valG2X = startX + 185;
+
+      printValue(claim.defectReported, valG2X, valG2Y1, contentWidth - 190);
+      printValue(claim.probableCause, valG2X, valG2Y2, contentWidth - 190);
+      printValue(claim.actionTaken, valG2X, valG2Y3, contentWidth - 190);
+      printValue(claim.suggestion, valG2X, valG2Y4, contentWidth - 190);
 
       const grid3Y = grid2Y + (rowH2 * 4) + 12;
       const headerH3 = 24;
@@ -237,6 +287,16 @@ export const generateWarrantyPDF = async (claim: any): Promise<Buffer> => {
       printCenteredLabel('Description', 'භාණ්ඩ පිළිබඳ විස්තර', c2, wDesc);
       printCenteredLabel('Remark', 'සටහන', c3, endX - c3);
 
+      if (claim.items && claim.items.length > 0) {
+        claim.items.slice(0, 4).forEach((item: any, index: number) => {
+          const rowY = grid3Y + headerH3 + (itemRowH * index);
+          doc.font(useFont(false)).fontSize(7.5).text(item.item || '', startX + 3, rowY + 4, { width: wItem - 6 });
+          doc.font(useFont(false)).fontSize(7.5).text(item.partNumber || '', c1 + 3, rowY + 4, { width: wPartNo - 6 });
+          doc.font(useFont(false)).fontSize(7.5).text(item.description || '', c2 + 3, rowY + 4, { width: wDesc - 6 });
+          doc.font(useFont(false)).fontSize(7.5).text(item.remark || '', c3 + 3, rowY + 4, { width: (endX - c3) - 6 });
+        });
+      }
+
       const grid4Y = grid3Y + totalTableH + 12;
       const box4H = 105;
 
@@ -244,10 +304,11 @@ export const generateWarrantyPDF = async (claim: any): Promise<Buffer> => {
       doc.font('Helvetica-Bold').fontSize(8.5).text('Office use only', startX + 6, grid4Y + 6);
       doc.font('Helvetica').fontSize(7.5).text('Comments authorized person of TMR Lanka.', startX + 6, grid4Y + 18);
       doc.font(useFont(false)).fontSize(7).text('සේවා නියෝජිතයාගේ සටහන', startX + 6, grid4Y + 27);
-
-      doc.font('Helvetica').fontSize(8);
       const dotLineX = startX + 6;
       const dotWidth = contentWidth - 12;
+      printValue(claim.officeComments, startX + 6, grid4Y + 36, dotWidth);
+
+      doc.font('Helvetica').fontSize(8);
       doc.text('.'.repeat(145), dotLineX, grid4Y + 52, { width: dotWidth });
       doc.text('.'.repeat(145), dotLineX, grid4Y + 68, { width: dotWidth });
 
@@ -256,6 +317,8 @@ export const generateWarrantyPDF = async (claim: any): Promise<Buffer> => {
       doc.text('.'.repeat(45), startX + 62, sigY - 2);
       doc.text('Date ', startX + 320, sigY);
       doc.text('.'.repeat(40), startX + 342, sigY - 2);
+      printValue(claim.approvedBy, startX + 62, sigY, 250);
+      printValue(formatDate(claim.approvalDate), startX + 342, sigY, 200);
 
       const footerY = Math.min(grid4Y + box4H + 80, 790);
       doc.moveTo(startX + 10, footerY).lineTo(startX + 130, footerY).stroke();

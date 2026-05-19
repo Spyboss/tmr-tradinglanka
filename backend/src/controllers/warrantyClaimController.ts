@@ -90,8 +90,8 @@ export const getPrefillData = async (req: AuthRequest, res: Response, next: Next
       return;
     }
 
-    let color = '';
-    if (bill.inventoryItemId) {
+    let color = bill.proforma?.color || '';
+    if (!color && bill.inventoryItemId) {
       const inventory = await BikeInventory.findById(bill.inventoryItemId);
       if (inventory?.notes) {
         color = inventory.notes;
@@ -136,7 +136,7 @@ export const searchBills = async (req: AuthRequest, res: Response, next: NextFun
         { motorNumber: regex }
       ]
     })
-      .select('billNumber customerName chassisNumber motorNumber bikeModel billDate')
+      .select('billNumber customerName customerPhone chassisNumber motorNumber bikeModel billDate')
       .limit(10)
       .sort({ createdAt: -1 });
 

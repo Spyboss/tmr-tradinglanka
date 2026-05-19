@@ -23,6 +23,7 @@ const WarrantyClaimForm = () => {
   const [searchResults, setSearchResults] = useState([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [items, setItems] = useState([{ ...emptyItem }]);
+  const [selectedBillId, setSelectedBillId] = useState(null);
   const scanInputRef = useRef(null);
 
   const billIdParam = searchParams.get('billId');
@@ -43,6 +44,7 @@ const WarrantyClaimForm = () => {
 
       const response = await apiClient.get('/warranty-claims/prefill', { params });
       if (response.prefill) {
+        setSelectedBillId(response.prefill.billId || null);
         form.setFieldsValue({
           customerName: response.prefill.customerName,
           customerPhone: response.prefill.customerPhone,
@@ -127,7 +129,8 @@ const WarrantyClaimForm = () => {
         dateOfComplaint: values.dateOfComplaint ? values.dateOfComplaint.toISOString() : null,
         dateOfRepair: values.dateOfRepair ? values.dateOfRepair.toISOString() : null,
         batterySerialNumbers: batterySerials,
-        items: items.filter(item => item.item || item.partNumber || item.description)
+        items: items.filter(item => item.item || item.partNumber || item.description),
+        billId: selectedBillId || undefined
       };
 
       const result = await apiClient.post('/warranty-claims', payload);
@@ -397,8 +400,10 @@ const WarrantyClaimForm = () => {
           columns={[
             { title: 'Bill No', dataIndex: 'billNumber', key: 'billNumber' },
             { title: 'Customer', dataIndex: 'customerName', key: 'customerName' },
-            { title: 'Chassis', dataIndex: 'chassisNumber', key: 'chassisNumber', width: 150 },
-            { title: 'Motor', dataIndex: 'motorNumber', key: 'motorNumber', width: 130 },
+            { title: 'Phone', dataIndex: 'customerPhone', key: 'customerPhone', width: 110 },
+            { title: 'Date', dataIndex: 'billDate', key: 'billDate', width: 90, render: (d) => d ? moment(d).format('DD/MM/YYYY') : '-' },
+            { title: 'Chassis', dataIndex: 'chassisNumber', key: 'chassisNumber', width: 140 },
+            { title: 'Motor', dataIndex: 'motorNumber', key: 'motorNumber', width: 120 },
             { title: 'Model', dataIndex: 'bikeModel', key: 'bikeModel' },
             {
               title: 'Action', key: 'action', width: 100,
