@@ -3,6 +3,9 @@ import Branding from '../models/Branding.js';
 import https from 'https';
 import http from 'http';
 import { renderDocumentAttribution } from './pdfAttribution.js';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 const loadBranding = async (userId?: any) => {
   try {
@@ -83,6 +86,27 @@ export const generateWarrantyPDF = async (claim: any): Promise<Buffer> => {
       doc.on('end', () => resolve(Buffer.concat(buffers)));
       doc.on('error', reject);
 
+      // Font registration with Sinhala fallback
+      const __filename = fileURLToPath(import.meta.url);
+      const __dirname = path.dirname(__filename);
+      const FONT_DEV = path.resolve(__dirname, '../../assets/fonts');
+      const FONT_PROD = path.resolve(__dirname, '../assets/fonts');
+      const FONT_DIR = fs.existsSync(FONT_DEV) ? FONT_DEV : FONT_PROD;
+
+      let hasSinhalaFont = false;
+      const regularFontPath = path.join(FONT_DIR, 'NotoSansSinhala-Regular.ttf');
+      const boldFontPath = path.join(FONT_DIR, 'NotoSansSinhala-Bold.ttf');
+      if (fs.existsSync(regularFontPath) && fs.existsSync(boldFontPath)) {
+        doc.registerFont('NotoSansSinhala', regularFontPath);
+        doc.registerFont('NotoSansSinhala-Bold', boldFontPath);
+        hasSinhalaFont = true;
+      }
+
+      const useFont = (isBold = false) => {
+        if (hasSinhalaFont) return isBold ? 'NotoSansSinhala-Bold' : 'NotoSansSinhala';
+        return isBold ? 'Helvetica-Bold' : 'Helvetica';
+      };
+
       const startX = 40;
       const endX = 555;
       const contentWidth = endX - startX;
@@ -121,10 +145,11 @@ export const generateWarrantyPDF = async (claim: any): Promise<Buffer> => {
       }
 
       doc.font('Helvetica-Bold').fontSize(12).text('SERVICE POINT WARRANTY CLAIM FORM', startX, 125, { align: 'center', width: contentWidth });
+      doc.font(useFont(false)).fontSize(10).text('සේවා වගකීම් සම්බන්ධ පෝරමය', startX, 140, { align: 'center', width: contentWidth });
 
       const drawLabel = (eng: string, sin: string, x: number, y: number, w?: number) => {
         doc.font('Helvetica-Bold').fontSize(7.5).text(eng, x, y, w ? { width: w } : undefined);
-        doc.font('Helvetica').fontSize(7).text(sin, x, y + 9, w ? { width: w } : undefined);
+        doc.font(useFont(false)).fontSize(7).text(sin, x, y + 9, w ? { width: w } : undefined);
       };
 
       const grid1Y = 160;
@@ -204,7 +229,7 @@ export const generateWarrantyPDF = async (claim: any): Promise<Buffer> => {
 
       const printCenteredLabel = (eng: string, sin: string, xStart: number, width: number) => {
         doc.font('Helvetica-Bold').fontSize(7.5).text(eng, xStart, grid3Y + 3, { width, align: 'center' });
-        doc.font('Helvetica').fontSize(7).text(sin, xStart, grid3Y + 12, { width, align: 'center' });
+        doc.font(useFont(false)).fontSize(7).text(sin, xStart, grid3Y + 12, { width, align: 'center' });
       };
 
       printCenteredLabel('Item', 'භාණ්ඩය', startX, wItem);
@@ -218,7 +243,7 @@ export const generateWarrantyPDF = async (claim: any): Promise<Buffer> => {
       doc.rect(startX, grid4Y, contentWidth, box4H).stroke();
       doc.font('Helvetica-Bold').fontSize(8.5).text('Office use only', startX + 6, grid4Y + 6);
       doc.font('Helvetica').fontSize(7.5).text('Comments authorized person of TMR Lanka.', startX + 6, grid4Y + 18);
-      doc.font('Helvetica').fontSize(7).text('සේවා නියෝජිතයාගේ සටහන', startX + 6, grid4Y + 27);
+      doc.font(useFont(false)).fontSize(7).text('සේවා නියෝජිතයාගේ සටහන', startX + 6, grid4Y + 27);
 
       doc.font('Helvetica').fontSize(8);
       const dotLineX = startX + 6;

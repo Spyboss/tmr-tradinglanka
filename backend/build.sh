@@ -231,8 +231,8 @@ if (typeof globalThis.crypto === 'undefined') {
 export default crypto;
 EOF
 
-echo "Creating templates directory..."
-mkdir -p dist/templates
+echo "Creating templates and fonts directories..."
+mkdir -p dist/templates dist/assets/fonts
 
 echo "Copying templates if they exist..."
 if [ -d "src/templates" ]; then
@@ -240,6 +240,14 @@ if [ -d "src/templates" ]; then
   echo "Templates copied"
 else
   echo "No templates directory found to copy"
+fi
+
+echo "Copying font files if they exist..."
+if [ -d "assets/fonts" ]; then
+  cp -r assets/fonts/* dist/assets/fonts/ 2>/dev/null || true
+  echo "Font files copied"
+else
+  echo "No fonts directory found to copy"
 fi
 
 echo "Final dist directory structure:"
