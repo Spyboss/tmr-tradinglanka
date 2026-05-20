@@ -5,7 +5,7 @@ React + Vite single-page application for dealership operations.
 ## Highlights
 
 - **Authenticated workspace** – React Router + context-driven auth; Ant Design layout tuned for desktop workflows.
-- **Modules** – Dashboard, bills, inventory, quotations/invoices, admin branding, verification prompts, user profile/preferences.
+- **Modules** – Dashboard, bills, inventory, quotations/invoices, warranty claims, admin branding, verification prompts, user profile/preferences.
 - **Styling** – TailwindCSS utility styling with Ant Design components and custom theming.
 - **API client** – Axios instance (`src/config/apiClient.js`) injects tokens, handles refresh, and normalises errors.
 
@@ -14,7 +14,7 @@ React + Vite single-page application for dealership operations.
 ```
 frontend/
 ├── src/
-│   ├── pages/          # Feature pages (bills, inventory, quotations, admin, auth)
+│   ├── pages/          # Feature pages (bills, inventory, quotations, warranty claims, admin, auth)
 │   ├── components/     # Reusable UI (navigation, protected routes, forms)
 │   ├── contexts/       # Auth & theme providers
 │   ├── services/       # API wrappers per module
@@ -67,7 +67,7 @@ VITE_APP_DESCRIPTION=Motorcycle dealership ERP for sales, inventory, and quotati
 
 ## UI Considerations
 
-- Dashboard summarises bills, inventory status, and recent activity.
+- Dashboard summarises bills, inventory status, warranty claims, and recent activity.
 - Forms reuse Ant Design components with Tailwind utility classes for layout.
 - Branding context fetches `/api/branding` post-authentication to update titles, logos, and PDF previews.
 - Dark mode leverages Tailwind's `class` strategy combined with Ant Design theme tokens.

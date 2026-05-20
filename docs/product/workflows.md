@@ -143,6 +143,41 @@ Branding document persisted
 No restart required (fetched on demand)
 ```
 
+## Warranty Claim Flow
+
+```
+Service/Workshop Staff
+    │
+    │ 1. Warranty Claims → "New Warranty Claim"
+    ▼
+Warranty Claim Form (frontend/src/pages/WarrantyClaim/WarrantyClaimForm.jsx)
+    │  - Option A: "Find from Bill" → search modal populates
+    │    customer/vehicle fields from existing bill (customer name, chassis,
+    │    motor, model, color from inventory notes, date of sale)
+    │  - Option B: Manually enter all fields
+    │  - Enter defect details, probable cause, action taken, suggestion
+    │  - Add parts/items (up to 4 rows in PDF)
+    │  - Scan or type battery serial numbers (QR-ready)
+    │  - Fill office use section (comments, approved by, approval date,
+    │    serial number, form number)
+    ▼
+POST /api/warranty-claims (authenticate → createWarrantyClaim)
+    │  - Auto-generates warranty number (WAR-YYMMDD-XXX)
+    │  - Optionally links to a source bill via billId
+    ▼
+WarrantyClaim document persisted
+    │
+    │ 4. Detail view shows all claim data
+    ▼
+PDF button → GET /api/warranty-claims/:id/pdf
+    │  - Generates bilingual (EN/SI) PDF using NotoSansSinhala font
+    │  - Layout: header with dealer branding, 5-row customer/vehicle grid,
+    │    4-row defect grid, parts table, office use section, signature lines
+    │  - Includes UHADEV attribution footer
+    ▼
+PDF delivered with filename TMR_Warranty_<warrantyNumber>.pdf
+```
+
 ## Verification Reminder Flow (Flagged)
 
 ```

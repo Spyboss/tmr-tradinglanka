@@ -28,6 +28,7 @@ The roadmap keeps stakeholders aligned on upcoming work. Dates are indicative; a
 
 ## Recently Delivered
 
+- Warranty Claim management module with bilingual (EN/SI) PDF generation, bill-based prefill, NotoSansSinhala font support, and QR-ready battery serial number scanning.
 - Branding management UI with PDF integration.
 - Email verification feature flag with enforcement middleware.
 - GDPR self-service export/delete endpoints.

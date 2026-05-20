@@ -5,7 +5,7 @@ TypeScript Express API powering the TMR Trading Lanka dealership ERP.
 ## Highlights
 
 - **Authentication** – JWT access tokens, Redis-backed refresh tokens, optional email verification enforcement.
-- **Business Modules** – Bills, inventory, quotations/invoices, bike models, branding, user preferences/activity, GDPR tooling.
+- **Business Modules** – Bills, inventory, quotations/invoices, warranty claims, bike models, branding, user preferences/activity, GDPR tooling.
 - **Security** – AES encryption plugin for PII, rate limiting, origin enforcement, and security monitoring hooks.
 - **Docs** – Full API contract in [`../docs/architecture/api-reference.md`](../docs/architecture/api-reference.md).
 
@@ -13,6 +13,7 @@ TypeScript Express API powering the TMR Trading Lanka dealership ERP.
 
 ```
 backend/
+├── assets/fonts/         # Custom fonts (NotoSansSinhala for warranty PDFs)
 ├── src/
 │   ├── auth/              # Auth controllers, middleware, rate limits
 │   ├── controllers/       # Business logic per module

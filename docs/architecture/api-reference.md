@@ -133,6 +133,69 @@ When updating a bill that involves inventory changes, the response includes addi
 | POST | `/api/quotations/:id/convert-to-invoice` | Authenticated | Clone quotation into an invoice record and mark original as converted. |
 | GET | `/api/quotations/customers/suggestions` | Authenticated | Suggest customers from bills for auto-fill. |
 
+## Warranty Claims
+
+| Method | Path | Auth | Description |
+| --- | --- | --- | --- |
+| GET | `/api/warranty-claims` | Authenticated | Paginated list. Non-admins filtered by `owner`. Supports `status`, `search`, `page`, `limit`. |
+| GET | `/api/warranty-claims/prefill` | Authenticated | Get prefill data from an existing bill. Query params: `billId` or `chassisNumber`. Returns customer/vehicle data and color from inventory notes. |
+| GET | `/api/warranty-claims/search-bills` | Authenticated | Search bills for prefill. Query param `q` matches billNumber, customerName, chassisNumber, motorNumber. |
+| GET | `/api/warranty-claims/:id` | Authenticated | Fetch a warranty claim by ID. Ownership enforced. |
+| GET | `/api/warranty-claims/:id/pdf` | Authenticated | Download bilingual (EN/SI) warranty claim PDF with NotoSansSinhala font and dealer branding. |
+| POST | `/api/warranty-claims` | Authenticated | Create a warranty claim. Auto-generates warranty number (`WAR-YYMMDD-XXX`). Ownership stamped from authenticated user. |
+| PUT | `/api/warranty-claims/:id` | Authenticated | Update warranty claim fields. Prevents owner reassignment for non-admins. |
+| DELETE | `/api/warranty-claims/:id` | Authenticated | Delete a warranty claim. Ownership enforced. |
+
+**Prefill Response Snippet**
+
+```json
+{
+  "prefill": {
+    "customerName": "Imesh Perera",
+    "customerPhone": "0771234567",
+    "customerAddress": "45 Lake Road, Embilipitiya",
+    "chassisNumber": "CHS987654",
+    "motorNumber": "MTR123456",
+    "bikeModel": "E-MOTORCYCLE X1",
+    "color": "Red",
+    "dateOfSale": "2025-01-15T00:00:00.000Z",
+    "billId": "65f5..."
+  }
+}
+```
+
+**Warranty Claim Payload Snippet**
+
+```json
+{
+  "customerName": "Imesh Perera",
+  "customerPhone": "0771234567",
+  "customerAddress": "45 Lake Road, Embilipitiya",
+  "chassisNumber": "CHS987654",
+  "motorNumber": "MTR123456",
+  "bikeModel": "E-MOTORCYCLE X1",
+  "color": "Red",
+  "odometerReading": "1500",
+  "dateOfSale": "2025-01-15T00:00:00.000Z",
+  "dateOfComplaint": "2025-03-10T00:00:00.000Z",
+  "dateOfRepair": "2025-03-12T00:00:00.000Z",
+  "defectReported": "Battery not charging",
+  "probableCause": "Faulty charger circuit",
+  "actionTaken": "Replaced charger module",
+  "suggestion": "Monitor battery health",
+  "items": [
+    { "item": "Charger", "partNumber": "CH-001", "description": "Battery charger module", "remark": "Replaced under warranty" }
+  ],
+  "officeComments": "Approved for replacement",
+  "approvedBy": "Operations Manager",
+  "approvalDate": "2025-03-12T00:00:00.000Z",
+  "batterySerialNumbers": ["BSN001", "BSN002"],
+  "billId": "65f5..."
+}
+```
+
+> The warranty number is auto-generated in the format `WAR-YYMMDD-XXX` (e.g., `WAR-250319-042`) using a pre-save Mongoose hook. The PDF is generated using PDFKit with NotoSansSinhala for Sinhala text, matching existing dealer branding and attribution.
+
 ## Bike Models & Branding
 
 | Method | Path | Auth | Description |

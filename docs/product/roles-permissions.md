@@ -16,6 +16,8 @@ Two primary roles exist today: **Admin** and **User**. Deleted accounts are pseu
 | Manage inventory | ✅ (full access) | ✅ (entries created by user) |
 | Delete inventory entries | ✅ (soft-delete, audited; allowed for sold items) | ❌ |
 | Inventory analytics | ✅ | ✅ (filtered) |
+| Manage warranty claims | ✅ (all) | ✅ (own records only) |
+| Generate warranty claim PDFs | ✅ (all) | ✅ (own records only) |
 | Manage quotations/invoices | ✅ (all) | ✅ (own records only) |
 | Convert quotation to invoice | ✅ (all) | ✅ (own records only) |
 | View user activity logs | ✅ (own & aggregated dashboards) | ✅ (own activity only) |

@@ -67,6 +67,7 @@ Further business context lives in [`docs/overview/business-context.md`](./docs/o
 - **Billing** – End-to-end bill lifecycle with encrypted NIC/address storage, RMV/advance tracking, and PDF exports. Supports transactional inventory changes (swap inventory on bill edit), advance-to-final sale conversion, and status-based inventory management.
 - **Inventory** – Model catalogue, single-unit inventory with status tracking, analytics endpoints, and PDF reporting. Includes inventory report analytics with monthly sales pace tracking and 3-Month Stock Penalty Alerts (includes chassis numbers for aged stock).
 - **Quotations & Invoices** – Multi-line quotations, conversion to invoices, insurance metadata, and branded PDF downloads.
+- **Warranty Claims** – Service point warranty claim management with auto-generated numbering (`WAR-YYMMDD-XXX`), bilingual (EN/SI) PDF generation with NotoSansSinhala font for Sinhala text, bill-based prefill for customer/vehicle data, QR-ready battery serial number input, and full CRUD with ownership enforcement.
 - **Branding Control** – Admin-managed logo, colour, and address metadata powering SPA chrome and documents.
 - **User Preferences & Activity** – Personalised themes/language plus structured audit logs for major actions (bill create/update/delete include detailed old/new values and inventory changes).
 - **Compliance Toolkit** – GDPR export/delete flows, rate limiting, and optional email verification enforcement.
@@ -182,6 +183,7 @@ Frontend automated tests are on the roadmap; manual QA covers core journeys toda
 | `bike_inventory` | bikeModelId, motorNumber, status, addedBy, billId |
 | `bike_models` | name, price, leasing flags |
 | `quotations` | quotationNumber, type, encrypted customer info, items[], owner |
+| `warrantyclaims` | warrantyNumber (WAR-YYMMDD-XXX), formNumber, status, customer/vehicle data, defect info, items[], batterySerialNumbers, billId, owner |
 | `branding` | dealerName, primaryColor, logoUrl |
 | `userpreferences` | theme, language, notification + dashboard preferences |
 | `useractivities` | activity type, metadata, timestamp |
@@ -196,6 +198,7 @@ The REST API is described in [`docs/architecture/api-reference.md`](./docs/archi
 - `/api/bills` – CRUD + PDF + status management + close-sale (advance to final) + suggestions.
 - `/api/inventory` – item management, analytics, report analytics (sales pace, stock penalties), report PDFs.
 - `/api/quotations` – quotations, invoice conversion, customer suggestions.
+- `/api/warranty-claims` – CRUD + PDF + bill search + prefill data.
 - `/api/branding` – dealer branding config (admin-only mutating operations).
 - `/api/user/*` – preferences and activity history.
 - `/api/gdpr/*` – data export/delete flows.

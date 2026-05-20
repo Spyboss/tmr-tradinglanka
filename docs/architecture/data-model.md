@@ -91,6 +91,32 @@ Quotation (quotations)
   owner (ref User)
   timestamps
 
+WarrantyClaim (warrantyclaims)
+  _id (ObjectId)
+  warrantyNumber (unique, auto-generated WAR-YYMMDD-XXX)
+  formNumber (string, e.g. "0001")
+  serialNumber (string, e.g. "5784")
+  warrantyDate
+  status (pending | completed | cancelled)
+  customerName
+  customerPhone
+  customerAddress
+  chassisNumber
+  registerNo
+  motorNumber
+  bikeModel
+  color
+  odometerReading
+  dateOfSale / dateOfComplaint / dateOfRepair
+  defectReported / probableCause / actionTaken / suggestion
+  items[] { item, partNumber, description, remark }
+  officeComments / approvedBy / approvalDate
+  batterySerialNumbers[] (string array, QR-ready)
+  qrCodeData
+  billId (ref Bill)
+  owner (ref User)
+  timestamps
+
 Branding (brandings)
   _id (ObjectId)
   dealerName
@@ -121,11 +147,13 @@ EmailVerificationStatus (emailverificationstatuses)
   - The `inventoryItemId` field tracks the bidirectional relationship
 - **Bill 1 — 0..N Quotation**: `referenceBillId` allows quotations to clone customer details.
 - **User 1 — N Quotation**: `owner` guards access similar to bills.
+- **Bill 1 — 0..1 WarrantyClaim**: `billId` references back to the original bill for customer/vehicle data prefill.
+- **User 1 — N WarrantyClaim**: `owner` ensures non-admins only see their claims.
 - **User 1 — 0..1 EmailVerificationStatus**: toggles verification enforcement.
 
 ## Indexing & Performance Notes
 
-- `User.email`, `Bill.billNumber`, `Quotation.quotationNumber`, `BikeInventory.motorNumber`, and `BikeInventory.chassisNumber` are unique for fast lookups.
+- `User.email`, `Bill.billNumber`, `Quotation.quotationNumber`, `WarrantyClaim.warrantyNumber`, `BikeInventory.motorNumber`, and `BikeInventory.chassisNumber` are unique for fast lookups.
 - Compound indexes on `UserActivity` (`userId`, `timestamp`) and `BikeInventory` (`bikeModelId`, `status`) support analytics queries.
 - `Quotation` pre-save hooks recalculate item totals to guarantee consistency between stored data and PDF output.
 - Encryption plugin decrypts marked fields automatically on `find`/`findOne`, so controllers can return plain values without manual handling.

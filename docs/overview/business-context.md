@@ -26,9 +26,10 @@ The TMR Trading Lanka Business Management System is an internal ERP tailored for
 2. **Billing** – End-to-end bill lifecycle, customer data encryption, PDF export, and RMV/advance-payment tracking.
 3. **Inventory** – Bike model catalogue, single-unit inventory items with status tracking, analytics endpoints, and PDF reporting.
 4. **Quotations & Invoices** – Multi-line quotations, conversion to invoices, linkage to existing bills, and PDF generation.
-5. **Branding** – Single-document store that drives logos, colours, and address lines across documents and SPA chrome.
-6. **User Preferences & Activity** – Personalised UI preferences and structured activity logs for major actions.
-7. **GDPR Tools** – Self-service export (encrypted ZIP) and pseudonymising delete flow guarded by password re-entry.
+5. **Warranty Claims** – Service point warranty claim management with auto-numbered forms (WAR-YYMMDD-XXX), bilingual (EN/SI) PDF generation with Sinhala font support, bill-based prefill for customer/vehicle data, battery serial number tracking, and full CRUD with ownership enforcement.
+6. **Branding** – Single-document store that drives logos, colours, and address lines across documents and SPA chrome.
+7. **User Preferences & Activity** – Personalised UI preferences and structured activity logs for major actions.
+8. **GDPR Tools** – Self-service export (encrypted ZIP) and pseudonymising delete flow guarded by password re-entry.
 
 ## Current Operating Environment
 

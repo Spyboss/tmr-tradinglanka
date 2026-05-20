@@ -240,6 +240,8 @@ app.get('/', (req, res) => {
       '/api/bike-models',
       '/api/inventory',
       '/api/quotations',
+      '/api/branding',
+      '/api/warranty-claims',
       '/api/gdpr'
     ]
   });
