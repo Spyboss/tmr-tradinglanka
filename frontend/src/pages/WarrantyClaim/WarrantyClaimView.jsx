@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Button, Card, Descriptions, Tag, Table, Spin, Space, Divider, message, Popconfirm
+  Button, Card, Descriptions, Tag, Table, Spin, message, Popconfirm
 } from 'antd';
-import { DownloadOutlined, ArrowLeftOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
+import { DownloadOutlined, ArrowLeftOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useNavigate, useParams } from 'react-router-dom';
 import apiClient from '../../config/apiClient';
 import moment from 'moment';
@@ -92,16 +92,16 @@ const WarrantyClaimView = () => {
 
   return (
     <div className="p-4 sm:p-6 dark:bg-slate-900">
-      <div className="flex justify-between items-center mb-6">
-        <Space>
+      <div className="mb-6 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex flex-wrap items-center gap-2">
           <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/warranty-claims')} />
-          <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
+          <h1 className="min-w-0 break-words text-xl font-semibold text-gray-900 dark:text-gray-100 sm:text-2xl">
             Warranty Claim: {claim.warrantyNumber}
           </h1>
           <Tag color={getStatusColor(claim.status)}>{(claim.status || '').toUpperCase()}</Tag>
-        </Space>
-        <Space>
-          <Button icon={<DownloadOutlined />} onClick={handleDownloadPDF}>
+        </div>
+        <div className="grid grid-cols-1 gap-2 sm:flex sm:justify-end">
+          <Button className="w-full sm:w-auto" icon={<DownloadOutlined />} onClick={handleDownloadPDF}>
             Download PDF
           </Button>
           <Popconfirm
@@ -110,9 +110,9 @@ const WarrantyClaimView = () => {
             okText="Yes"
             cancelText="No"
           >
-            <Button danger icon={<DeleteOutlined />}>Delete</Button>
+            <Button className="w-full sm:w-auto" danger icon={<DeleteOutlined />}>Delete</Button>
           </Popconfirm>
-        </Space>
+        </div>
       </div>
 
       <Card title="Customer & Vehicle Information" className="mb-4 dark:bg-slate-800">
@@ -163,6 +163,7 @@ const WarrantyClaimView = () => {
             rowKey={(_, idx) => idx}
             pagination={false}
             size="small"
+            scroll={{ x: 640 }}
           />
         </Card>
       )}
@@ -171,7 +172,7 @@ const WarrantyClaimView = () => {
         <Card title="Battery Serial Numbers" className="mb-4 dark:bg-slate-800">
           <div className="flex flex-wrap gap-2">
             {claim.batterySerialNumbers.map((s, idx) => (
-              <Tag key={idx} color="blue">{s}</Tag>
+              <Tag key={idx} className="max-w-full whitespace-normal break-all" color="blue">{s}</Tag>
             ))}
           </div>
         </Card>

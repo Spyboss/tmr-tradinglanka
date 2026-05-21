@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  Button, Card, Form, Input, DatePicker, Space, Row, Col,
+  Button, Card, Form, Input, DatePicker, Row, Col,
   message, Spin, Modal, Table, Tag
 } from 'antd';
 import { PlusOutlined, CloseOutlined, ScanOutlined, SearchOutlined } from '@ant-design/icons';
@@ -149,14 +149,14 @@ const WarrantyClaimForm = () => {
 
   return (
     <div className="p-4 sm:p-6 dark:bg-slate-900">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">New Warranty Claim</h1>
-        <Space>
-          <Button onClick={() => setSearchModalOpen(true)} icon={<SearchOutlined />}>
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100 sm:text-2xl">New Warranty Claim</h1>
+        <div className="grid grid-cols-1 gap-2 sm:flex sm:justify-end">
+          <Button className="w-full sm:w-auto" onClick={() => setSearchModalOpen(true)} icon={<SearchOutlined />}>
             Find from Bill
           </Button>
-          <Button onClick={() => navigate('/warranty-claims')}>Cancel</Button>
-        </Space>
+          <Button className="w-full sm:w-auto" onClick={() => navigate('/warranty-claims')}>Cancel</Button>
+        </div>
       </div>
 
       <Spin spinning={loading}>
@@ -268,7 +268,7 @@ const WarrantyClaimForm = () => {
 
           <Card title="Parts / Items" className="mb-4 dark:bg-slate-800">
             {items.map((item, idx) => (
-              <Row key={idx} gutter={8} className="mb-2">
+              <Row key={idx} gutter={[8, 8]} className="mb-3 sm:mb-2">
                 <Col xs={24} sm={5}>
                   <Input
                     placeholder="Item"
@@ -297,9 +297,9 @@ const WarrantyClaimForm = () => {
                     onChange={(e) => handleItemChange(idx, 'remark', e.target.value)}
                   />
                 </Col>
-                <Col xs={24} sm={2}>
+                <Col xs={24} sm={2} className="flex justify-end sm:block">
                   {items.length > 1 && (
-                    <Button danger icon={<CloseOutlined />} onClick={() => handleRemoveItem(idx)} />
+                    <Button className="w-full sm:w-auto" danger icon={<CloseOutlined />} onClick={() => handleRemoveItem(idx)} />
                   )}
                 </Col>
               </Row>
@@ -313,22 +313,22 @@ const WarrantyClaimForm = () => {
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">
               Scan QR codes or manually enter battery serial numbers
             </p>
-            <Space className="w-full mb-2">
+            <div className="mb-2 grid grid-cols-1 gap-2 sm:flex">
               <Input
                 ref={scanInputRef}
                 placeholder="Scan or type battery serial number"
                 value={serialInput}
                 onChange={(e) => setSerialInput(e.target.value)}
                 onKeyDown={handleSerialKeyDown}
-                style={{ width: 350 }}
+                className="w-full sm:max-w-sm"
                 prefix={<ScanOutlined />}
                 autoFocus
               />
-              <Button onClick={handleAddSerial}>Add</Button>
-            </Space>
+              <Button className="w-full sm:w-auto" onClick={handleAddSerial}>Add</Button>
+            </div>
             <div className="flex flex-wrap gap-2">
               {batterySerials.map((s, idx) => (
-                <Tag key={idx} closable onClose={() => handleRemoveSerial(idx)}>
+                <Tag key={idx} className="max-w-full whitespace-normal break-all" closable onClose={() => handleRemoveSerial(idx)}>
                   {s}
                 </Tag>
               ))}
@@ -370,9 +370,9 @@ const WarrantyClaimForm = () => {
             </Row>
           </Card>
 
-          <div className="flex justify-end gap-3">
-            <Button onClick={() => navigate('/warranty-claims')}>Cancel</Button>
-            <Button type="primary" onClick={handleSubmit} loading={loading}>
+          <div className="flex flex-col justify-end gap-3 sm:flex-row">
+            <Button className="w-full sm:w-auto" onClick={() => navigate('/warranty-claims')}>Cancel</Button>
+            <Button className="w-full sm:w-auto" type="primary" onClick={handleSubmit} loading={loading}>
               Create Warranty Claim
             </Button>
           </div>
@@ -384,24 +384,26 @@ const WarrantyClaimForm = () => {
         open={searchModalOpen}
         onCancel={() => setSearchModalOpen(false)}
         footer={null}
-        width={700}
+        width="min(92vw, 700px)"
       >
-        <Space className="w-full mb-4">
+        <div className="mb-4 grid grid-cols-1 gap-2 sm:flex">
           <Input
             placeholder="Search by bill number, customer name, chassis, or motor number"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onPressEnter={handleSearchBills}
-            style={{ width: 400 }}
+            className="w-full sm:max-w-md"
             prefix={<SearchOutlined />}
           />
-          <Button onClick={handleSearchBills} loading={searchLoading}>Search</Button>
-        </Space>
+          <Button className="w-full sm:w-auto" onClick={handleSearchBills} loading={searchLoading}>Search</Button>
+        </div>
         <Table
           dataSource={searchResults}
           rowKey="_id"
           loading={searchLoading}
           pagination={false}
+          size="small"
+          scroll={{ x: 760 }}
           columns={[
             { title: 'Bill No', dataIndex: 'billNumber', key: 'billNumber' },
             { title: 'Customer', dataIndex: 'customerName', key: 'customerName' },

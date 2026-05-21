@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Button, Space, Input, Select, Tag, Popconfirm, message, Skeleton, Card } from 'antd';
+import { Table, Button, Space, Input, Select, Tag, Popconfirm, message, Skeleton, Card, Pagination, Empty } from 'antd';
 import { PlusOutlined, DeleteOutlined, DownloadOutlined, EyeOutlined, SearchOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import apiClient from '../../config/apiClient';
@@ -184,9 +184,10 @@ const WarrantyClaimList = () => {
 
   return (
     <div className="p-4 sm:p-6 dark:bg-slate-900 min-h-full">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Warranty Claims</h1>
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100 sm:text-2xl">Warranty Claims</h1>
         <Button
+          className="w-full sm:w-auto"
           type="primary"
           icon={<PlusOutlined />}
           onClick={() => navigate('/warranty-claims/new')}
@@ -195,7 +196,7 @@ const WarrantyClaimList = () => {
         </Button>
       </div>
 
-      <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="mb-6 grid grid-cols-1 gap-3 md:grid-cols-3 md:gap-4">
         <Input
           placeholder="Search warranty claims..."
           value={filters.search}
@@ -213,7 +214,7 @@ const WarrantyClaimList = () => {
           <Option value="completed">Completed</Option>
           <Option value="cancelled">Cancelled</Option>
         </Select>
-        <Button onClick={fetchClaims}>Refresh</Button>
+        <Button className="w-full md:w-auto" onClick={fetchClaims}>Refresh</Button>
       </div>
 
       <div className="hidden md:block">
@@ -244,23 +245,40 @@ const WarrantyClaimList = () => {
         ) : (
           claims.map((c) => (
             <div key={c._id} className="bg-white dark:bg-slate-800 rounded-lg shadow p-4">
-              <div className="flex justify-between items-center">
-                <div>
-                  <div className="text-sm text-gray-500 dark:text-gray-400">#{c.warrantyNumber}</div>
-                  <div className="text-base font-medium text-gray-900 dark:text-gray-100">{c.customerName || 'N/A'}</div>
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="break-all text-sm text-gray-500 dark:text-gray-400">#{c.warrantyNumber}</div>
+                  <div className="break-words text-base font-medium text-gray-900 dark:text-gray-100">{c.customerName || 'N/A'}</div>
                 </div>
-                <Tag color={getStatusColor(c.status)}>{(c.status || '').toUpperCase()}</Tag>
+                <Tag className="shrink-0" color={getStatusColor(c.status)}>{(c.status || '').toUpperCase()}</Tag>
               </div>
-              <div className="mt-2 text-sm text-gray-600 dark:text-gray-300">
-                {c.chassisNumber && <span>Chassis: {c.chassisNumber} | </span>}
-                {c.motorNumber && <span>Motor: {c.motorNumber}</span>}
+              <div className="mt-2 space-y-1 break-all text-sm text-gray-600 dark:text-gray-300">
+                {c.chassisNumber && <div>Chassis: {c.chassisNumber}</div>}
+                {c.motorNumber && <div>Motor: {c.motorNumber}</div>}
               </div>
-              <div className="mt-3 flex justify-end gap-2">
+              <div className="mt-3 grid grid-cols-2 gap-2">
                 <Button size="small" onClick={() => navigate(`/warranty-claims/${c._id}`)}>View</Button>
                 <Button size="small" onClick={() => handleDownloadPDF(c._id, c.warrantyNumber)}>PDF</Button>
               </div>
             </div>
           ))
+        )}
+        {!loading && claims.length === 0 && (
+          <Card className="dark:bg-slate-800">
+            <Empty description="No warranty claims found" />
+          </Card>
+        )}
+        {!loading && pagination.total > pagination.pageSize && (
+          <div className="flex justify-center pt-2">
+            <Pagination
+              size="small"
+              current={pagination.current}
+              pageSize={pagination.pageSize}
+              total={pagination.total}
+              onChange={(page, pageSize) => handleTableChange({ current: page, pageSize })}
+              showSizeChanger={false}
+            />
+          </div>
         )}
       </div>
     </div>
