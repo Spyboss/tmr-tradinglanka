@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Button, Card, Descriptions, Tag, Table, Spin, message, Popconfirm
+  Button, Card, Descriptions, Tag, Table, Spin, message, Popconfirm, Select
 } from 'antd';
 import { DownloadOutlined, ArrowLeftOutlined, DeleteOutlined, EditOutlined, ClockCircleOutlined } from '@ant-design/icons';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -12,6 +12,7 @@ const WarrantyClaimView = () => {
   const navigate = useNavigate();
   const [claim, setClaim] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [statusLoading, setStatusLoading] = useState(false);
 
   useEffect(() => {
     fetchClaim();
@@ -61,13 +62,16 @@ const WarrantyClaimView = () => {
     }
   };
 
-  const handleSetPending = async () => {
+  const handleStatusChange = async (status) => {
+    setStatusLoading(true);
     try {
-      const updatedClaim = await apiClient.put(`/warranty-claims/${id}`, { status: 'pending' });
+      const updatedClaim = await apiClient.put(`/warranty-claims/${id}`, { status });
       setClaim(updatedClaim);
-      message.success('Warranty claim set to pending');
+      message.success('Warranty claim status updated');
     } catch (error) {
       message.error('Failed to update warranty claim status');
+    } finally {
+      setStatusLoading(false);
     }
   };
 
@@ -111,11 +115,22 @@ const WarrantyClaimView = () => {
           <Tag color={getStatusColor(claim.status)}>{(claim.status || '').toUpperCase()}</Tag>
         </div>
         <div className="grid grid-cols-1 gap-2 sm:flex sm:justify-end">
+          <Select
+            className="w-full sm:w-36"
+            value={claim.status || 'pending'}
+            loading={statusLoading}
+            onChange={handleStatusChange}
+            options={[
+              { value: 'pending', label: 'Pending' },
+              { value: 'completed', label: 'Completed' },
+              { value: 'cancelled', label: 'Cancelled' }
+            ]}
+          />
           <Button className="w-full sm:w-auto" icon={<EditOutlined />} onClick={() => navigate(`/warranty-claims/${id}/edit`)}>
             Edit
           </Button>
           {claim.status !== 'pending' && (
-            <Button className="w-full sm:w-auto" icon={<ClockCircleOutlined />} onClick={handleSetPending}>
+            <Button className="w-full sm:w-auto" icon={<ClockCircleOutlined />} onClick={() => handleStatusChange('pending')}>
               Set Pending
             </Button>
           )}

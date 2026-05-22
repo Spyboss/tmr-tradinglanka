@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   Button, Card, Form, Input, DatePicker, Row, Col,
-  message, Spin, Modal, Table, Tag
+  message, Spin, Modal, Table, Tag, Select
 } from 'antd';
 import { PlusOutlined, CloseOutlined, ScanOutlined, SearchOutlined } from '@ant-design/icons';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
@@ -9,6 +9,7 @@ import apiClient from '../../config/apiClient';
 import moment from 'moment';
 
 const { TextArea } = Input;
+const { Option } = Select;
 const emptyItem = { item: '', partNumber: '', description: '', remark: '' };
 
 const WarrantyClaimForm = () => {
@@ -69,7 +70,8 @@ const WarrantyClaimForm = () => {
         approvedBy: response.approvedBy,
         approvalDate: toMoment(response.approvalDate),
         serialNumber: response.serialNumber,
-        formNumber: response.formNumber
+        formNumber: response.formNumber,
+        status: response.status || 'pending'
       });
     } catch (error) {
       message.error('Failed to load warranty claim');
@@ -415,6 +417,15 @@ const WarrantyClaimForm = () => {
               <Col xs={24} md={6}>
                 <Form.Item name="formNumber" label="Form Number">
                   <Input placeholder="e.g. 0001" maxLength={4} />
+                </Form.Item>
+              </Col>
+              <Col xs={24} md={6}>
+                <Form.Item name="status" label="Status" initialValue="pending">
+                  <Select>
+                    <Option value="pending">Pending</Option>
+                    <Option value="completed">Completed</Option>
+                    <Option value="cancelled">Cancelled</Option>
+                  </Select>
                 </Form.Item>
               </Col>
             </Row>
