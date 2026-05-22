@@ -137,6 +137,7 @@ const AppContent = () => {
             {/* Warranty Claim routes */}
             <Route path="/warranty-claims" element={<ProtectedWarrantyClaimList />} />
             <Route path="/warranty-claims/new" element={<ProtectedWarrantyClaimForm />} />
+            <Route path="/warranty-claims/:id/edit" element={<ProtectedWarrantyClaimForm />} />
             <Route path="/warranty-claims/:id" element={<ProtectedWarrantyClaimView />} />
 
             {/* User Management routes */}

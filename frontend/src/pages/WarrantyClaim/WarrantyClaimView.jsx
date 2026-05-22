@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   Button, Card, Descriptions, Tag, Table, Spin, message, Popconfirm
 } from 'antd';
-import { DownloadOutlined, ArrowLeftOutlined, DeleteOutlined } from '@ant-design/icons';
+import { DownloadOutlined, ArrowLeftOutlined, DeleteOutlined, EditOutlined, ClockCircleOutlined } from '@ant-design/icons';
 import { useNavigate, useParams } from 'react-router-dom';
 import apiClient from '../../config/apiClient';
 import moment from 'moment';
@@ -61,6 +61,16 @@ const WarrantyClaimView = () => {
     }
   };
 
+  const handleSetPending = async () => {
+    try {
+      const updatedClaim = await apiClient.put(`/warranty-claims/${id}`, { status: 'pending' });
+      setClaim(updatedClaim);
+      message.success('Warranty claim set to pending');
+    } catch (error) {
+      message.error('Failed to update warranty claim status');
+    }
+  };
+
   const getStatusColor = (status) => {
     const colors = { pending: 'orange', completed: 'green', cancelled: 'red' };
     return colors[status] || 'default';
@@ -101,6 +111,14 @@ const WarrantyClaimView = () => {
           <Tag color={getStatusColor(claim.status)}>{(claim.status || '').toUpperCase()}</Tag>
         </div>
         <div className="grid grid-cols-1 gap-2 sm:flex sm:justify-end">
+          <Button className="w-full sm:w-auto" icon={<EditOutlined />} onClick={() => navigate(`/warranty-claims/${id}/edit`)}>
+            Edit
+          </Button>
+          {claim.status !== 'pending' && (
+            <Button className="w-full sm:w-auto" icon={<ClockCircleOutlined />} onClick={handleSetPending}>
+              Set Pending
+            </Button>
+          )}
           <Button className="w-full sm:w-auto" icon={<DownloadOutlined />} onClick={handleDownloadPDF}>
             Download PDF
           </Button>

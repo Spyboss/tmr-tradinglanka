@@ -4,7 +4,7 @@ import {
   message, Spin, Modal, Table, Tag
 } from 'antd';
 import { PlusOutlined, CloseOutlined, ScanOutlined, SearchOutlined } from '@ant-design/icons';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import apiClient from '../../config/apiClient';
 import moment from 'moment';
 
@@ -13,6 +13,7 @@ const emptyItem = { item: '', partNumber: '', description: '', remark: '' };
 
 const WarrantyClaimForm = () => {
   const navigate = useNavigate();
+  const { id } = useParams();
   const [searchParams] = useSearchParams();
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
@@ -28,12 +29,55 @@ const WarrantyClaimForm = () => {
 
   const billIdParam = searchParams.get('billId');
   const chassisParam = searchParams.get('chassis');
+  const isEditMode = Boolean(id);
 
   useEffect(() => {
-    if (billIdParam || chassisParam) {
+    if (isEditMode) {
+      loadClaim(id);
+    } else if (billIdParam || chassisParam) {
       loadPrefill(billIdParam, chassisParam);
     }
-  }, [billIdParam, chassisParam]);
+  }, [id, isEditMode, billIdParam, chassisParam]);
+
+  const toMoment = (value) => value ? moment(value) : null;
+
+  const loadClaim = async (claimId) => {
+    setLoading(true);
+    try {
+      const response = await apiClient.get(`/warranty-claims/${claimId}`);
+      setSelectedBillId(response.billId || null);
+      setBatterySerials(response.batterySerialNumbers || []);
+      setItems(response.items?.length ? response.items : [{ ...emptyItem }]);
+      form.setFieldsValue({
+        customerName: response.customerName,
+        customerPhone: response.customerPhone,
+        customerAddress: response.customerAddress,
+        chassisNumber: response.chassisNumber,
+        registerNo: response.registerNo,
+        motorNumber: response.motorNumber,
+        bikeModel: response.bikeModel,
+        color: response.color,
+        odometerReading: response.odometerReading,
+        dateOfSale: toMoment(response.dateOfSale),
+        dateOfComplaint: toMoment(response.dateOfComplaint),
+        dateOfRepair: toMoment(response.dateOfRepair),
+        defectReported: response.defectReported,
+        probableCause: response.probableCause,
+        actionTaken: response.actionTaken,
+        suggestion: response.suggestion,
+        officeComments: response.officeComments,
+        approvedBy: response.approvedBy,
+        approvalDate: toMoment(response.approvalDate),
+        serialNumber: response.serialNumber,
+        formNumber: response.formNumber
+      });
+    } catch (error) {
+      message.error('Failed to load warranty claim');
+      navigate('/warranty-claims');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const loadPrefill = async (billId, chassis) => {
     setLoading(true);
@@ -133,14 +177,16 @@ const WarrantyClaimForm = () => {
         billId: selectedBillId || undefined
       };
 
-      const result = await apiClient.post('/warranty-claims', payload);
-      message.success('Warranty claim created successfully');
+      const result = isEditMode
+        ? await apiClient.put(`/warranty-claims/${id}`, payload)
+        : await apiClient.post('/warranty-claims', payload);
+      message.success(`Warranty claim ${isEditMode ? 'updated' : 'created'} successfully`);
       navigate(`/warranty-claims/${result._id}`);
     } catch (error) {
       if (error.error) {
         message.error(error.error);
       } else {
-        message.error('Failed to create warranty claim');
+        message.error(`Failed to ${isEditMode ? 'update' : 'create'} warranty claim`);
       }
     } finally {
       setLoading(false);
@@ -150,12 +196,16 @@ const WarrantyClaimForm = () => {
   return (
     <div className="p-4 sm:p-6 dark:bg-slate-900">
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100 sm:text-2xl">New Warranty Claim</h1>
+        <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100 sm:text-2xl">
+          {isEditMode ? 'Edit Warranty Claim' : 'New Warranty Claim'}
+        </h1>
         <div className="grid grid-cols-1 gap-2 sm:flex sm:justify-end">
-          <Button className="w-full sm:w-auto" onClick={() => setSearchModalOpen(true)} icon={<SearchOutlined />}>
-            Find from Bill
-          </Button>
-          <Button className="w-full sm:w-auto" onClick={() => navigate('/warranty-claims')}>Cancel</Button>
+          {!isEditMode && (
+            <Button className="w-full sm:w-auto" onClick={() => setSearchModalOpen(true)} icon={<SearchOutlined />}>
+              Find from Bill
+            </Button>
+          )}
+          <Button className="w-full sm:w-auto" onClick={() => navigate(isEditMode ? `/warranty-claims/${id}` : '/warranty-claims')}>Cancel</Button>
         </div>
       </div>
 
@@ -371,9 +421,9 @@ const WarrantyClaimForm = () => {
           </Card>
 
           <div className="flex flex-col justify-end gap-3 sm:flex-row">
-            <Button className="w-full sm:w-auto" onClick={() => navigate('/warranty-claims')}>Cancel</Button>
+            <Button className="w-full sm:w-auto" onClick={() => navigate(isEditMode ? `/warranty-claims/${id}` : '/warranty-claims')}>Cancel</Button>
             <Button className="w-full sm:w-auto" type="primary" onClick={handleSubmit} loading={loading}>
-              Create Warranty Claim
+              {isEditMode ? 'Update Warranty Claim' : 'Create Warranty Claim'}
             </Button>
           </div>
         </Form>

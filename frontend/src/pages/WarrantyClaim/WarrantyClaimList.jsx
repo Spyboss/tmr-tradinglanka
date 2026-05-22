@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Table, Button, Space, Input, Select, Tag, Popconfirm, message, Skeleton, Card, Pagination, Empty } from 'antd';
-import { PlusOutlined, DeleteOutlined, DownloadOutlined, EyeOutlined, SearchOutlined } from '@ant-design/icons';
+import { PlusOutlined, DeleteOutlined, DownloadOutlined, EyeOutlined, SearchOutlined, EditOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import apiClient from '../../config/apiClient';
 import moment from 'moment';
@@ -165,6 +165,12 @@ const WarrantyClaimList = () => {
           />
           <Button
             type="text"
+            icon={<EditOutlined />}
+            onClick={() => navigate(`/warranty-claims/${record._id}/edit`)}
+            title="Edit"
+          />
+          <Button
+            type="text"
             icon={<DownloadOutlined />}
             onClick={() => handleDownloadPDF(record._id, record.warrantyNumber)}
             title="Download PDF"
@@ -258,6 +264,7 @@ const WarrantyClaimList = () => {
               </div>
               <div className="mt-3 grid grid-cols-2 gap-2">
                 <Button size="small" onClick={() => navigate(`/warranty-claims/${c._id}`)}>View</Button>
+                <Button size="small" onClick={() => navigate(`/warranty-claims/${c._id}/edit`)}>Edit</Button>
                 <Button size="small" onClick={() => handleDownloadPDF(c._id, c.warrantyNumber)}>PDF</Button>
               </div>
             </div>
