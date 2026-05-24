@@ -190,7 +190,8 @@ When updating a bill that involves inventory changes, the response includes addi
   "approvedBy": "Operations Manager",
   "approvalDate": "2025-03-12T00:00:00.000Z",
   "batterySerialNumbers": ["BSN001", "BSN002"],
-  "billId": "65f5..."
+  "billId": "65f5...",
+  "status": "pending"
 }
 ```
 

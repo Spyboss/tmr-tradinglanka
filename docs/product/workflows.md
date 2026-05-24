@@ -176,6 +176,43 @@ PDF button → GET /api/warranty-claims/:id/pdf
     │  - Includes UHADEV attribution footer
     ▼
 PDF delivered with filename TMR_Warranty_<warrantyNumber>.pdf
+
+## Warranty Claim Edit Flow
+
+```
+Service/Workshop Staff
+    │
+    │ 1. Navigate to an existing claim → "Edit" button
+    ▼
+Warranty Claim Form (frontend/src/pages/WarrantyClaim/WarrantyClaimForm.jsx)
+    │  - Pre-filled with all existing claim data (loads via GET /:id)
+    │  - "Find from Bill" button hidden in edit mode
+    │  - Modify any fields: customer/vehicle data, defect details,
+    │    parts/items, battery serial numbers, office use section
+    │  - Status can be updated via dropdown (pending/completed/cancelled)
+    ▼
+PUT /api/warranty-claims/:id (authenticate → updateWarrantyClaim)
+    │  - Only the owner or admin can update
+    │  - Non-admins cannot reassign owner
+    ▼
+Claim updated, navigated to detail view
+```
+
+## Warranty Claim Status Change Flow
+
+```
+Service/Workshop Staff or Admin
+    │
+    │ 1. Navigate to claim detail view
+    ▼
+Warranty Claim View (frontend/src/pages/WarrantyClaim/WarrantyClaimView.jsx)
+    │  - Status dropdown in action bar (pending / completed / cancelled)
+    │  - "Set Pending" button appears when status is not pending
+    ▼
+PUT /api/warranty-claims/:id  { status: "completed" }
+    │  - Same update endpoint, ownership enforced
+    ▼
+View refreshes with updated status tag
 ```
 
 ## Verification Reminder Flow (Flagged)
