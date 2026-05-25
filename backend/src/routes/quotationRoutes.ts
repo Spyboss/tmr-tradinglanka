@@ -119,6 +119,7 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
         quotationData.customerName = quotationData.customerName || referenceBill.customerName;
         quotationData.customerNIC = quotationData.customerNIC || referenceBill.customerNIC;
         quotationData.customerAddress = quotationData.customerAddress || referenceBill.customerAddress;
+        quotationData.customerPhone = quotationData.customerPhone || referenceBill.customerPhone;
       }
     }
 
@@ -309,7 +310,7 @@ router.get('/customers/suggestions', authenticate, async (req: AuthRequest, res:
     }
 
     const customers = await Bill.find(filter)
-      .select('_id billNumber customerName customerNIC customerAddress')
+      .select('_id billNumber customerName customerNIC customerAddress customerPhone')
       .limit(10)
       .sort({ createdAt: -1 });
 

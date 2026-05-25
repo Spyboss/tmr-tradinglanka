@@ -134,11 +134,12 @@ const BillGeneratorUnified = () => {
       billData.rmvCharge = selectedModel.is_ebicycle || selectedModel.is_tricycle ? 0 : 13000;
     }
 
+    billData.customerPhone = values.customer_phone?.trim();
+
     if (isAdvancePayment) {
       billData.isAdvancePayment = true;
       billData.advanceAmount = parseFloat(values.advance_amount || 0);
       billData.balanceAmount = totalAmount - (parseFloat(values.advance_amount || 0));
-      billData.customerPhone = values.customer_phone?.trim();
       if (values.estimated_delivery_date) {
         billData.estimatedDeliveryDate = values.estimated_delivery_date.toISOString();
       }
@@ -411,19 +412,6 @@ const BillGeneratorUnified = () => {
           </Form.Item>
         )}
 
-        {isAdvancePayment && (
-          <Form.Item
-            name="customer_phone"
-            label="Customer Contact Number"
-            rules={[
-              { required: true, message: 'Please enter customer contact number' },
-              { pattern: /^07\d{8}$/, message: 'Enter a valid Sri Lankan mobile number (07XXXXXXXX)' }
-            ]}
-          >
-            <Input maxLength={10} placeholder="0701234567" />
-          </Form.Item>
-        )}
-
         <Form.Item 
           name="customer_name" 
           label="Customer Name" 
@@ -449,6 +437,18 @@ const BillGeneratorUnified = () => {
           getValueFromEvent={e => e?.target?.value?.toUpperCase?.() || ''}
         >
           <Input.TextArea style={{ textTransform: 'uppercase' }} autoCapitalize="characters" />
+        </Form.Item>
+
+        <Form.Item
+          key={`phone-${isAdvancePayment}`}
+          name="customer_phone"
+          label="Customer Contact Number"
+          rules={[
+            ...(isAdvancePayment ? [{ required: true, message: 'Please enter customer contact number for advance payments' }] : []),
+            { pattern: /^07\d{8}$/, message: 'Enter a valid Sri Lankan mobile number (07XXXXXXXX)' }
+          ]}
+        >
+          <Input maxLength={10} placeholder="0701234567" />
         </Form.Item>
 
         <Form.Item 

@@ -292,6 +292,12 @@ const BillList = () => {
       key: 'customerName',
     },
     {
+      title: 'Phone',
+      dataIndex: 'customerPhone',
+      key: 'customerPhone',
+      render: (phone) => phone || '-',
+    },
+    {
       title: 'Model',
       dataIndex: 'bikeModel',
       key: 'bikeModel',

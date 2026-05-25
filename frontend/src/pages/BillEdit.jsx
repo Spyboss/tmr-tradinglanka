@@ -299,17 +299,6 @@ const BillEdit = () => {
               >
                 <DatePicker className="w-full" />
               </Form.Item>
-
-              <Form.Item
-                name="customerPhone"
-                label="Customer Contact Number"
-                rules={[
-                  { required: true, message: 'Please enter customer contact number' },
-                  { pattern: /^07\d{8}$/, message: 'Enter a valid Sri Lankan mobile number (07XXXXXXXX)' }
-                ]}
-              >
-                <Input maxLength={10} placeholder="0701234567" />
-              </Form.Item>
             </>
           )}
 
@@ -335,6 +324,18 @@ const BillEdit = () => {
             rules={[{ required: true, message: 'Please enter customer address' }]}
           >
             <Input.TextArea />
+          </Form.Item>
+
+          <Form.Item
+            key={`phone-${billType === 'advance'}`}
+            name="customerPhone"
+            label="Customer Contact Number"
+            rules={[
+              ...(billType === 'advance' ? [{ required: true, message: 'Please enter customer contact number for advance payments' }] : []),
+              { pattern: /^07\d{8}$/, message: 'Enter a valid Sri Lankan mobile number (07XXXXXXXX)' }
+            ]}
+          >
+            <Input maxLength={10} placeholder="0701234567" />
           </Form.Item>
 
           <Form.Item
