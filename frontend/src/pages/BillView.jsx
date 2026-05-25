@@ -19,12 +19,19 @@ const BillView = () => {
   const [proformaVisible, setProformaVisible] = useState(false);
   const [proformaLoading, setProformaLoading] = useState(false);
   const [proformaSubmitting, setProformaSubmitting] = useState(false);
+  const [financeCompanies, setFinanceCompanies] = useState([]);
 
   useEffect(() => {
     if (id) {
       fetchBill(id);
     }
   }, [id]);
+
+  useEffect(() => {
+    apiClient.get('/finance-companies')
+      .then(res => setFinanceCompanies(res || []))
+      .catch(() => {});
+  }, []);
 
   const fetchBill = async (billId) => {
     try {
@@ -635,7 +642,27 @@ const BillView = () => {
             label="Leasing/Finance By"
             rules={[{ required: true, message: 'Enter finance company name' }]}
           >
-            <Input placeholder="Company name" />
+            <Select
+              showSearch
+              placeholder="Search finance company..."
+              filterOption={(input, option) =>
+                (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+              }
+              options={financeCompanies.map(c => ({
+                label: c.name,
+                value: c.name
+              }))}
+              onChange={(value) => {
+                const company = financeCompanies.find(c => c.name === value);
+                if (company) {
+                  proformaForm.setFieldsValue({
+                    financeCompanyAddress: company.address,
+                    financeCompanyContact: company.contact
+                  });
+                }
+              }}
+              notFoundContent={null}
+            />
           </Form.Item>
 
           <Form.Item

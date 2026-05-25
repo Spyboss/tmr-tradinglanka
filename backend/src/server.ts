@@ -100,6 +100,7 @@ import quotationRoutes from './routes/quotationRoutes.js';
 import brandingRoutes from './routes/brandingRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import warrantyClaimRoutes from './routes/warrantyClaimRoutes.js';
+import financeCompanyRoutes from './routes/financeCompanyRoutes.js';
 import { apiRateLimit } from './auth/rate-limit.middleware.js';
 import { notFound, errorHandler } from './middleware/errorHandler.js';
 import { applySecurityMiddleware } from './middleware/security-middleware.js';
@@ -242,7 +243,8 @@ app.get('/', (req, res) => {
       '/api/quotations',
       '/api/branding',
       '/api/warranty-claims',
-      '/api/gdpr'
+      '/api/gdpr',
+      '/api/finance-companies'
     ]
   });
 });
@@ -256,6 +258,7 @@ app.use('/api/quotations', quotationRoutes);
 app.use('/api/branding', brandingRoutes);
 app.use('/api/gdpr', gdprRoutes);
 app.use('/api/warranty-claims', warrantyClaimRoutes);
+app.use('/api/finance-companies', financeCompanyRoutes);
 
 // Error handling
 app.use(notFound);
