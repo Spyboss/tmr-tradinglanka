@@ -179,7 +179,7 @@ Frontend automated tests are on the roadmap; manual QA covers core journeys toda
 | Collection | Key Fields |
 | --- | --- |
 | `users` | email, role, hashed password, loginAttempts, accountLocked |
-| `bills` | billNumber, status, encrypted NIC/address, inventoryItemId, owner |
+| `bills` | billNumber, status, encrypted NIC/address/phone, inventoryItemId, owner |
 | `bike_inventory` | bikeModelId, motorNumber, status, addedBy, billId |
 | `bike_models` | name, price, leasing flags |
 | `quotations` | quotationNumber, type, encrypted customer info, items[], owner |

@@ -44,8 +44,8 @@ All endpoints are prefixed with `/api`. JSON responses follow a consistent shape
 | GET | `/api/bills` | Authenticated | Paginated list. Non-admins filtered by `owner`. Supports `status`, `search`, `page`, `limit`. |
 | GET | `/api/bills/suggestions` | Authenticated | Search suggestions for customer names, bill numbers, and bike models. Query param `q` for search term. |
 | GET | `/api/bills/:id` | Authenticated | Fetch a bill by ID. Ownership enforced. |
-| POST | `/api/bills` | Authenticated | Create bill. Auto-generates bill number, encrypts NIC/address, links inventory when provided. |
-| PUT | `/api/bills/:id` | Authenticated | Update bill fields. Handles inventory item changes transactionally - releases old inventory and claims new inventory when changed. Prevents owner reassignment. |
+| POST | `/api/bills` | Authenticated | Create bill. Auto-generates bill number, encrypts NIC/address/phone, links inventory when provided. Phone required for advance payments, optional with format validation otherwise. |
+| PUT | `/api/bills/:id` | Authenticated | Update bill fields including customerPhone. Handles inventory item changes transactionally - releases old inventory and claims new inventory when changed. Prevents owner reassignment. |
 | DELETE | `/api/bills/:id` | Authenticated | Delete bill. Non-admins can only delete bills with `status: cancelled`. Runs in MongoDB transaction - releases linked inventory back to available status. Requires `res.locals.activityLogged = true` to prevent duplicate audit logging when route handles its own activity. |
 | PATCH | `/api/bills/:id/status` | Authenticated | Update bill status. Handles inventory status changes - marks inventory as sold when completing, releases to available when cancelling. Ownership enforced. |
 | POST | `/api/bills/:id/close-sale` | Authenticated | Convert an advance bill to a final sale. Creates a new completed bill with calculated amounts, marks original as converted, and updates linked inventory status to sold. Only for advance bills that haven't been converted yet. |
@@ -84,6 +84,7 @@ When updating a bill that involves inventory changes, the response includes addi
   "customerName": "Imesh Perera",
   "customerNIC": "123456789V",
   "customerAddress": "45 Lake Road, Embilipitiya",
+  "customerPhone": "0771234567",
   "bikeModel": "E-MOTORCYCLE X1",
   "motorNumber": "MTR123456",
   "chassisNumber": "CHS987654",
@@ -126,12 +127,12 @@ When updating a bill that involves inventory changes, the response includes addi
 | --- | --- | --- | --- |
 | GET | `/api/quotations` | Authenticated | Paginated listing filtered by owner. Supports `status`, `type`, `search`. |
 | GET | `/api/quotations/:id` | Authenticated | Fetch quotation. Ownership enforced. |
-| POST | `/api/quotations` | Authenticated | Create quotation. Auto-populates customer info when `referenceBillId` provided. |
+| POST | `/api/quotations` | Authenticated | Create quotation. Auto-populates customer info (name, NIC, address, phone) when `referenceBillId` provided. |
 | PUT | `/api/quotations/:id` | Authenticated | Update quotation fields. |
 | DELETE | `/api/quotations/:id` | Authenticated | Remove quotation. |
 | GET | `/api/quotations/:id/pdf` | Authenticated | Download quotation/invoice PDF. |
-| POST | `/api/quotations/:id/convert-to-invoice` | Authenticated | Clone quotation into an invoice record and mark original as converted. |
-| GET | `/api/quotations/customers/suggestions` | Authenticated | Suggest customers from bills for auto-fill. |
+| POST | `/api/quotations/:id/convert-to-invoice` | Authenticated | Clone quotation into an invoice record with payment term remark and mark original as converted. |
+| GET | `/api/quotations/customers/suggestions` | Authenticated | Suggest customers from bills for auto-fill (includes name, NIC, address, phone). |
 
 ## Warranty Claims
 

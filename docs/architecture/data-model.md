@@ -60,6 +60,7 @@ Bill (bills)
   customerName
   customerNIC (encrypted)
   customerAddress (encrypted)
+  customerPhone (encrypted)
   bikeModel (string snapshot)
   motorNumber / chassisNumber / vehicleType
   inventoryItemId (ref BikeInventory)

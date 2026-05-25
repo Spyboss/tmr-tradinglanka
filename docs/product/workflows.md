@@ -9,10 +9,11 @@ Sales Executive
     │
     │ 1. Navigate to Bills → "Create Bill"
     ▼
-Bill Form (frontend/src/pages/BillForm.jsx)
+Bill Form (frontend/src/components/BillGeneratorUnified.jsx)
     │  - Select bike model (auto-fetch price)
-    │  - Enter customer NIC/address (encrypted on submit)
+    │  - Enter customer NIC/address/phone (encrypted on submit)
     │  - Choose payment type (cash/leasing/advance)
+    │  - Phone required for advance payments; optional with format validation for others
     ▼
 POST /api/bills (authenticate → createBill controller)
     │  - Validates unique bill number
@@ -34,7 +35,7 @@ Sales Executive
     │ 1. Navigate to existing bill → Edit
     ▼
 Bill Edit Form (frontend/src/pages/BillEdit.jsx)
-    │  - Modify any bill fields
+    │  - Modify any bill fields including customer phone
     │  - Change linked inventory item (optional)
     ▼
 PUT /api/bills/:id (authenticate)
@@ -109,6 +110,7 @@ Quotation Editor (frontend/src/pages/QuotationEdit.jsx)
 POST /api/quotations
     │  - Auto-generates quotation number
     │  - Encrypts customer NIC/address/phone
+    │  - Customer phone auto-filled when selecting a bill reference
     ▼
 Quotation stored with status=draft
     │
@@ -118,6 +120,7 @@ Upon approval → "Convert to Invoice"
     │
 POST /api/quotations/:id/convert-to-invoice
     │  - Clones record with type=invoice, status=sent
+    │  - Sets remarks to payment term ("Payment should be made within 7 days of invoice date.")
     │  - Marks original quotation as converted
     ▼
 Invoice ready for billing reconciliation
@@ -152,8 +155,8 @@ Service/Workshop Staff
     ▼
 Warranty Claim Form (frontend/src/pages/WarrantyClaim/WarrantyClaimForm.jsx)
     │  - Option A: "Find from Bill" → search modal populates
-    │    customer/vehicle fields from existing bill (customer name, chassis,
-    │    motor, model, color from inventory notes, date of sale)
+    │    customer/vehicle fields from existing bill (customer name, phone,
+    │    chassis, motor, model, color from inventory notes, date of sale)
     │  - Option B: Manually enter all fields
     │  - Enter defect details, probable cause, action taken, suggestion
     │  - Add parts/items (up to 4 rows in PDF)
