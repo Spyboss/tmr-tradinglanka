@@ -54,6 +54,7 @@ const QuotationGenerator = () => {
         customerName: customer.customerName,
         customerNIC: customer.customerNIC,
         customerAddress: customer.customerAddress,
+        customerPhone: customer.customerPhone,
         referenceBillId: customer._id
       });
     }

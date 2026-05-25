@@ -79,6 +79,7 @@ const QuotationEdit = () => {
         customerName: customer.customerName,
         customerNIC: customer.customerNIC,
         customerAddress: customer.customerAddress,
+        customerPhone: customer.customerPhone,
         referenceBillId: customer._id
       });
     }
