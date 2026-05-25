@@ -4,6 +4,10 @@ All notable changes to this project are documented in this file. The format foll
 
 ## [Unreleased]
 ### Added
+- FinanceCompany model with name, address, and contact for master list of finance partners.
+- `GET /api/finance-companies` endpoint returning all finance companies sorted by name.
+- Proforma invoice form: finance company name is now a searchable `<Select>` dropdown filtered by typing. Selecting a company auto-fills the address and contact fields.
+- Seed script (`backend/src/scripts/seedFinanceCompanies.ts`) to populate initial finance company records.
 - Customer phone field (`customerPhone`) to bill creation form — always visible, required for advance payments, optional with format validation (`07XXXXXXXX`) for cash/leasing.
 - Customer phone column in bill list table for at-a-glance contact data.
 - Customer phone auto-prefill in quotation/invoice forms when selecting a bill customer reference.

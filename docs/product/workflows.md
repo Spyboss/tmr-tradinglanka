@@ -146,6 +146,34 @@ Branding document persisted
 No restart required (fetched on demand)
 ```
 
+## Proforma Invoice Flow (with Finance Company Selection)
+
+```
+Sales Executive
+    │
+    │ 1. Navigate to a completed leasing bill → "Generate Proforma Invoice"
+    ▼
+Proforma Modal (frontend/src/pages/BillView.jsx)
+    │  - Fetches existing proforma defaults (type, document number, issue date)
+    │  - Finance Company field: searchable <Select> dropdown
+    │    - Type "hnb" or "sarv" to filter; press Enter to select
+    │    - Selecting a company auto-fills address and contact
+    │  - Address/contact can still be edited manually after auto-fill
+    │  - Enter unit price, down payment; amount to be leased auto-calculates
+    ▼
+PUT /api/bills/:id/proforma (authenticate)
+    │  - Validates all required fields including finance company name, address, contact
+    │  - Saves proforma sub-document on the bill
+    ▼
+GET /api/bills/:id/proforma/pdf (authenticate)
+    │  - Generates branded PDF with dealer logo and finance company details
+    │  - Renders finance company name, address, and contact in the signature area
+    ▼
+PDF downloaded as proforma-<billNumber>.pdf
+```
+
+The finance company master list is maintained in the `FinanceCompany` collection. Add or update entries via the seed script or directly in the database. The dropdown always reflects the current list sorted alphabetically.
+
 ## Warranty Claim Flow
 
 ```

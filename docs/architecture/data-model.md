@@ -118,6 +118,13 @@ WarrantyClaim (warrantyclaims)
   owner (ref User)
   timestamps
 
+FinanceCompany (financecompanies)
+  _id (ObjectId)
+  name (unique)
+  address
+  contact
+  timestamps
+
 Branding (brandings)
   _id (ObjectId)
   dealerName

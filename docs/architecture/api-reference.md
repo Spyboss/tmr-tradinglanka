@@ -210,6 +210,12 @@ When updating a bill that involves inventory changes, the response includes addi
 | GET | `/api/branding` | Authenticated | Retrieve dealer branding config (auto-creates default document). |
 | PUT | `/api/branding` | Admin | Update branding (dealer name, addresses, colour, logo, footer). |
 
+## Finance Companies
+
+| Method | Path | Auth | Description |
+| --- | --- | --- | --- |
+| GET | `/api/finance-companies` | Authenticated | List all finance/leasing companies sorted alphabetically by name. Each entry includes `name`, `address`, and `contact`. Used by the proforma invoice form to populate a searchable dropdown with auto-fill of address and contact. |
+
 ## User Preferences & Activity
 
 | Method | Path | Auth | Description |
