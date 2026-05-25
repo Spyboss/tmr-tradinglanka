@@ -130,7 +130,7 @@ const QuotationSchema = new Schema({
   // Additional details
   remarks: {
     type: String,
-    default: 'Payment should be made within 7 days of invoice date.'
+    default: ''
   },
   validUntil: {
     type: Date

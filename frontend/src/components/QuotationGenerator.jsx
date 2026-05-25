@@ -21,6 +21,20 @@ const QuotationGenerator = () => {
   const [customerSearchLoading, setCustomerSearchLoading] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
 
+  const docType = Form.useWatch('type', form);
+
+  // Set appropriate default remarks when document type changes
+  useEffect(() => {
+    if (docType === 'invoice') {
+      const current = form.getFieldValue('remarks');
+      if (!current) {
+        form.setFieldValue('remarks', 'Payment should be made within 7 days of invoice date.');
+      }
+    } else {
+      form.setFieldValue('remarks', '');
+    }
+  }, [docType, form]);
+
   // Calculate total amount whenever items change
   useEffect(() => {
     const total = items.reduce((sum, item) => sum + (item.amount || 0), 0);
@@ -239,7 +253,7 @@ const QuotationGenerator = () => {
         initialValues={{
           type: 'quotation',
           quotationDate: moment(),
-          remarks: 'Payment should be made within 7 days of invoice date.'
+          remarks: ''
         }}
       >
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
