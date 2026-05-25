@@ -277,15 +277,19 @@ router.get('/suggestions', authenticate, async (req: AuthRequest, res: Response)
 // Get bill by ID - Protected route with ownership check
 router.get('/:id', authenticate, async (req: AuthRequest, res: Response) => {
   try {
-    const bill = await Bill.findById(req.params.id);
+    // Check ownership or admin status first
+    const user = await req.app.locals.models?.User.findById(req.user?.id);
+    const isAdmin = user?.role === 'admin';
+
+    // Only populate owner details for admin users
+    const bill = isAdmin
+      ? await Bill.findById(req.params.id).populate('owner', 'name email')
+      : await Bill.findById(req.params.id);
 
     if (!bill) {
       return res.status(404).json({ error: 'Bill not found' });
     }
 
-    // Check ownership or admin status
-    const user = await req.app.locals.models?.User.findById(req.user?.id);
-    const isAdmin = user?.role === 'admin';
     const isOwner = bill.owner && bill.owner.toString() === req.user?.id;
 
     if (!isAdmin && !isOwner) {

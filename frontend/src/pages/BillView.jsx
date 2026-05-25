@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Spin, Button, Badge, Descriptions, Card, Popconfirm, message, Alert, Tag, Modal, Form, Input, InputNumber, Select, DatePicker } from 'antd';
-import { DownloadOutlined, DeleteOutlined, EditOutlined, PrinterOutlined, EyeOutlined, FileDoneOutlined } from '@ant-design/icons';
+import { DownloadOutlined, DeleteOutlined, EditOutlined, PrinterOutlined, EyeOutlined, FileDoneOutlined, UserOutlined, BankOutlined } from '@ant-design/icons';
 import toast from 'react-hot-toast';
 import apiClient from '../config/apiClient';
 import AdvancementConversion from '../components/AdvancementConversion';
 import dayjs from 'dayjs';
+import { useAuth } from '../contexts/AuthContext';
 
 const BillView = () => {
   const { id } = useParams();
@@ -20,6 +21,7 @@ const BillView = () => {
   const [proformaLoading, setProformaLoading] = useState(false);
   const [proformaSubmitting, setProformaSubmitting] = useState(false);
   const [financeCompanies, setFinanceCompanies] = useState([]);
+  const { isAdmin } = useAuth();
 
   useEffect(() => {
     if (id) {
@@ -426,6 +428,11 @@ const BillView = () => {
             <Descriptions.Item label="Bill Number">{bill.billNumber || bill._id || bill.id}</Descriptions.Item>
             <Descriptions.Item label="Bill Date">{formatDate(bill.billDate || bill.createdAt)}</Descriptions.Item>
             <Descriptions.Item label="Bill Type">{getBillTypeTag(isAdvanceBill ? 'advance' : bill.billType)}</Descriptions.Item>
+            {isAdmin() && bill.owner?.name && (
+              <Descriptions.Item label={<><UserOutlined className="mr-1" />Created By</>}>
+                {bill.owner.name}{bill.owner.email ? ` (${bill.owner.email})` : ''}
+              </Descriptions.Item>
+            )}
             <Descriptions.Item label="Status">
               <Badge 
                 status={getStatusBadgeClass(bill.status)} 
@@ -491,6 +498,11 @@ const BillView = () => {
             )}
             {bill.billType === 'leasing' && (
               <Descriptions.Item label="Down Payment">{formatAmount(bill.downPayment)}</Descriptions.Item>
+            )}
+            {bill.proforma?.financeCompanyName && (
+              <Descriptions.Item label={<><BankOutlined className="mr-1" />Finance Company</>}>
+                {bill.proforma.financeCompanyName}
+              </Descriptions.Item>
             )}
           </Descriptions>
         </Card>
