@@ -93,12 +93,20 @@ export default function Dashboard() {
             <SafetyCertificateOutlined /> Warranty Claims
           </h2>
           <p className="text-gray-600 dark:text-gray-300 mb-4">Manage warranty claims</p>
-          <Link
-            to="/warranty-claims"
-            className="inline-block px-4 py-2 bg-cyan-600 text-white rounded hover:bg-cyan-700 dark:hover:bg-cyan-500 text-center w-full"
-          >
-            View Claims
-          </Link>
+          <div className="flex flex-col space-y-2">
+            <Link
+              to="/warranty-claims"
+              className="inline-block px-4 py-2 bg-cyan-600 text-white rounded hover:bg-cyan-700 dark:hover:bg-cyan-500 text-center"
+            >
+              View Claims
+            </Link>
+            <Link
+              to="/warranty-claims/new"
+              className="inline-block px-4 py-2 bg-cyan-500 text-white rounded hover:bg-cyan-600 dark:hover:bg-cyan-400 text-center"
+            >
+              New Claim
+            </Link>
+          </div>
         </div>
 
         <div className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md">
