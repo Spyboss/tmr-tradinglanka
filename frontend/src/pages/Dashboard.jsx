@@ -87,7 +87,7 @@ export default function Dashboard() {
             </Link>
             <Link
               to="/reports/finance-company-sales"
-              className="inline-block px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 dark:hover:bg-purple-500 text-center"
+              className="inline-block px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 dark:hover:bg-indigo-500 text-center"
             >
               Finance Company Sales
             </Link>
