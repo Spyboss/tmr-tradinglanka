@@ -214,7 +214,12 @@ When updating a bill that involves inventory changes, the response includes addi
 
 | Method | Path | Auth | Description |
 | --- | --- | --- | --- |
-| GET | `/api/finance-companies` | Authenticated | List all finance/leasing companies sorted alphabetically by name. Each entry includes `name`, `address`, and `contact`. Used by the proforma invoice form to populate a searchable dropdown with auto-fill of address and contact. |
+| GET | `/api/finance-companies` | Authenticated | List all finance/leasing companies sorted alphabetically by name. Each entry includes `name`, `address`, and `contact`. |
+| POST | `/api/finance-companies` | Admin | Create a finance company. Requires `name`, `address`, `contact`. Returns 409 if name already exists. |
+| PUT | `/api/finance-companies/:id` | Admin | Update a finance company's `name`, `address`, `contact`. Validates required fields and unique name. |
+| DELETE | `/api/finance-companies/:id` | Admin | Delete a finance company. Returns 404 if not found. |
+
+Used by the proforma invoice form to populate a searchable dropdown with auto-fill of address and contact. Managed by admins via the finance company management page at `/admin/finance-companies`.
 
 ## User Preferences & Activity
 

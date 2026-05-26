@@ -184,6 +184,7 @@ Frontend automated tests are on the roadmap; manual QA covers core journeys toda
 | `bike_models` | name, price, leasing flags |
 | `quotations` | quotationNumber, type, encrypted customer info, items[], owner |
 | `warrantyclaims` | warrantyNumber (WAR-YYMMDD-XXX), formNumber, status, customer/vehicle data, defect info, items[], batterySerialNumbers, billId, owner |
+| `financecompanies` | name, address, contact, timestamps |
 | `branding` | dealerName, primaryColor, logoUrl |
 | `userpreferences` | theme, language, notification + dashboard preferences |
 | `useractivities` | activity type, metadata, timestamp |
@@ -199,6 +200,7 @@ The REST API is described in [`docs/architecture/api-reference.md`](./docs/archi
 - `/api/inventory` – item management, analytics, report analytics (sales pace, stock penalties), report PDFs.
 - `/api/quotations` – quotations, invoice conversion, customer suggestions.
 - `/api/warranty-claims` – CRUD + PDF + bill search + prefill data.
+- `/api/finance-companies` – finance/leasing partner master list with admin CRUD.
 - `/api/branding` – dealer branding config (admin-only mutating operations).
 - `/api/user/*` – preferences and activity history.
 - `/api/gdpr/*` – data export/delete flows.

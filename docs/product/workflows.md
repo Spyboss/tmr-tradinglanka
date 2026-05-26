@@ -172,7 +172,46 @@ GET /api/bills/:id/proforma/pdf (authenticate)
 PDF downloaded as proforma-<billNumber>.pdf
 ```
 
-The finance company master list is maintained in the `FinanceCompany` collection. Add or update entries via the seed script or directly in the database. The dropdown always reflects the current list sorted alphabetically.
+The finance company master list is maintained in the `FinanceCompany` collection. The dropdown always reflects the current list sorted alphabetically.
+
+## Finance Company Admin Management Flow
+
+```
+Operations Admin
+    │
+    │ 1. Dashboard → Settings card → "Finance Companies"
+    ▼
+Finance Company List (`/admin/finance-companies`)
+    │  - Table with all companies sorted alphabetically by name
+    │  - Columns: Name, Address, Contact, Actions
+    │  - Actions: Edit (pencil icon) / Delete (trash icon with confirmation)
+    │
+    ├─── "Add Company" button
+    │    ▼
+    │    Modal form: Name, Address, Contact
+    │    POST /api/finance-companies (admin-only)
+    │    - Validates required fields
+    │    - Returns 409 if company name already exists
+    │    ▼
+    │    Table refreshes with new entry
+    │
+    ├─── Edit icon → opens same modal pre-filled
+    │    ▼
+    │    PUT /api/finance-companies/:id (admin-only)
+    │    - Updates name, address, contact
+    │    - Duplicate name check on save
+    │    ▼
+    │    Table refreshes with updated values
+    │
+    └─── Delete icon → Popconfirm "Delete this finance company?"
+         ▼
+         DELETE /api/finance-companies/:id (admin-only)
+         - Removes company from master list
+         ▼
+         Table refreshes without deleted entry
+```
+
+Changes are immediately reflected the next time any user opens a proforma invoice modal (the finance company dropdown fetches from `GET /api/finance-companies` on open).
 
 ## Warranty Claim Flow
 

@@ -38,7 +38,7 @@ The platform is delivered as a TypeScript monorepo with a React SPA (`frontend/`
 | Inventory | `backend/src/routes/inventoryRoutes.ts` | Item lifecycle, analytics summaries, inventory report analytics (monthly sales pace, stock penalty alerts with chassis numbers), PDF exports, bike-model catalogue linkage. |
 | Quotations | `backend/src/routes/quotationRoutes.ts` | Multi-line quotations, invoice conversion, PDF exports, bill customer reuse. |
 | Branding | `backend/src/routes/brandingRoutes.ts` | Dealer identity configuration powering SPA header and PDF templates. |
-| Finance Companies | `backend/src/routes/financeCompanyRoutes.ts` | Master list of finance/leasing partners with name, address, and contact. Used by the proforma invoice form for searchable dropdown selection and auto-fill. |
+| Finance Companies | `backend/src/routes/financeCompanyRoutes.ts` | Master list of finance/leasing partners with full admin CRUD (create, read, update, delete). Managed via the finance company admin page at `/admin/finance-companies`. Used by the proforma invoice form for searchable dropdown selection and auto-fill. |
 | User Preferences | `backend/src/routes/userRoutes.ts` | Theme, language, notification settings per user, backed by `UserPreferences` model. |
 | Activity Logging | `backend/src/middleware/activityLogger.middleware.ts` | Writes structured events into `UserActivity`. Bill update/delete operations include detailed metadata (old/new values, inventory release/claim status, IP address, user agent). |
 | GDPR Toolkit | `backend/src/routes/gdprRoutes.ts` | Encrypted export ZIPs, pseudonymised deletes, token revocation. |
