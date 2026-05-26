@@ -1,6 +1,7 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { FileTextOutlined, FileSearchOutlined, ShoppingCartOutlined, BarChartOutlined, SafetyCertificateOutlined, SettingOutlined } from '@ant-design/icons'
 
 export default function Dashboard() {
   const { isAdmin } = useAuth();
@@ -10,20 +11,17 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <div className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md">
-          <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-100">Bills</h2>
+          <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-100 flex items-center gap-2">
+            <FileTextOutlined /> Bills
+          </h2>
           <p className="text-gray-600 dark:text-gray-300 mb-4">View and manage all bills</p>
-          <Link
-            to="/bills"
-            className="inline-block px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 dark:hover:bg-blue-500"
-          >
-            View Bills
-          </Link>
-        </div>
-
-        <div className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md">
-          <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-100">New Bill</h2>
-          <p className="text-gray-600 dark:text-gray-300 mb-4">Create a new bill</p>
           <div className="flex flex-col space-y-2">
+            <Link
+              to="/bills"
+              className="inline-block px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 dark:hover:bg-blue-500 text-center"
+            >
+              View Bills
+            </Link>
             <Link
               to="/bills/new"
               className="inline-block px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 dark:hover:bg-green-500 text-center"
@@ -34,7 +32,9 @@ export default function Dashboard() {
         </div>
 
         <div className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md">
-          <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-100">Quotations</h2>
+          <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-100 flex items-center gap-2">
+            <FileSearchOutlined /> Quotations
+          </h2>
           <p className="text-gray-600 dark:text-gray-300 mb-4">Manage quotations and invoices</p>
           <div className="flex flex-col space-y-2">
             <Link
@@ -53,7 +53,9 @@ export default function Dashboard() {
         </div>
 
         <div className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md">
-          <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-100">Inventory</h2>
+          <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-100 flex items-center gap-2">
+            <ShoppingCartOutlined /> Inventory
+          </h2>
           <p className="text-gray-600 dark:text-gray-300 mb-4">Manage your bike inventory</p>
           <div className="flex flex-col space-y-2">
             <Link
@@ -72,8 +74,10 @@ export default function Dashboard() {
         </div>
 
         <div className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md">
-          <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-100">Reports</h2>
-          <p className="text-gray-600 dark:text-gray-300 mb-4">View inventory and sales reports</p>
+          <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-100 flex items-center gap-2">
+            <BarChartOutlined /> Reports
+          </h2>
+          <p className="text-gray-600 dark:text-gray-300 mb-4">View sales and inventory reports</p>
           <div className="flex flex-col space-y-2">
             <Link
               to="/inventory/report"
@@ -81,17 +85,26 @@ export default function Dashboard() {
             >
               Inventory Report
             </Link>
-            <Link
-              to="/warranty-claims"
-              className="inline-block px-4 py-2 bg-cyan-600 text-white rounded hover:bg-cyan-700 dark:hover:bg-cyan-500 text-center"
-            >
-              Warranty Claims
-            </Link>
           </div>
         </div>
 
         <div className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md">
-          <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-100">Settings</h2>
+          <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-100 flex items-center gap-2">
+            <SafetyCertificateOutlined /> Warranty Claims
+          </h2>
+          <p className="text-gray-600 dark:text-gray-300 mb-4">Manage warranty claims</p>
+          <Link
+            to="/warranty-claims"
+            className="inline-block px-4 py-2 bg-cyan-600 text-white rounded hover:bg-cyan-700 dark:hover:bg-cyan-500 text-center w-full"
+          >
+            View Claims
+          </Link>
+        </div>
+
+        <div className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md">
+          <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-100 flex items-center gap-2">
+            <SettingOutlined /> Settings
+          </h2>
           <p className="text-gray-600 dark:text-gray-300 mb-4">Configure system settings</p>
           <div className="flex flex-col space-y-2">
             <Link
