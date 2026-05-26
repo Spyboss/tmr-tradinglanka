@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Table, Button, Modal, Form, Input, Space, Card, Typography, Popconfirm, message } from 'antd';
+import { Table, Button, Modal, Form, Input, Space, Card, Typography, Popconfirm, Tooltip, message } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, ArrowLeftOutlined } from '@ant-design/icons';
 import financeCompanyService from '../../services/financeCompanyService';
 
@@ -84,33 +84,34 @@ const FinanceCompanyList = () => {
       dataIndex: 'name',
       key: 'name',
       sorter: (a, b) => a.name.localeCompare(b.name),
-      width: 240,
+      width: '30%',
     },
     {
       title: 'Address',
       dataIndex: 'address',
       key: 'address',
       ellipsis: true,
+      width: '35%',
     },
     {
       title: 'Contact',
       dataIndex: 'contact',
       key: 'contact',
-      width: 140,
+      width: '15%',
     },
     {
       title: 'Actions',
       key: 'actions',
-      width: 180,
+      width: '20%',
       render: (_, record) => (
-        <Space>
-          <Button
-            type="link"
-            icon={<EditOutlined />}
-            onClick={() => openEditModal(record)}
-          >
-            Edit
-          </Button>
+        <Space size="middle">
+          <Tooltip title="Edit">
+            <Button
+              type="link"
+              icon={<EditOutlined />}
+              onClick={() => openEditModal(record)}
+            />
+          </Tooltip>
           <Popconfirm
             title="Delete this finance company?"
             description="This cannot be undone."
@@ -119,9 +120,9 @@ const FinanceCompanyList = () => {
             cancelText="Cancel"
             okButtonProps={{ danger: true }}
           >
-            <Button type="link" danger icon={<DeleteOutlined />}>
-              Delete
-            </Button>
+            <Tooltip title="Delete">
+              <Button type="link" danger icon={<DeleteOutlined />} />
+            </Tooltip>
           </Popconfirm>
         </Space>
       ),
@@ -144,15 +145,14 @@ const FinanceCompanyList = () => {
           </Button>
         </div>
 
-        <div className="overflow-x-auto">
-          <Table
-            dataSource={companies}
-            columns={columns}
-            rowKey="_id"
-            loading={loading}
-            pagination={false}
-          />
-        </div>
+        <Table
+          dataSource={companies}
+          columns={columns}
+          rowKey="_id"
+          loading={loading}
+          pagination={false}
+          scroll={{ x: 'max-content' }}
+        />
       </Card>
 
       <Modal
