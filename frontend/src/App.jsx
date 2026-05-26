@@ -42,6 +42,9 @@ import BikeModelForm from './pages/Admin/BikeModelForm';
 // Admin pages for Finance Companies
 import FinanceCompanyList from './pages/Admin/FinanceCompanyList';
 
+// Report pages
+import FinanceCompanySales from './pages/Reports/FinanceCompanySales';
+
 // User Management pages
 import ProfilePage from './pages/user/ProfilePage';
 
@@ -68,6 +71,7 @@ const ProtectedQuotationList = () => <ProtectedRoute><QuotationList /></Protecte
 const ProtectedQuotationView = () => <ProtectedRoute><QuotationView /></ProtectedRoute>;
 const ProtectedQuotationEdit = () => <ProtectedRoute><QuotationEdit /></ProtectedRoute>;
 const ProtectedProfilePage = () => <ProtectedRoute><ProfilePage /></ProtectedRoute>;
+const ProtectedFinanceCompanySales = () => <ProtectedRoute><FinanceCompanySales /></ProtectedRoute>;
 const ProtectedWarrantyClaimList = () => <ProtectedRoute><WarrantyClaimList /></ProtectedRoute>;
 const ProtectedWarrantyClaimForm = () => <ProtectedRoute><WarrantyClaimForm /></ProtectedRoute>;
 const ProtectedWarrantyClaimView = () => <ProtectedRoute><WarrantyClaimView /></ProtectedRoute>;
@@ -144,6 +148,9 @@ const AppContent = () => {
             <Route path="/warranty-claims/new" element={<ProtectedWarrantyClaimForm />} />
             <Route path="/warranty-claims/:id/edit" element={<ProtectedWarrantyClaimForm />} />
             <Route path="/warranty-claims/:id" element={<ProtectedWarrantyClaimView />} />
+
+            {/* Report routes */}
+            <Route path="/reports/finance-company-sales" element={<ProtectedFinanceCompanySales />} />
 
             {/* User Management routes */}
             <Route path="/profile" element={<ProtectedProfilePage />} />

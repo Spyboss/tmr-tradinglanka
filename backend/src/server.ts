@@ -101,6 +101,7 @@ import brandingRoutes from './routes/brandingRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import warrantyClaimRoutes from './routes/warrantyClaimRoutes.js';
 import financeCompanyRoutes from './routes/financeCompanyRoutes.js';
+import reportRoutes from './routes/reportRoutes.js';
 import { apiRateLimit } from './auth/rate-limit.middleware.js';
 import { notFound, errorHandler } from './middleware/errorHandler.js';
 import { applySecurityMiddleware } from './middleware/security-middleware.js';
@@ -259,6 +260,7 @@ app.use('/api/branding', brandingRoutes);
 app.use('/api/gdpr', gdprRoutes);
 app.use('/api/warranty-claims', warrantyClaimRoutes);
 app.use('/api/finance-companies', financeCompanyRoutes);
+app.use('/api/reports', reportRoutes);
 
 // Error handling
 app.use(notFound);
