@@ -142,13 +142,15 @@ const FinanceCompanyList = () => {
           </Button>
         </div>
 
-        <Table
-          dataSource={companies}
-          columns={columns}
-          rowKey="_id"
-          loading={loading}
-          pagination={false}
-        />
+        <div className="overflow-x-auto">
+          <Table
+            dataSource={companies}
+            columns={columns}
+            rowKey="_id"
+            loading={loading}
+            pagination={false}
+          />
+        </div>
       </Card>
 
       <Modal
