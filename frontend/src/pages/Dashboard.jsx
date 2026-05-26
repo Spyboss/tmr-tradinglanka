@@ -1,7 +1,9 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
+import { useAuth } from '../contexts/AuthContext'
 
 export default function Dashboard() {
+  const { isAdmin } = useAuth();
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Dashboard</h1>
@@ -90,13 +92,23 @@ export default function Dashboard() {
 
         <div className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md">
           <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-100">Settings</h2>
-          <p className="text-gray-600 dark:text-gray-300 mb-4">Configure your billing settings</p>
-          <Link
-            to="/settings"
-            className="inline-block px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 dark:hover:bg-gray-500 text-center"
-          >
-            View Settings
-          </Link>
+          <p className="text-gray-600 dark:text-gray-300 mb-4">Configure system settings</p>
+          <div className="flex flex-col space-y-2">
+            <Link
+              to="/settings"
+              className="inline-block px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 dark:hover:bg-gray-500 text-center"
+            >
+              View Settings
+            </Link>
+            {isAdmin() && (
+              <Link
+                to="/admin/finance-companies"
+                className="inline-block px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 dark:hover:bg-blue-500 text-center"
+              >
+                Finance Companies
+              </Link>
+            )}
+          </div>
         </div>
       </div>
     </div>

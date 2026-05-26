@@ -39,6 +39,9 @@ import WarrantyClaimView from './pages/WarrantyClaim/WarrantyClaimView';
 import BikeModelList from './pages/Admin/BikeModelList';
 import BikeModelForm from './pages/Admin/BikeModelForm';
 
+// Admin pages for Finance Companies
+import FinanceCompanyList from './pages/Admin/FinanceCompanyList';
+
 // User Management pages
 import ProfilePage from './pages/user/ProfilePage';
 
@@ -59,6 +62,7 @@ const ProtectedBillGeneratorWithInventory = () => <ProtectedRoute><BillGenerator
 const ProtectedBillGeneratorUnified = () => <ProtectedRoute><BillGeneratorUnified /></ProtectedRoute>;
 const ProtectedBikeModelList = () => <ProtectedRoute><BikeModelList /></ProtectedRoute>;
 const ProtectedBikeModelForm = () => <ProtectedRoute><BikeModelForm /></ProtectedRoute>;
+const ProtectedFinanceCompanyList = () => <ProtectedRoute><FinanceCompanyList /></ProtectedRoute>;
 const ProtectedQuotationGenerator = () => <ProtectedRoute><QuotationGenerator /></ProtectedRoute>;
 const ProtectedQuotationList = () => <ProtectedRoute><QuotationList /></ProtectedRoute>;
 const ProtectedQuotationView = () => <ProtectedRoute><QuotationView /></ProtectedRoute>;
@@ -129,6 +133,7 @@ const AppContent = () => {
             <Route path="/admin/bike-models" element={<ProtectedBikeModelList />} />
             <Route path="/admin/bike-models/new" element={<ProtectedBikeModelForm />} />
             <Route path="/admin/bike-models/edit/:id" element={<ProtectedBikeModelForm />} />
+            <Route path="/admin/finance-companies" element={<ProtectedFinanceCompanyList />} />
             <Route path="/quotations" element={<ProtectedQuotationList />} />
             <Route path="/quotations/new" element={<ProtectedQuotationGenerator />} />
             <Route path="/quotations/:id" element={<ProtectedQuotationView />} />
