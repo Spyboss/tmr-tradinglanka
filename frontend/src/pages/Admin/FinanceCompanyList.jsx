@@ -84,14 +84,14 @@ const FinanceCompanyList = () => {
       dataIndex: 'name',
       key: 'name',
       sorter: (a, b) => a.name.localeCompare(b.name),
-      width: '30%',
+      width: '35%',
     },
     {
       title: 'Address',
       dataIndex: 'address',
       key: 'address',
       ellipsis: true,
-      width: '35%',
+      width: '42%',
     },
     {
       title: 'Contact',
@@ -102,7 +102,7 @@ const FinanceCompanyList = () => {
     {
       title: 'Actions',
       key: 'actions',
-      width: '20%',
+      width: 100,
       render: (_, record) => (
         <Space size="middle">
           <Tooltip title="Edit">
