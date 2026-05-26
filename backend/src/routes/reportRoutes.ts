@@ -128,18 +128,18 @@ router.get('/finance-company-sales/pdf', authenticate, async (req: AuthRequest, 
     const dealerName = branding?.dealerName || 'TMR TRADING LANKA (Pvt) Ltd';
     const logoBuffer = await loadLogoBuffer(branding?.logoUrl);
 
-    const doc = new PDFDocument({ margin: 50, size: 'A4' });
+    const doc = new PDFDocument({ margin: 50, size: 'A4', layout: 'landscape' });
 
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="finance-company-sales-${financeCompany.replace(/\s+/g, '-')}.pdf"`);
     doc.pipe(res);
 
-    // Header
     const leftMargin = 50;
-    const rightMargin = 50;
     const pageWidth = doc.page.width;
-    const usableWidth = pageWidth - leftMargin - rightMargin;
+    const pageHeight = doc.page.height;
+    const usableWidth = pageWidth - leftMargin * 2;
 
+    // Header
     let y = 40;
     if (logoBuffer) {
       try {
@@ -150,7 +150,7 @@ router.get('/finance-company-sales/pdf', authenticate, async (req: AuthRequest, 
           .text(`Finance Company Sales Report — ${financeCompany}`, leftMargin + 85, y + 22, { width: usableWidth - 85 });
         doc.fontSize(9).fillColor('#999999')
           .text(`Period: ${fromDate ? formatDate(fromDate) : 'All time'} — ${toDate ? formatDate(toDate) : 'All time'}`, leftMargin + 85, y + 38, { width: usableWidth - 85 });
-        y = y + 60;
+        y += 60;
       } catch {
         y = 40;
         doc.fontSize(20).fillColor('#444444').font('Helvetica-Bold')
@@ -159,7 +159,7 @@ router.get('/finance-company-sales/pdf', authenticate, async (req: AuthRequest, 
           .text(`Finance Company Sales Report — ${financeCompany}`, leftMargin, y + 24, { align: 'center', width: usableWidth });
         doc.fontSize(9).fillColor('#999999')
           .text(`Period: ${fromDate ? formatDate(fromDate) : 'All time'} — ${toDate ? formatDate(toDate) : 'All time'}`, leftMargin, y + 40, { align: 'center', width: usableWidth });
-        y = y + 62;
+        y += 62;
       }
     } else {
       doc.fontSize(20).fillColor('#444444').font('Helvetica-Bold')
@@ -168,7 +168,7 @@ router.get('/finance-company-sales/pdf', authenticate, async (req: AuthRequest, 
         .text(`Finance Company Sales Report — ${financeCompany}`, leftMargin, y + 24, { align: 'center', width: usableWidth });
       doc.fontSize(9).fillColor('#999999')
         .text(`Period: ${fromDate ? formatDate(fromDate) : 'All time'} — ${toDate ? formatDate(toDate) : 'All time'}`, leftMargin, y + 40, { align: 'center', width: usableWidth });
-      y = y + 62;
+      y += 62;
     }
 
     doc.y = y;
@@ -189,24 +189,24 @@ router.get('/finance-company-sales/pdf', authenticate, async (req: AuthRequest, 
     doc.moveTo(leftMargin, doc.y).lineTo(leftMargin + usableWidth, doc.y).strokeColor('#cccccc').stroke();
     doc.moveDown();
 
-    // Table dimensions
+    // Table dimensions — landscape columns for readability
     const colWidths = [
-      20,        // #
-      78,        // Bill No
-      56,        // Date
-      92,        // Customer
-      70,        // Chassis No
-      66,        // Motor No
-      48,        // Model
-      50,        // Amount
+      26,      // #
+      100,     // Bill No
+      70,      // Date
+      130,     // Customer
+      110,     // Chassis No
+      105,     // Motor No
+      75,      // Model
+      65,      // Amount
     ];
     const totalColWidth = colWidths.reduce((a, b) => a + b);
     const tableStartX = leftMargin + Math.floor((usableWidth - totalColWidth) / 2);
-    const rowHeight = 18;
-    const headerHeight = 20;
+    const rowHeight = 20;
+    const headerHeight = 22;
     const headerFontSize = 9;
-    const bodyFontSize = 8;
-    const amountFontSize = 9;
+    const bodyFontSize = 9;
+    const amountFontSize = 10;
 
     const headers = ['#', 'Bill No', 'Date', 'Customer', 'Chassis No', 'Motor No', 'Model', 'Amount'];
 
@@ -218,8 +218,8 @@ router.get('/finance-company-sales/pdf', authenticate, async (req: AuthRequest, 
     headers.forEach((h, i) => {
       const x = tableStartX + colWidths.slice(0, i).reduce((a, b) => a + b, 0);
       doc.fillColor('#444444').rect(x, y, colWidths[i], headerHeight).fill();
-      doc.fillColor('#ffffff').text(h, x + 3, y + 5, {
-        width: colWidths[i] - 6,
+      doc.fillColor('#ffffff').text(h, x + 4, y + 6, {
+        width: colWidths[i] - 8,
         align: i === colWidths.length - 1 ? 'right' : 'left',
       });
     });
@@ -248,17 +248,17 @@ router.get('/finance-company-sales/pdf', authenticate, async (req: AuthRequest, 
 
       row.forEach((val, j) => {
         const x = tableStartX + colWidths.slice(0, j).reduce((a, b) => a + b, 0);
-        doc.font(j === 1 ? 'Helvetica-Bold' : (j === colWidths.length - 1 ? 'Helvetica-Bold' : 'Helvetica'))
+        doc.font(j === 1 || j === colWidths.length - 1 ? 'Helvetica-Bold' : 'Helvetica')
           .fontSize(j === colWidths.length - 1 ? amountFontSize : bodyFontSize)
           .fillColor('#333333')
-          .text(val, x + 3, y + 4, {
-            width: colWidths[j] - 6,
+          .text(val, x + 4, y + 5, {
+            width: colWidths[j] - 8,
             align: j === colWidths.length - 1 ? 'right' : 'left',
           });
       });
 
       y += rowHeight;
-      if (y > 750) {
+      if (y > pageHeight - 100) {
         doc.addPage();
         y = 50;
       }
@@ -267,14 +267,14 @@ router.get('/finance-company-sales/pdf', authenticate, async (req: AuthRequest, 
     // Total row
     doc.fillColor('#e5e7eb').rect(tableStartX, y, totalColWidth, headerHeight).fill();
     doc.fillColor('#333333').font('Helvetica-Bold').fontSize(bodyFontSize)
-      .text(`Total (${bills.length} bills)`, tableStartX + 3, y + 5, { width: totalColWidth - 60 })
-      .text(formatCurrency(totalAmount), tableStartX + totalColWidth - 55, y + 5, { width: 52, align: 'right' });
+      .text(`Total (${bills.length} bills)`, tableStartX + 4, y + 6, { width: totalColWidth - 80 })
+      .text(formatCurrency(totalAmount), tableStartX + totalColWidth - 72, y + 6, { width: 68, align: 'right' });
 
     // Footer
     doc.fontSize(7).fillColor('#999999').font('Helvetica')
       .text(
         `Generated by TMR Trading Lanka System — ${new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })} — Data Source: Production Database`,
-        leftMargin, 780, { align: 'center', width: usableWidth }
+        leftMargin, pageHeight - doc.page.margins.bottom - 20, { align: 'center', width: usableWidth }
       );
 
     doc.end();
