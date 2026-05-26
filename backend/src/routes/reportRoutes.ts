@@ -124,7 +124,8 @@ router.get('/finance-company-sales/pdf', authenticate, async (req: AuthRequest, 
 
     const bills = await Bill.find(query).sort({ billDate: 1 });
 
-    const branding = await Branding.findOne().sort({ createdAt: -1 });
+    let branding = await Branding.findOne({ userId: req.user?.id || null });
+    if (!branding) branding = await Branding.findOne({ userId: null });
     const dealerName = branding?.dealerName || 'TMR TRADING LANKA (Pvt) Ltd';
     const logoBuffer = await loadLogoBuffer(branding?.logoUrl);
 
