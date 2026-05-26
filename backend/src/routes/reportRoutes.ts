@@ -224,9 +224,9 @@ router.get('/finance-company-sales/pdf', authenticate, async (req: AuthRequest, 
       });
     });
 
-    // Table rows
+    // Table rows — dynamic row height to fit wrapped text
     y = tableTop + headerHeight;
-    doc.font('Helvetica').fontSize(bodyFontSize).fillColor('#333333');
+    doc.fillColor('#333333');
 
     for (let i = 0; i < bills.length; i++) {
       const bill = bills[i];
@@ -241,27 +241,43 @@ router.get('/finance-company-sales/pdf', authenticate, async (req: AuthRequest, 
         formatCurrency(bill.totalAmount),
       ];
 
+      // Measure every cell height for this row
+      let rowH = rowHeight;
+      row.forEach((val, j) => {
+        const fs = j === colWidths.length - 1 ? amountFontSize : bodyFontSize;
+        const fn = j === 1 || j === colWidths.length - 1 ? 'Helvetica-Bold' : 'Helvetica';
+        const h = doc.font(fn).fontSize(fs).heightOfString(val, {
+          width: colWidths[j] - 8,
+        });
+        const cellH = h + 10;
+        if (cellH > rowH) rowH = cellH;
+      });
+
+      // Check page break before drawing
+      if (y + rowH > pageHeight - 100) {
+        doc.addPage();
+        y = 50;
+      }
+
+      // Background
       if (i % 2 === 0) {
-        doc.fillColor('#f9fafb').rect(tableStartX, y, totalColWidth, rowHeight).fill();
+        doc.fillColor('#f9fafb').rect(tableStartX, y, totalColWidth, rowH).fill();
         doc.fillColor('#333333');
       }
 
+      // Cells
       row.forEach((val, j) => {
         const x = tableStartX + colWidths.slice(0, j).reduce((a, b) => a + b, 0);
-        doc.font(j === 1 || j === colWidths.length - 1 ? 'Helvetica-Bold' : 'Helvetica')
-          .fontSize(j === colWidths.length - 1 ? amountFontSize : bodyFontSize)
-          .fillColor('#333333')
+        const fs = j === colWidths.length - 1 ? amountFontSize : bodyFontSize;
+        const fn = j === 1 || j === colWidths.length - 1 ? 'Helvetica-Bold' : 'Helvetica';
+        doc.font(fn).fontSize(fs).fillColor('#333333')
           .text(val, x + 4, y + 5, {
             width: colWidths[j] - 8,
             align: j === colWidths.length - 1 ? 'right' : 'left',
           });
       });
 
-      y += rowHeight;
-      if (y > pageHeight - 100) {
-        doc.addPage();
-        y = 50;
-      }
+      y += rowH;
     }
 
     // Total row
