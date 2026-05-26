@@ -7,7 +7,7 @@ export default function Dashboard() {
   const { isAdmin } = useAuth();
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Dashboard</h1>
+      <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Overview</h1>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <div className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md">
@@ -24,7 +24,7 @@ export default function Dashboard() {
             </Link>
             <Link
               to="/bills/new"
-              className="inline-block px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 dark:hover:bg-green-500 text-center"
+              className="inline-block px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 dark:hover:bg-blue-400 text-center"
             >
               Create Bill
             </Link>
