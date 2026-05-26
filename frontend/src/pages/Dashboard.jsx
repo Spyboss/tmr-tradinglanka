@@ -18,7 +18,7 @@ export default function Dashboard() {
           <div className="flex flex-col space-y-2">
             <Link
               to="/bills"
-              className="inline-block px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 dark:hover:bg-blue-500 text-center"
+              className="inline-block px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 dark:hover:bg-green-500 text-center"
             >
               View Bills
             </Link>
@@ -137,7 +137,7 @@ export default function Dashboard() {
                 </Link>
                 <Link
                   to="/admin/bike-models"
-                  className="inline-block px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 dark:hover:bg-indigo-500 text-center"
+                  className="inline-block px-4 py-2 bg-teal-600 text-white rounded hover:bg-teal-700 dark:hover:bg-teal-500 text-center"
                 >
                   Bike Models
                 </Link>
