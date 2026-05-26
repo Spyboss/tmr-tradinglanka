@@ -84,6 +84,7 @@ const FinanceCompanyList = () => {
       dataIndex: 'name',
       key: 'name',
       sorter: (a, b) => a.name.localeCompare(b.name),
+      width: 240,
     },
     {
       title: 'Address',
@@ -95,11 +96,12 @@ const FinanceCompanyList = () => {
       title: 'Contact',
       dataIndex: 'contact',
       key: 'contact',
+      width: 140,
     },
     {
       title: 'Actions',
       key: 'actions',
-      width: 140,
+      width: 180,
       render: (_, record) => (
         <Space>
           <Button
