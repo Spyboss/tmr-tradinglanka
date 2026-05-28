@@ -16,11 +16,15 @@ declare module 'pdfkit' {
     lineTo(x: number, y: number): this;
     moveTo(x: number, y: number): this;
 
+    strokeColor(color: string): this;
+    lineWidth(width: number): this;
+
     // Text methods
     fontSize(size: number): this;
     font(font: string): this;
     text(text: string, x?: number, y?: number, options?: any): this;
     fillColor(color: string): this;
+    heightOfString(text: string, options?: any): number;
     moveDown(lines?: number): this;
 
     // Document events

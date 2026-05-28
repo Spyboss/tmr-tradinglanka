@@ -249,29 +249,38 @@ const drawFieldRow = (
   value: string,
   height: number
 ): number => {
-  doc.rect(x, y, width, height).lineWidth(0.8).strokeColor('#4b5563').stroke();
-
   const paddingX = 8;
-  const labelY = y + 5;
+  const textWidth = width - (paddingX * 2);
+  const textContent = value || '-';
+
+  const textHeight = doc.heightOfString(textContent, {
+    width: textWidth,
+    lineGap: 1,
+  });
+
+  const minValueArea = 10;
+  const valueTopOffset = 17;
+  const bottomPadding = 6;
+  const actualHeight = Math.max(height, valueTopOffset + Math.max(textHeight, minValueArea) + bottomPadding);
+
+  doc.rect(x, y, width, actualHeight).lineWidth(0.8).strokeColor('#4b5563').stroke();
 
   doc
     .font('Helvetica')
     .fontSize(8)
     .fillColor('#6b7280')
-    .text(`${label}:`, x + paddingX, labelY, { width: width - (paddingX * 2) });
+    .text(`${label}:`, x + paddingX, y + 5, { width: textWidth });
 
-  const valueY = y + 17;
   doc
     .font('Helvetica-Bold')
     .fontSize(10)
     .fillColor('#111827')
-    .text(value || '-', x + paddingX, valueY, {
-      width: width - (paddingX * 2),
+    .text(textContent, x + paddingX, y + valueTopOffset, {
+      width: textWidth,
       lineGap: 1,
-      height: Math.max(height - 18, 8)
     });
 
-  return y + height;
+  return y + actualHeight;
 };
 
 const renderVehicleTable = (
