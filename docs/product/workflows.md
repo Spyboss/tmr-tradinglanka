@@ -213,6 +213,55 @@ Finance Company List (`/admin/finance-companies`)
 
 Changes are immediately reflected the next time any user opens a proforma invoice modal (the finance company dropdown fetches from `GET /api/finance-companies` on open).
 
+## Finance Company Sales Report Flow
+
+```
+Dealer Principal / Sales Executive
+    │
+    │ 1. Dashboard → Reports card → "Finance Company Sales"
+    ▼
+Finance Company Sales Page (`/reports/finance-company-sales`)
+    │  - Select a finance company from searchable dropdown (fetched from master list)
+    │  - Optional: pick a date range to narrow the period
+    │  - Optional: server-side search by bill number, customer, chassis, or motor
+    │  - Click "Load Report"
+    ▼
+GET /api/reports/finance-company-sales (authenticate)
+    │  - Queries bills with proforma.financeCompanyName matching selected company
+    │  - Ownership-filtered: non-admins see only their own bills
+    │  - Paginated results (50 per page, up to 200 max)
+    │  - Server-side search across bill number, customer name, chassis, motor
+    ▼
+Results table displayed with columns:
+    │  Bill No | Date | Customer | Chassis No | Motor No | Model | Amount | Proforma | Finance Co.
+    │
+    │  Summary bar shows:
+    │  - Total Sales (count)
+    │  - Total Amount (sum)
+    │  - With Proforma (count of bills having a finance company assigned)
+    │
+    ├─── Client-side search input to filter within loaded results
+    │    ▼
+    │    Real-time filtering by any column without server round-trip
+    │
+    └─── "Download PDF" button
+         ▼
+GET /api/reports/finance-company-sales/pdf
+         │  - Generates landscape A4 PDF with:
+         │    - Dealer logo and name (top-left, falls back to centered text)
+         │    - Report title: "Finance Company Sales Report — {company}"
+         │    - Period subtitle if date range specified
+         │    - Summary bar: Total Sales | Total Amount | With Proforma
+         │    - Table with dynamic row heights (auto-expands for wrapped text)
+         │    - Alternating row backgrounds for readability
+         │    - Total row at bottom
+         │    - Footer: "Software solution by UHADEV" with generation timestamp
+         ▼
+PDF downloaded as finance-company-sales-{company}.pdf
+```
+
+The report is useful for monthly reconciliation with leasing/finance partners, generating a single PDF with all sales attributed to a specific company for a given period.
+
 ## Warranty Claim Flow
 
 ```

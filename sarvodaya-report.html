@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>TMR Trading Lanka - Sarvodaya Development Finance Sales Report 2026</title>
+<style>
+  @page { margin: 20mm 15mm; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', Roboto, Arial, sans-serif;
+    color: #1a1a1a;
+    padding: 40px 50px;
+    background: #fff;
+  }
+  .header {
+    border-bottom: 3px solid #1a56db;
+    padding-bottom: 20px;
+    margin-bottom: 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+  .header-left h1 {
+    font-size: 22px;
+    color: #1a56db;
+    margin-bottom: 4px;
+  }
+  .header-left h2 {
+    font-size: 16px;
+    font-weight: 500;
+    color: #374151;
+  }
+  .header-right {
+    text-align: right;
+    font-size: 13px;
+    color: #6b7280;
+  }
+  .meta {
+    display: flex;
+    gap: 40px;
+    margin-bottom: 30px;
+    padding: 16px 20px;
+    background: #f9fafb;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+    font-size: 14px;
+  }
+  .meta-item label { font-weight: 600; color: #374151; display: block; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px; }
+  .meta-item span { color: #1a56db; font-weight: 600; font-size: 16px; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 25px;
+    font-size: 12px;
+  }
+  thead th {
+    background: #1a56db;
+    color: #fff;
+    padding: 10px 8px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+  }
+  thead th:first-child { border-radius: 6px 0 0 0; }
+  thead th:last-child { border-radius: 0 6px 0 0; }
+  tbody td {
+    padding: 8px;
+    border-bottom: 1px solid #e5e7eb;
+    vertical-align: top;
+  }
+  tbody tr:nth-child(even) { background: #f9fafb; }
+  tbody tr:hover { background: #eff6ff; }
+  .num { text-align: center; font-weight: 600; color: #6b7280; width: 30px; }
+  .amt { text-align: right; font-weight: 600; white-space: nowrap; }
+  .note { font-size: 12px; color: #6b7280; }
+  h3 {
+    font-size: 15px;
+    color: #374151;
+    margin: 30px 0 12px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid #e5e7eb;
+  }
+  .summary {
+    margin-top: 30px;
+    padding: 20px;
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 8px;
+  }
+  .summary h3 { border: none; margin: 0 0 10px; color: #166534; padding: 0; }
+  .summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .summary-item { text-align: center; }
+  .summary-item .val { font-size: 28px; font-weight: 700; color: #16a34a; }
+  .summary-item .lbl { font-size: 12px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; }
+  .divider { border: none; border-top: 1px solid #e5e7eb; margin: 20px 0; }
+  .footer {
+    margin-top: 40px;
+    padding-top: 16px;
+    border-top: 1px solid #e5e7eb;
+    font-size: 11px;
+    color: #9ca3af;
+    text-align: center;
+  }
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: 600;
+  }
+  .badge-completed { background: #dcfce7; color: #166534; }
+  .badge-pending { background: #fef9c3; color: #854d0e; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <h1>TMR TRADING LANKA (Pvt) Ltd</h1>
+    <h2>Sarvodaya Development Finance &mdash; Leasing Sales Report 2026</h2>
+  </div>
+  <div class="header-right">
+    <strong>Report Date:</strong> 24 May 2026<br>
+    <strong>Period:</strong> 01 Jan 2026 &ndash; 24 May 2026
+  </div>
+</div>
+
+<div class="meta">
+  <div class="meta-item"><label>Total Sarvodaya Sales</label><span id="totalCount">6</span></div>
+  <div class="meta-item"><label>Total Amount (LKR)</label><span id="totalAmount">Rs. 934,050.00</span></div>
+  <div class="meta-item"><label>With Proforma Invoice</label><span id="withProforma">3</span></div>
+  <div class="meta-item"><label>Average Per Sale</label><span id="avgAmount">Rs. 155,675.00</span></div>
+</div>
+
+<h3>&#9679; Sarvodaya Development Finance Sales</h3>
+
+<table>
+<thead>
+  <tr>
+    <th>#</th>
+    <th>Bill No</th>
+    <th>Date</th>
+    <th>Customer Name</th>
+    <th>NIC</th>
+    <th>Address</th>
+    <th>Chassis Number</th>
+    <th>Motor Number</th>
+    <th>Model</th>
+    <th>Colour</th>
+    <th>Amount (LKR)</th>
+  </tr>
+</thead>
+<tbody>
+  <tr>
+    <td class="num">1</td>
+    <td><strong>BILL-260102-007</strong></td>
+    <td>02 Jan 2026</td>
+    <td>MOHAMDIRAMLAGE SHANTHI KUMARI</td>
+    <td>897914620V</td>
+    <td>205/02, GIRADURA, PALLEBADDA.</td>
+    <td>H65DGETJ2R0001528</td>
+    <td>10ZW6062318YAY4C201347X</td>
+    <td>TMR - MQQ6</td>
+    <td>PINK</td>
+    <td class="amt">184,750.00</td>
+  </tr>
+  <tr>
+    <td class="num">2</td>
+    <td><strong>BILL-260113-388</strong></td>
+    <td>13 Jan 2026</td>
+    <td>WEERAHANDI INDRANATH PRASANGA</td>
+    <td>750833500V</td>
+    <td>NEAR THE RATHGAMA KADE, THIMBOLKETIYA, KOLOMRAGEDARA.</td>
+    <td>HJ3TWF804S1G39636</td>
+    <td>20250821015</td>
+    <td>TMR - ZS</td>
+    <td>&mdash;</td>
+    <td class="amt">169,750.00</td>
+  </tr>
+  <tr>
+    <td class="num">3</td>
+    <td><strong>BILL-260119-158</strong></td>
+    <td>19 Jan 2026</td>
+    <td>WANNI ARACHCHIGE JEEWANI SENEHELATHA</td>
+    <td>876572044V</td>
+    <td>08, SILIMINIGAMA, NEW TOWN, EMBILIPITIYA.</td>
+    <td>140222510503115</td>
+    <td>LYDM48V400W355QA5B040063</td>
+    <td>TMR - COLA5</td>
+    <td>&mdash;</td>
+    <td class="amt">135,000.00</td>
+  </tr>
+  <tr>
+    <td class="num">4</td>
+    <td><strong>BILL-260202-047</strong></td>
+    <td>31 Jan 2026</td>
+    <td>MARANTHOTAGE MALA PADMAKANTHI</td>
+    <td>928502210V</td>
+    <td>1063/1/8, C.P THE SILVA MAWATHA, MAHAWA, UDAWALAWA</td>
+    <td>140222510503199</td>
+    <td>LYDM48V400W355QA5B040122</td>
+    <td>TMR - COLA5</td>
+    <td>&mdash;</td>
+    <td class="amt">134,850.00</td>
+  </tr>
+  <tr>
+    <td class="num">5</td>
+    <td><strong>BILL-260211-724</strong></td>
+    <td>11 Feb 2026</td>
+    <td>ABESEKARA PODIAPPUHAMI</td>
+    <td>140222510503203</td>
+    <td>179, EPITAGODA, THUNKAMA</td>
+    <td>140222510503203</td>
+    <td>LYDM48V400W355QA5B040034</td>
+    <td>TMR - COLA5</td>
+    <td>GREEN</td>
+    <td class="amt">135,000.00</td>
+  </tr>
+  <tr>
+    <td class="num">6</td>
+    <td><strong>BILL-260309-219</strong></td>
+    <td>09 Mar 2026</td>
+    <td>ANGULMADUWA LIYANA WADUGE SHIRANI</td>
+    <td>198051800250</td>
+    <td>34, 1ST LANE, BIMBADUYAYA, EMBILIPITIYA</td>
+    <td>H65DGETJ7R0001430</td>
+    <td>10ZW6062318YA Y4C201402X</td>
+    <td>TMR - MQQ6</td>
+    <td>WHITE</td>
+    <td class="amt">124,750.00</td>
+  </tr>
+</tbody>
+</table>
+
+<div class="summary">
+  <h3>&#9679; Summary</h3>
+  <div class="summary-grid">
+    <div class="summary-item"><div class="val">6</div><div class="lbl">Total Sales</div></div>
+    <div class="summary-item"><div class="val">Rs. 934,050</div><div class="lbl">Total Value (LKR)</div></div>
+    <div class="summary-item"><div class="val">Rs. 155,675</div><div class="lbl">Average Sale Value</div></div>
+  </div>
+</div>
+
+<hr class="divider">
+
+<h3>&#9679; Notes</h3>
+<table style="font-size: 12px; margin-top: 0;">
+  <thead>
+    <tr><th style="width: 160px;">Bill No</th><th>Proforma Status</th><th>Finance Company (as recorded)</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>BILL-260102-007</td><td><span class="badge badge-completed">Issued</span></td><td>SARVODAYA DEVELOPMENT FINANCE</td></tr>
+    <tr><td>BILL-260113-388</td><td><span class="badge badge-pending">Not Issued</span></td><td>&mdash;</td></tr>
+    <tr><td>BILL-260119-158</td><td><span class="badge badge-pending">Not Issued</span></td><td>&mdash;</td></tr>
+    <tr><td>BILL-260202-047</td><td><span class="badge badge-pending">Not Issued</span></td><td>&mdash;</td></tr>
+    <tr><td>BILL-260211-724</td><td><span class="badge badge-completed">Issued</span></td><td>SARVODAYA DEVELOPMENT FINANCE PLC</td></tr>
+    <tr><td>BILL-260309-219</td><td><span class="badge badge-completed">Issued</span></td><td>SARVODAYA DEVELOPMENT &amp; FINANCE PLC</td></tr>
+  </tbody>
+</table>
+
+<div class="footer">
+  Generated by TMR Trading Lanka System &mdash; Report Date: 24 May 2026 &mdash; Data Source: Production Database (Read-Only Query)
+</div>
+
+</body>
+</html>

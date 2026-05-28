@@ -221,6 +221,38 @@ When updating a bill that involves inventory changes, the response includes addi
 
 Used by the proforma invoice form to populate a searchable dropdown with auto-fill of address and contact. Managed by admins via the finance company management page at `/admin/finance-companies`.
 
+## Reports
+
+| Method | Path | Auth | Description |
+| --- | --- | --- | --- |
+| GET | `/api/reports/finance-company-sales` | Authenticated | Paginated sales report filtered by finance company, date range, and text search. Non-admins see only their own bills. Returns `bills` array and `pagination` object. |
+| GET | `/api/reports/finance-company-sales/pdf` | Authenticated | Downloadable landscape A4 PDF of the finance company sales report. Requires `financeCompany` query param. Optional `fromDate`/`toDate` filters. PDF includes dealer branding, summary bar (total sales count, total amount, proforma count), and a table with dynamic row heights to accommodate wrapped text. |
+
+**Finance Company Sales Query Parameters**
+
+| Param | Type | Required | Description |
+| --- | --- | --- | --- |
+| `financeCompany` | string | Yes (PDF) / No (list) | Filter by finance/leasing company name (case-insensitive regex match). |
+| `fromDate` | ISO date | No | Start of date range (filtered by `billDate`). |
+| `toDate` | ISO date | No | End of date range (filtered by `billDate`, inclusive to 23:59:59). |
+| `search` | string | No | Server-side search across bill number, customer name, chassis number, and motor number. |
+| `page` | number | No | Page number for pagination (default: 1). |
+| `limit` | number | No | Items per page (default: 50, max: 200). |
+
+**List Response Shape**
+
+```json
+{
+  "bills": [ ... ],
+  "pagination": {
+    "page": 1,
+    "limit": 50,
+    "total": 84,
+    "pages": 2
+  }
+}
+```
+
 ## User Preferences & Activity
 
 | Method | Path | Auth | Description |

@@ -32,3 +32,7 @@ The roadmap keeps stakeholders aligned on upcoming work. Dates are indicative; a
 - Branding management UI with PDF integration.
 - Email verification feature flag with enforcement middleware.
 - GDPR self-service export/delete endpoints.
+- Finance Company Sales Report — dedicated report page with per-company filtering, date range selection, server-side search, client-side within-results filtering, pagination, and landscape A4 PDF export with dynamic row heights and dealer branding.
+- Dashboard redesign — card restructure (merged Bills/New Bill, dedicated Warranty Claims card), "Overview" heading, consistent color patterns with Ant Design icons, quick-action "New Claim" button.
+- Finance Company Sales Report PDF — landscape A4 layout with dynamic row heights that expand for wrapped text, summary bar (total count/amount/proforma percentage), properly centered table, and branding-by-user fallback.
+- Proforma PDF dynamic field rows — customer name, address, and other field boxes now grow to fit content instead of clipping text, preventing truncation of long customer names in generated proforma invoices.

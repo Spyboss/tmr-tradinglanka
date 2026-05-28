@@ -19,6 +19,10 @@ All notable changes to this project are documented in this file. The format foll
 - Customer phone auto-populated from reference bill during quotation creation on the backend.
 - Proforma invoice modal already prefills customer contact from bill's phone number.
 - Comprehensive documentation updates for customer phone across data model, API reference, and workflows.
+- **Finance Company Sales Report** — `GET /api/reports/finance-company-sales` (paginated, searchable, filterable by finance company and date range) and `GET /api/reports/finance-company-sales/pdf` (landscape A4 PDF with dynamic row heights, dealer branding, summary bar). Frontend report page at `/reports/finance-company-sales` with finance company searchable select, date range picker, server-side search, client-side within-results filtering, pagination, and one-click PDF download.
+- Dashboard Reports card now includes both "Inventory Report" and "Finance Company Sales" entry buttons.
+- Dashboard "Warranty Claims" card now includes a "New Claim" button for quick access to warranty claim creation.
+- Proforma PDF `drawFieldRow` now uses `heightOfString` to dynamically expand field boxes for long text (customer names, addresses), preventing text truncation in generated PDFs.
 ### Changed
 - Dashboard cards restructured: Bills + New Bill merged into one card, Warranty Claims pulled out of Reports into its own card. Reports card reserved for future reporting entry points.
 - "Manage Models" link removed from navbar (now accessible via Dashboard Settings card for admins).
@@ -29,6 +33,10 @@ All notable changes to this project are documented in this file. The format foll
 - Bill delete now runs in MongoDB transaction and releases linked inventory back to available status.
 - Non-admin users can only delete bills with `status: cancelled`.
 - Bill update/delete now records detailed audit logs with old/new values, inventory changes, IP address, and user agent.
+- Dashboard heading renamed from "Dashboard" to "Overview" for clearer navigation context.
+- Bills card buttons use a cohesive green color scheme (green-600 View Bills, green-500 Create Bill) to break up blue overload in the dashboard. Bike Models settings button changed to teal-600 to avoid clashing with the indigo report buttons. Report buttons use indigo-600/500 to match existing card color pattern.
+- Finance Company Sales Report PDF: layout switched to landscape A4 (842×595) with wider columns for readable content. Dynamic row heights calculated per row using `heightOfString` to eliminate text overflow from wrapped customer names, chassis, and motor numbers. Column widths tuned: #=22, Bill No=100, Date=70, Customer=148, Chassis=122, Motor=116, Model=60, Amount=65. Cell padding increased to 5px for horizontal breathing room. Footer text updated to "Software solution by UHADEV". Branding loaded by userId first with system-wide fallback, matching the pattern used by pdfService.
+- Proforma PDF `drawFieldRow` box heights are now dynamic — fields grow to fit their content instead of clipping wrapped text at a fixed 28px customer name box.
 
 ## [2.0.0] - 2024-11-01
 ### Added
