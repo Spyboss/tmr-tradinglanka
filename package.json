@@ -1,5 +1,5 @@
 {
-  "name": "gunawardhana-motors",
+  "name": "tmr-tradinglanka",
   "version": "2.0.0",
   "description": "Comprehensive business management system for motorcycle dealerships",
   "private": true,
@@ -18,7 +18,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/your-username/gunawardhana-motors.git"
+    "url": "https://github.com/Spyboss/tmr-tradinglanka.git"
   },
   "scripts": {
     "dev": "concurrently \"npm run dev --prefix backend\" \"npm run dev --prefix frontend\"",
@@ -34,9 +34,6 @@
     "frontend"
   ],
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.10.2",
-    "@modelcontextprotocol/server-memory": "^2025.4.25",
-    "@types/axios": "^0.9.36",
     "axios": "^1.11.0",
     "date-fns": "^4.1.0",
     "dayjs": "^1.11.13",
