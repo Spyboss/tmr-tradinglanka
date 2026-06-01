@@ -366,9 +366,14 @@ router.put('/:id', authenticate, async (req: AuthRequest, res: Response) => {
     }
 
     const oldInventoryItemId = bill.inventoryItemId ? String(bill.inventoryItemId) : null;
-    const newInventoryItemId = req.body.inventoryItemId
-      ? (mongoose.Types.ObjectId.isValid(req.body.inventoryItemId) ? req.body.inventoryItemId : null)
-      : null;
+    // Only change inventoryItemId if explicitly provided in the request body.
+    // If not provided, preserve the existing link instead of treating it as "remove".
+    const hasExplicitInventoryItemId = 'inventoryItemId' in req.body;
+    const newInventoryItemId = hasExplicitInventoryItemId
+      ? (req.body.inventoryItemId && mongoose.Types.ObjectId.isValid(req.body.inventoryItemId)
+          ? req.body.inventoryItemId
+          : null)
+      : oldInventoryItemId;
 
     let releasedOldInventory: any = null;
     let claimedNewInventory: any = null;

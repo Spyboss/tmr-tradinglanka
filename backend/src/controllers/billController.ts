@@ -102,6 +102,19 @@ export const createBill = async (req: AuthRequest, res: Response, next: NextFunc
             billData.isEbicycle = bikeModel.is_ebicycle;
             billData.isTricycle = bikeModel.is_tricycle;
           }
+        } else {
+          // Check if numbers match a non-available inventory item
+          const nonAvailableItem = await BikeInventory.findOne({
+            motorNumber: motorRegex,
+            chassisNumber: chassisRegex
+          }).session(session);
+
+          if (nonAvailableItem) {
+            return next(new AppError(
+              `This bike's motor/chassis numbers belong to an inventory item that is already ${nonAvailableItem.status} (status: ${nonAvailableItem.status}). Please select a different bike.`,
+              400
+            ));
+          }
         }
       }
     }
