@@ -130,7 +130,6 @@ WarrantyClaimSchema.pre('validate', function(this: IWarrantyClaim, next) {
 });
 
 WarrantyClaimSchema.index({ owner: 1 });
-WarrantyClaimSchema.index({ warrantyNumber: 1 });
 WarrantyClaimSchema.index({ chassisNumber: 1 });
 WarrantyClaimSchema.index({ motorNumber: 1 });
 
