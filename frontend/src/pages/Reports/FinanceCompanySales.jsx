@@ -98,7 +98,7 @@ const FinanceCompanySales = () => {
     );
   }, [bills, localSearch]);
 
-  const totalAmount = filteredBills.reduce((sum, b) => sum + (b.totalAmount || 0), 0);
+  const totalAmount = filteredBills.reduce((sum, b) => sum + (b.proforma?.amountToBeLeased || b.totalAmount || 0), 0);
   const withProforma = filteredBills.filter(b => b.proforma?.financeCompanyName).length;
 
   const columns = [
@@ -108,7 +108,7 @@ const FinanceCompanySales = () => {
     { title: 'Chassis No', dataIndex: 'chassisNumber', key: 'chassisNumber', width: 140 },
     { title: 'Motor No', dataIndex: 'motorNumber', key: 'motorNumber', width: 150 },
     { title: 'Model', dataIndex: 'bikeModel', key: 'bikeModel', width: 120 },
-    { title: 'Amount', dataIndex: 'totalAmount', key: 'totalAmount', width: 110, align: 'right', render: (v) => formatCurrency(v) },
+    { title: 'Amount (Leased)', dataIndex: 'amountToBeLeased', key: 'amountToBeLeased', width: 130, align: 'right', render: (_, r) => formatCurrency(r.proforma?.amountToBeLeased || r.totalAmount) },
     {
       title: 'Proforma',
       key: 'proforma',

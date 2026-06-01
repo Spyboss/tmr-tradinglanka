@@ -175,7 +175,7 @@ router.get('/finance-company-sales/pdf', authenticate, async (req: AuthRequest, 
     doc.y = y;
 
     // Summary bar
-    const totalAmount = bills.reduce((sum, b) => sum + (b.totalAmount || 0), 0);
+    const totalAmount = bills.reduce((sum, b) => sum + (b.proforma?.amountToBeLeased || b.totalAmount || 0), 0);
     const withProforma = bills.filter(b => b.proforma?.financeCompanyName).length;
 
     doc.moveTo(leftMargin, doc.y).lineTo(leftMargin + usableWidth, doc.y).strokeColor('#cccccc').stroke();
@@ -239,7 +239,7 @@ router.get('/finance-company-sales/pdf', authenticate, async (req: AuthRequest, 
         bill.chassisNumber || '',
         bill.motorNumber || '',
         bill.bikeModel || '',
-        formatCurrency(bill.totalAmount),
+        formatCurrency(bill.proforma?.amountToBeLeased || bill.totalAmount),
       ];
 
       // Measure every cell height for this row
