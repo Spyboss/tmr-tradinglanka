@@ -338,8 +338,7 @@ export const generateWarrantyPDF = async (claim: any): Promise<Buffer> => {
 
       renderDocumentAttribution(doc, {
         left: startX,
-        width: contentWidth,
-        y: footerY + 20
+        width: contentWidth
       });
 
       doc.end();

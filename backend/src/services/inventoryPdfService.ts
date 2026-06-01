@@ -406,7 +406,6 @@ const generateSignatureSection = (doc: PDFKit.PDFDocument, branding?: { addressL
 
   renderDocumentAttribution(doc, {
     left: 40,
-    width: 515,
-    y: contactY + attributionSpacing
+    width: 515
   });
 };

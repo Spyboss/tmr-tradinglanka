@@ -461,8 +461,7 @@ const renderSignatureArea = (
 
   renderDocumentAttribution(doc, {
     left: params.left,
-    width: params.contentWidth,
-    y: doc.page.height - doc.page.margins.bottom - 12
+    width: params.contentWidth
   });
 
 };

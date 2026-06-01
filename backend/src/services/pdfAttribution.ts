@@ -20,13 +20,12 @@ export const renderDocumentAttribution = (
   options?: {
     left?: number;
     width?: number;
-    y?: number;
   }
 ): void => {
   const left = options?.left ?? doc.page.margins.left;
   const width = options?.width ?? doc.page.width - doc.page.margins.left - doc.page.margins.right;
   const height = getDocumentAttributionHeight(doc, width);
-  const y = options?.y ?? (doc.page.height - doc.page.margins.bottom - height);
+  const y = doc.page.height - doc.page.margins.bottom - height;
 
   doc
     .font('Helvetica')
