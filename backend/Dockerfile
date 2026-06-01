@@ -37,7 +37,7 @@ const connectToDatabase = async () => {\n\
       useUnifiedTopology: true,\n\
     };\n\
     \n\
-    const uri = process.env.MONGODB_URI || "mongodb://localhost:27017/tmr";\n\
+    const uri = process.env.MONGODB_URI;\n\
     await mongoose.connect(uri, options);\n\
     \n\
     logger.info("Connected to MongoDB successfully");\n\
@@ -988,12 +988,6 @@ process.on("SIGINT", () => {\n\
 \n\
 module.exports = app;' > src/server.js
 
-# Create .env file
-RUN printf "%s" 'PORT=8080\n\
-NODE_ENV=production\n\
-MONGODB_URI=mongodb://localhost:27017/tmr\n\
-CORS_ORIGIN=https://tmr-tradinglanka.pages.dev,https://web-production-0ed6.up.railway.app' > .env
-
 # Create a smaller production image
 # Using the same Node.js 22 bookworm-slim variant for the final image
 FROM node:22-bookworm-slim
@@ -1011,7 +1005,6 @@ WORKDIR /app
 # Copy built application from builder stage
 COPY --from=builder /app/src ./src
 COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/.env ./.env
 
 # Set proper permissions
 RUN chown -R nodejs:nodejs /app
