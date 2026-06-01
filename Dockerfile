@@ -20,9 +20,6 @@ RUN npm install --omit=dev && npm install -g cpx
 # Copy the rest of the application
 COPY backend ./
 
-# Copy production environment variables
-RUN cp .env.production .env
-
 # Build the application
 RUN npm run build:prod || echo "Build completed with warnings" && \
     mkdir -p dist && \
