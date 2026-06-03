@@ -182,7 +182,7 @@ export const generateWarrantyPDF = async (claim: any): Promise<Buffer> => {
 
       const colX_MidLeft = startX + 220;
       const colX_RightSide = startX + 340;
-      const nameRightX = startX + 295;
+      const nameRightX = startX + 265;
       const valLine1 = startX + 130;
       const valLine4 = colX_RightSide + 105;
 
@@ -193,7 +193,7 @@ export const generateWarrantyPDF = async (claim: any): Promise<Buffer> => {
       doc.moveTo(valLine4, grid1Y).lineTo(valLine4, grid1Y + (rowH1 * 5)).stroke();
 
       const labelW1 = valLine1 - (startX + 5);
-      const labelW2 = 80;
+      const labelW2 = 65;
       const labelW3 = 100;
 
       drawLabel('Customer\'s Name', 'පාරිභෝගිකයාගේ නම', startX + 5, grid1Y + 4, labelW1);
@@ -219,11 +219,11 @@ export const generateWarrantyPDF = async (claim: any): Promise<Buffer> => {
 
       const rowY = (r: number) => grid1Y + (rowH1 * r) + 4;
 
-      printValue(claim.customerName, valLine1 + pad, rowY(0), nameRightX - valLine1 - pad, rowH1 - 6);
+      printValue(claim.customerName, valLine1 + pad, rowY(0), nameRightX - valLine1 - pad, rowH1 - 4);
       printValue(claim.customerPhone, nameRightX + 15, rowY(0), valLine3 - nameRightX - 15);
       printValue(formatDate(claim.dateOfSale), valLine4 + pad, rowY(0), endX - valLine4 - pad);
 
-      printValue(claim.customerAddress, valLine1 + pad, rowY(1), valLine3 - valLine1 - pad, rowH1 - 6);
+      printValue(claim.customerAddress, valLine1 + pad, rowY(1), valLine3 - valLine1 - pad, rowH1 - 4);
       printValue(claim.odometerReading, valLine4 + pad, rowY(1), endX - valLine4 - pad);
 
       printValue(claim.chassisNumber, valLine1 + pad, rowY(2), valLine3 - valLine1 - pad);
