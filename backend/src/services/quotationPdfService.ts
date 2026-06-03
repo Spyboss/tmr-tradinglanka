@@ -311,13 +311,15 @@ export const generateQuotationPDF = async (quotation: IQuotation): Promise<Buffe
 
       // Add items with proper text wrapping
       quotation.items.forEach((item) => {
-        const startY = yPos;
-        
-        // Description with text wrapping
+        // Compute item dimensions before ensureSpace (so page-break check knows the height)
         const descriptionLines = wrapText(item.description, columns.description.width, 10);
         const itemHeight = Math.max(descriptionLines.length * 12, 20);
 
         ensureSpace(itemHeight + sectionSpacing, drawItemsHeader);
+
+        // Capture yPos AFTER ensureSpace — if a page break occurred, yPos is now
+        // at the correct position on the new page (drawItemsHeader advanced it)
+        const startY = yPos;
         
         doc.fontSize(10).font('Helvetica');
         

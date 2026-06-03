@@ -220,7 +220,7 @@ export const generateWarrantyPDF = async (claim: any): Promise<Buffer> => {
       const rowY = (r: number) => grid1Y + (rowH1 * r) + 4;
 
       printValue(claim.customerName, valLine1 + pad, rowY(0), nameRightX - valLine1 - pad, rowH1 - 4);
-      printValue(claim.customerPhone, nameRightX + 15, rowY(0), valLine3 - nameRightX - 15);
+      printValue(claim.customerPhone, nameRightX + 25, rowY(0), valLine3 - nameRightX - 25);
       printValue(formatDate(claim.dateOfSale), valLine4 + pad, rowY(0), endX - valLine4 - pad);
 
       printValue(claim.customerAddress, valLine1 + pad, rowY(1), valLine3 - valLine1 - pad, rowH1 - 4);
