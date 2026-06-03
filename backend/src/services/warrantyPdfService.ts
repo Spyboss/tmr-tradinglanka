@@ -156,9 +156,9 @@ export const generateWarrantyPDF = async (claim: any): Promise<Buffer> => {
         doc.font(useFont(false)).fontSize(7).text(sin, x, y + 9, w ? { width: w } : undefined);
       };
 
-      const printValue = (text: string, x: number, y: number, w?: number) => {
+      const printValue = (text: string, x: number, y: number, w?: number, h?: number) => {
         if (text) {
-          doc.font(useFont(false)).fontSize(8).text(String(text), x, y, w ? { width: w } : undefined);
+          doc.font(useFont(false)).fontSize(8).text(String(text), x, y, { width: w, height: h });
         }
       };
 
@@ -182,11 +182,12 @@ export const generateWarrantyPDF = async (claim: any): Promise<Buffer> => {
 
       const colX_MidLeft = startX + 220;
       const colX_RightSide = startX + 340;
+      const nameRightX = startX + 295;
       const valLine1 = startX + 130;
       const valLine4 = colX_RightSide + 105;
 
       doc.moveTo(colX_RightSide, grid1Y).lineTo(colX_RightSide, grid1Y + (rowH1 * 5)).stroke();
-      doc.moveTo(colX_MidLeft, grid1Y).lineTo(colX_MidLeft, grid1Y + rowH1).stroke();
+      doc.moveTo(nameRightX, grid1Y).lineTo(nameRightX, grid1Y + rowH1).stroke();
       doc.moveTo(colX_MidLeft, grid1Y + (rowH1 * 3)).lineTo(colX_MidLeft, grid1Y + (rowH1 * 4)).stroke();
       doc.moveTo(valLine1, grid1Y).lineTo(valLine1, grid1Y + (rowH1 * 5)).stroke();
       doc.moveTo(valLine4, grid1Y).lineTo(valLine4, grid1Y + (rowH1 * 5)).stroke();
@@ -196,7 +197,7 @@ export const generateWarrantyPDF = async (claim: any): Promise<Buffer> => {
       const labelW3 = 100;
 
       drawLabel('Customer\'s Name', 'පාරිභෝගිකයාගේ නම', startX + 5, grid1Y + 4, labelW1);
-      drawLabel('Tel', 'දු.අංකය', colX_MidLeft + 5, grid1Y + 4, labelW2);
+      drawLabel('Tel', 'දු.අංකය', nameRightX + 5, grid1Y + 4, labelW2);
       drawLabel('Date of Sale', 'විකුණූ කල දිනය', colX_RightSide + 5, grid1Y + 4, labelW3);
 
       drawLabel('Address', 'ලිපිනය', startX + 5, grid1Y + rowH1 + 4, labelW1);
@@ -218,11 +219,11 @@ export const generateWarrantyPDF = async (claim: any): Promise<Buffer> => {
 
       const rowY = (r: number) => grid1Y + (rowH1 * r) + 4;
 
-      printValue(claim.customerName, valLine1 + pad, rowY(0), valLine2 - valLine1 - pad);
-      printValue(claim.customerPhone, valLine2 + 25, rowY(0), valLine3 - valLine2 - 25);
+      printValue(claim.customerName, valLine1 + pad, rowY(0), nameRightX - valLine1 - pad, rowH1 - 6);
+      printValue(claim.customerPhone, nameRightX + 15, rowY(0), valLine3 - nameRightX - 15);
       printValue(formatDate(claim.dateOfSale), valLine4 + pad, rowY(0), endX - valLine4 - pad);
 
-      printValue(claim.customerAddress, valLine1 + pad, rowY(1), valLine3 - valLine1 - pad);
+      printValue(claim.customerAddress, valLine1 + pad, rowY(1), valLine3 - valLine1 - pad, rowH1 - 6);
       printValue(claim.odometerReading, valLine4 + pad, rowY(1), endX - valLine4 - pad);
 
       printValue(claim.chassisNumber, valLine1 + pad, rowY(2), valLine3 - valLine1 - pad);
