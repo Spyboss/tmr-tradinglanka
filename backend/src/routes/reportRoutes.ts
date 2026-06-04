@@ -193,9 +193,9 @@ router.get('/finance-company-sales/pdf', authenticate, async (req: AuthRequest, 
     // Table dimensions — landscape columns for readability
     const colWidths = [
       22,      // #
-      110,     // NIC
       70,      // Date
       158,     // Customer
+      110,     // NIC
       122,     // Chassis No
       116,     // Motor No
       60,      // Model
@@ -209,7 +209,7 @@ router.get('/finance-company-sales/pdf', authenticate, async (req: AuthRequest, 
     const bodyFontSize = 9;
     const amountFontSize = 10;
 
-    const headers = ['#', 'NIC', 'Date', 'Customer', 'Chassis No', 'Motor No', 'Model', 'Unit Price'];
+    const headers = ['#', 'Date', 'Customer', 'NIC', 'Chassis No', 'Motor No', 'Model', 'Unit Price'];
 
     // Table header
     const tableTop = doc.y;
@@ -233,9 +233,9 @@ router.get('/finance-company-sales/pdf', authenticate, async (req: AuthRequest, 
       const bill = bills[i];
       const row = [
         String(i + 1),
-        bill.customerNIC || '',
         formatDate(bill.billDate),
         bill.customerName || '',
+        bill.customerNIC || '',
         bill.chassisNumber || '',
         bill.motorNumber || '',
         bill.bikeModel || '',
