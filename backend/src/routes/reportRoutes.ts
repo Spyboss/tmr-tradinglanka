@@ -193,9 +193,9 @@ router.get('/finance-company-sales/pdf', authenticate, async (req: AuthRequest, 
     // Table dimensions — landscape columns for readability
     const colWidths = [
       22,      // #
-      100,     // Bill No
+      110,     // NIC
       70,      // Date
-      148,     // Customer
+      158,     // Customer
       122,     // Chassis No
       116,     // Motor No
       60,      // Model
@@ -209,7 +209,7 @@ router.get('/finance-company-sales/pdf', authenticate, async (req: AuthRequest, 
     const bodyFontSize = 9;
     const amountFontSize = 10;
 
-    const headers = ['#', 'Bill No', 'Date', 'Customer', 'Chassis No', 'Motor No', 'Model', 'Unit Price'];
+    const headers = ['#', 'NIC', 'Date', 'Customer', 'Chassis No', 'Motor No', 'Model', 'Unit Price'];
 
     // Table header
     const tableTop = doc.y;
@@ -233,7 +233,7 @@ router.get('/finance-company-sales/pdf', authenticate, async (req: AuthRequest, 
       const bill = bills[i];
       const row = [
         String(i + 1),
-        bill.billNumber || '',
+        bill.customerNIC || '',
         formatDate(bill.billDate),
         bill.customerName || '',
         bill.chassisNumber || '',
@@ -246,7 +246,7 @@ router.get('/finance-company-sales/pdf', authenticate, async (req: AuthRequest, 
       let rowH = rowHeight;
       row.forEach((val, j) => {
         const fs = j === colWidths.length - 1 ? amountFontSize : bodyFontSize;
-        const fn = j === 1 || j === colWidths.length - 1 ? 'Helvetica-Bold' : 'Helvetica';
+        const fn = j === colWidths.length - 1 ? 'Helvetica-Bold' : 'Helvetica';
         const h = doc.font(fn).fontSize(fs).heightOfString(val, {
           width: colWidths[j] - 10,
         });
@@ -270,7 +270,7 @@ router.get('/finance-company-sales/pdf', authenticate, async (req: AuthRequest, 
       row.forEach((val, j) => {
         const x = tableStartX + colWidths.slice(0, j).reduce((a, b) => a + b, 0);
         const fs = j === colWidths.length - 1 ? amountFontSize : bodyFontSize;
-        const fn = j === 1 || j === colWidths.length - 1 ? 'Helvetica-Bold' : 'Helvetica';
+        const fn = j === colWidths.length - 1 ? 'Helvetica-Bold' : 'Helvetica';
         doc.font(fn).fontSize(fs).fillColor('#333333')
           .text(val, x + 5, y + 5, {
             width: colWidths[j] - 10,
