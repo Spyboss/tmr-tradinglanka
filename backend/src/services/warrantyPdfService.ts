@@ -305,7 +305,7 @@ export const generateWarrantyPDF = async (claim: any): Promise<Buffer> => {
       }
 
       const grid4Y = grid3Y + totalTableH + 12;
-      const box4H = 105;
+      const box4H = 125;
 
       doc.rect(startX, grid4Y, contentWidth, box4H).stroke();
       doc.font('Helvetica-Bold').fontSize(8.5).text('Office use only', startX + 6, grid4Y + 6);
@@ -315,11 +315,16 @@ export const generateWarrantyPDF = async (claim: any): Promise<Buffer> => {
       const dotWidth = contentWidth - 12;
       printValue(claim.officeComments, startX + 6, grid4Y + 36, dotWidth);
 
-      doc.font('Helvetica').fontSize(8);
-      doc.text('.'.repeat(145), dotLineX, grid4Y + 52, { width: dotWidth });
-      doc.text('.'.repeat(145), dotLineX, grid4Y + 68, { width: dotWidth });
+      if (claim.batterySerialNumbers && claim.batterySerialNumbers.length > 0) {
+        doc.font('Helvetica-Bold').fontSize(7.5).text('Following new battery pack(s) installed under this claim:', startX + 6, grid4Y + 48);
+        doc.font(useFont(false)).fontSize(7.5).text(claim.batterySerialNumbers.join(', '), startX + 6, grid4Y + 57, { width: dotWidth });
+      }
 
-      const sigY = grid4Y + 88;
+      doc.font('Helvetica').fontSize(8);
+      doc.text('.'.repeat(145), dotLineX, grid4Y + 72, { width: dotWidth });
+      doc.text('.'.repeat(145), dotLineX, grid4Y + 88, { width: dotWidth });
+
+      const sigY = grid4Y + 108;
       doc.text('Approved By ', startX + 6, sigY);
       doc.text('.'.repeat(45), startX + 62, sigY - 2);
       doc.text('Date ', startX + 320, sigY);
