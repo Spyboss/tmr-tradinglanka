@@ -73,6 +73,17 @@ const loadLogoBuffer = async (url?: string): Promise<Buffer | undefined> => {
   });
 };
 
+const PART_LABELS: Record<string, string> = {
+  battery: 'Following new battery pack(s) installed under this claim:',
+  motor: 'Motor replacement performed under this claim.',
+  charger: 'Following new charger(s) issued under this claim (salvage received):',
+  controller: 'Following new controller(s) installed under this claim:',
+  display: 'Following new display/meter installed under this claim:',
+  throttle: 'Following new throttle assembly installed under this claim:',
+  wiring: 'Following wiring components replaced under this claim:',
+  other: 'Other part(s) installed/repaired under this claim:',
+};
+
 export const generateWarrantyPDF = async (claim: any): Promise<Buffer> => {
   const branding = await loadBranding(claim?.owner);
   const logoBuffer = await loadLogoBuffer(branding.logoUrl);
@@ -307,8 +318,19 @@ export const generateWarrantyPDF = async (claim: any): Promise<Buffer> => {
       const grid4Y = grid3Y + totalTableH + 12;
       const dotWidth = contentWidth - 12;
 
-      const hasBatterySerials = claim.batterySerialNumbers && claim.batterySerialNumbers.length > 0;
-      const box4H = hasBatterySerials ? 95 : 68;
+      const warrantyParts = (claim.warrantyParts && claim.warrantyParts.length > 0)
+        ? claim.warrantyParts
+        : (claim.batterySerialNumbers && claim.batterySerialNumbers.length > 0
+          ? [{ partType: 'battery', serialNumbers: claim.batterySerialNumbers }]
+          : []);
+      const hasParts = warrantyParts.length > 0;
+
+      const partsContentH = warrantyParts.reduce((sum: number, p: any) => {
+        let h = 14;
+        if (p.partType !== 'motor' && p.serialNumbers?.length) h += 10;
+        return sum + h;
+      }, 0);
+      const box4H = 66 + partsContentH;
 
       doc.rect(startX, grid4Y, contentWidth, box4H).stroke();
       doc.font('Helvetica-Bold').fontSize(8.5).text('Office use only', startX + 6, grid4Y + 5);
@@ -316,13 +338,30 @@ export const generateWarrantyPDF = async (claim: any): Promise<Buffer> => {
       doc.font(useFont(false)).fontSize(7).text('සේවා නියෝජිතයාගේ සටහන', startX + 6, grid4Y + 25);
       printValue(claim.officeComments, startX + 6, grid4Y + 35, dotWidth);
 
-      if (hasBatterySerials) {
-        doc.font('Helvetica-Bold').fontSize(7.5).text('Following new battery pack(s) installed under this claim:', startX + 6, grid4Y + 48);
-        doc.font(useFont(false)).fontSize(7.5).text(claim.batterySerialNumbers.join(', '), startX + 6, grid4Y + 57, { width: dotWidth });
+      let partsY = grid4Y + 46;
+      warrantyParts.forEach((part: any) => {
+        const label = part.partType === 'other' && part.customLabel
+          ? part.customLabel
+          : (PART_LABELS[part.partType] || part.partType);
+        doc.font('Helvetica-Bold').fontSize(7.5).text(label, startX + 6, partsY);
+        if (part.partType !== 'motor' && part.serialNumbers?.length) {
+          doc.font(useFont(false)).fontSize(7.5).text(part.serialNumbers.join(', '), startX + 6, partsY + 10, { width: dotWidth });
+          partsY += 24;
+        } else {
+          partsY += 14;
+        }
+      });
+
+      const dottedY = grid4Y + box4H - 36;
+      doc.font('Helvetica').fontSize(8);
+      if (hasParts) {
+        doc.text('.'.repeat(145), startX + 6, dottedY, { width: dotWidth });
+      } else {
+        doc.text('.'.repeat(145), startX + 6, dottedY, { width: dotWidth });
+        doc.text('.'.repeat(145), startX + 6, dottedY + 16, { width: dotWidth });
       }
 
       const sigY = grid4Y + box4H - 18;
-      doc.font('Helvetica').fontSize(8);
       doc.text('Approved By ', startX + 6, sigY);
       doc.text('.'.repeat(45), startX + 62, sigY - 2);
       doc.text('Date ', startX + 320, sigY);

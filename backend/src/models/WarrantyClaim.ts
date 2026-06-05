@@ -7,6 +7,12 @@ export interface IWarrantyItem {
   remark: string;
 }
 
+export interface IWarrantyPart {
+  partType: string;
+  customLabel?: string;
+  serialNumbers: string[];
+}
+
 export interface IWarrantyClaim extends Document {
   warrantyNumber: string;
   formNumber: string;
@@ -39,6 +45,7 @@ export interface IWarrantyClaim extends Document {
   approvalDate: Date;
 
   batterySerialNumbers: string[];
+  warrantyParts: IWarrantyPart[];
   qrCodeData: string;
 
   billId?: mongoose.Types.ObjectId;
@@ -102,6 +109,11 @@ const WarrantyClaimSchema = new Schema<IWarrantyClaim>({
   approvalDate: { type: Date },
 
   batterySerialNumbers: [{ type: String }],
+  warrantyParts: [{
+    partType: { type: String, required: true },
+    customLabel: { type: String, default: '' },
+    serialNumbers: [{ type: String }]
+  }],
   qrCodeData: { type: String, default: '' },
 
   billId: {

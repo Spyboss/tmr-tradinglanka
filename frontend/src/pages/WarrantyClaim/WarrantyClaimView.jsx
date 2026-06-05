@@ -201,15 +201,35 @@ const WarrantyClaimView = () => {
         </Card>
       )}
 
-      {claim.batterySerialNumbers && claim.batterySerialNumbers.length > 0 && (
-        <Card title="Battery Serial Numbers" className="mb-4 dark:bg-slate-800">
-          <div className="flex flex-wrap gap-2">
-            {claim.batterySerialNumbers.map((s, idx) => (
-              <Tag key={idx} className="max-w-full whitespace-normal break-all" color="blue">{s}</Tag>
+      {(() => {
+        const parts = claim.warrantyParts?.length > 0
+          ? claim.warrantyParts
+          : (claim.batterySerialNumbers?.length > 0
+            ? [{ partType: 'battery', serialNumbers: claim.batterySerialNumbers }]
+            : []);
+        if (parts.length === 0) return null;
+        const PART_NAMES = { battery: 'Battery pack', motor: 'Motor', charger: 'Charger', controller: 'Controller', display: 'Display / Meter', throttle: 'Throttle assembly', wiring: 'Wiring harness' };
+        return (
+          <Card title="Warranty Parts / Replacements" className="mb-4 dark:bg-slate-800">
+            {parts.map((part, idx) => (
+              <div key={idx} className="mb-3 last:mb-0">
+                <span className="font-semibold text-sm">
+                  {part.partType === 'other' && part.customLabel ? part.customLabel : PART_NAMES[part.partType] || part.partType}
+                </span>
+                {part.partType === 'motor' ? (
+                  <p className="text-gray-400 text-xs mt-1">No serial numbers recorded for motor replacement.</p>
+                ) : (
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {(part.serialNumbers || []).length > 0
+                      ? part.serialNumbers.map((s, si) => <Tag key={si} color="blue">{s}</Tag>)
+                      : <span className="text-gray-400 text-xs">No serial numbers</span>}
+                  </div>
+                )}
+              </div>
             ))}
-          </div>
-        </Card>
-      )}
+          </Card>
+        );
+      })()}
 
       <Card title="Office Use Only" className="mb-4 dark:bg-slate-800">
         <Descriptions column={{ xs: 1, sm: 2, md: 3 }} size="small">

@@ -3,7 +3,7 @@ import {
   Button, Card, Form, Input, DatePicker, Row, Col,
   message, Spin, Modal, Table, Tag, Select
 } from 'antd';
-import { PlusOutlined, CloseOutlined, ScanOutlined, SearchOutlined } from '@ant-design/icons';
+import { PlusOutlined, CloseOutlined, ScanOutlined, SearchOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import apiClient from '../../config/apiClient';
 import moment from 'moment';
@@ -18,8 +18,11 @@ const WarrantyClaimForm = () => {
   const [searchParams] = useSearchParams();
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
-  const [batterySerials, setBatterySerials] = useState([]);
-  const [serialInput, setSerialInput] = useState('');
+  const [warrantyParts, setWarrantyParts] = useState([]);
+  const [selectedPartType, setSelectedPartType] = useState(null);
+  const [partCustomLabel, setPartCustomLabel] = useState('');
+  const [partSerialInput, setPartSerialInput] = useState('');
+  const [activePartIdx, setActivePartIdx] = useState(null);
   const [searchModalOpen, setSearchModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
@@ -47,7 +50,12 @@ const WarrantyClaimForm = () => {
     try {
       const response = await apiClient.get(`/warranty-claims/${claimId}`);
       setSelectedBillId(response.billId || null);
-      setBatterySerials(response.batterySerialNumbers || []);
+      const parts = response.warrantyParts?.length > 0
+        ? response.warrantyParts
+        : (response.batterySerialNumbers?.length > 0
+          ? [{ partType: 'battery', serialNumbers: response.batterySerialNumbers }]
+          : []);
+      setWarrantyParts(parts);
       setItems(response.items?.length ? response.items : [{ ...emptyItem }]);
       form.setFieldsValue({
         customerName: response.customerName,
@@ -129,23 +137,53 @@ const WarrantyClaimForm = () => {
     loadPrefill(bill._id, null);
   };
 
-  const handleAddSerial = () => {
-    const val = serialInput.trim();
-    if (val && !batterySerials.includes(val)) {
-      setBatterySerials([...batterySerials, val]);
-      setSerialInput('');
+  const handleAddWarrantyPart = () => {
+    if (!selectedPartType) return;
+    if (selectedPartType === 'other' && !partCustomLabel.trim()) {
+      message.warning('Please describe the part for "Other"');
+      return;
     }
-    if (scanInputRef.current) scanInputRef.current.focus();
+    setWarrantyParts([...warrantyParts, {
+      partType: selectedPartType,
+      customLabel: selectedPartType === 'other' ? partCustomLabel.trim() : '',
+      serialNumbers: []
+    }]);
+    setActivePartIdx(warrantyParts.length);
+    setSelectedPartType(null);
+    setPartCustomLabel('');
   };
 
-  const handleRemoveSerial = (idx) => {
-    setBatterySerials(batterySerials.filter((_, i) => i !== idx));
+  const handleRemoveWarrantyPart = (idx) => {
+    setWarrantyParts(warrantyParts.filter((_, i) => i !== idx));
+    if (activePartIdx === idx) setActivePartIdx(null);
+    else if (activePartIdx > idx) setActivePartIdx(activePartIdx - 1);
   };
 
-  const handleSerialKeyDown = (e) => {
+  const handlePartSerialAdd = (idx) => {
+    const val = partSerialInput.trim();
+    if (!val) return;
+    const updated = warrantyParts.map((part, i) => {
+      if (i !== idx) return part;
+      const serials = part.serialNumbers || [];
+      if (serials.includes(val)) return part;
+      return { ...part, serialNumbers: [...serials, val] };
+    });
+    setWarrantyParts(updated);
+    setPartSerialInput('');
+  };
+
+  const handlePartSerialRemove = (partIdx, serialIdx) => {
+    const updated = warrantyParts.map((part, i) => {
+      if (i !== partIdx) return part;
+      return { ...part, serialNumbers: part.serialNumbers.filter((_, si) => si !== serialIdx) };
+    });
+    setWarrantyParts(updated);
+  };
+
+  const handlePartSerialKeyDown = (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      handleAddSerial();
+      if (activePartIdx !== null) handlePartSerialAdd(activePartIdx);
     }
   };
 
@@ -174,7 +212,7 @@ const WarrantyClaimForm = () => {
         dateOfSale: values.dateOfSale ? values.dateOfSale.toISOString() : null,
         dateOfComplaint: values.dateOfComplaint ? values.dateOfComplaint.toISOString() : null,
         dateOfRepair: values.dateOfRepair ? values.dateOfRepair.toISOString() : null,
-        batterySerialNumbers: batterySerials,
+        warrantyParts: warrantyParts,
         items: items.filter(item => item.item || item.partNumber || item.description),
         billId: selectedBillId || undefined
       };
@@ -361,33 +399,89 @@ const WarrantyClaimForm = () => {
             </Button>
           </Card>
 
-          <Card title="Battery Serial Numbers" className="mb-4 dark:bg-slate-800">
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">
-              Scan QR codes or manually enter battery serial numbers
-            </p>
-            <div className="mb-2 grid grid-cols-1 gap-2 sm:flex">
-              <Input
-                ref={scanInputRef}
-                placeholder="Scan or type battery serial number"
-                value={serialInput}
-                onChange={(e) => setSerialInput(e.target.value)}
-                onKeyDown={handleSerialKeyDown}
-                className="w-full sm:max-w-sm"
-                prefix={<ScanOutlined />}
-                autoFocus
-              />
-              <Button className="w-full sm:w-auto" onClick={handleAddSerial}>Add</Button>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {batterySerials.map((s, idx) => (
-                <Tag key={idx} className="max-w-full whitespace-normal break-all" closable onClose={() => handleRemoveSerial(idx)}>
-                  {s}
-                </Tag>
-              ))}
-              {batterySerials.length === 0 && (
-                <span className="text-gray-400 text-sm">No serial numbers added yet</span>
+          <Card title="Warranty Parts / Replacements" className="mb-4 dark:bg-slate-800">
+            <div className="mb-3 grid grid-cols-1 gap-2 sm:flex sm:items-end">
+              <Select
+                placeholder="Select part type"
+                value={selectedPartType}
+                onChange={(val) => { setSelectedPartType(val); setPartCustomLabel(''); }}
+                className="w-full sm:w-48"
+              >
+                <Option value="battery">Battery pack</Option>
+                <Option value="motor">Motor</Option>
+                <Option value="charger">Charger</Option>
+                <Option value="controller">Controller</Option>
+                <Option value="display">Display / Meter</Option>
+                <Option value="throttle">Throttle assembly</Option>
+                <Option value="wiring">Wiring harness</Option>
+                <Option value="other">Other...</Option>
+              </Select>
+              {selectedPartType === 'other' && (
+                <Input
+                  placeholder="Describe the part"
+                  value={partCustomLabel}
+                  onChange={(e) => setPartCustomLabel(e.target.value)}
+                  className="w-full sm:w-48"
+                />
               )}
+              <Button
+                className="w-full sm:w-auto"
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={handleAddWarrantyPart}
+                disabled={!selectedPartType}
+              >
+                Add
+              </Button>
             </div>
+
+            {warrantyParts.length === 0 && (
+              <p className="text-gray-400 text-sm">No warranty parts added yet</p>
+            )}
+
+            {warrantyParts.map((part, idx) => {
+              const label = part.partType === 'other' && part.customLabel
+                ? part.customLabel
+                : ({ battery: 'Battery pack', motor: 'Motor', charger: 'Charger', controller: 'Controller', display: 'Display / Meter', throttle: 'Throttle assembly', wiring: 'Wiring harness' })[part.partType] || part.partType;
+              return (
+                <div key={idx} className={`border rounded p-3 mb-2 ${activePartIdx === idx ? 'border-blue-400' : 'border-gray-300 dark:border-gray-600'}`} onClick={() => setActivePartIdx(idx)}>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="font-semibold text-sm">{label}</span>
+                    <Button
+                      type="text"
+                      danger
+                      size="small"
+                      icon={<DeleteOutlined />}
+                      onClick={(e) => { e.stopPropagation(); handleRemoveWarrantyPart(idx); }}
+                    />
+                  </div>
+                  {part.partType === 'motor' ? (
+                    <p className="text-gray-400 text-xs">No serial numbers required for motor replacement.</p>
+                  ) : (
+                    <>
+                      <div className="flex gap-2 mt-2">
+                        <Input
+                          size="small"
+                          placeholder="Scan or type serial number"
+                          value={activePartIdx === idx ? partSerialInput : ''}
+                          onChange={(e) => { setActivePartIdx(idx); setPartSerialInput(e.target.value); }}
+                          onKeyDown={handlePartSerialKeyDown}
+                          className="flex-1"
+                          prefix={<ScanOutlined />}
+                          autoFocus={activePartIdx === idx}
+                        />
+                        <Button size="small" onClick={() => { setActivePartIdx(idx); handlePartSerialAdd(idx); }}>Add</Button>
+                      </div>
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {(part.serialNumbers || []).map((s, si) => (
+                          <Tag key={si} closable onClose={() => handlePartSerialRemove(idx, si)}>{s}</Tag>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+              );
+            })}
           </Card>
 
           <Card title="Office Use Only" className="mb-4 dark:bg-slate-800">
