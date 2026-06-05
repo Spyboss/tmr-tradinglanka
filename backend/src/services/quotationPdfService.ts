@@ -398,7 +398,8 @@ export const generateQuotationPDF = async (quotation: IQuotation): Promise<Buffe
       });
 
       // Company stamp area
-      doc.fontSize(8)
+      doc.fillColor('#000000')
+         .fontSize(8)
          .text('Authorized Signature: ___________________', 350, yPos)
          .text('Company Stamp', 350, yPos + (sectionSpacing * 6));
 
