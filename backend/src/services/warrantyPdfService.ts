@@ -325,12 +325,19 @@ export const generateWarrantyPDF = async (claim: any): Promise<Buffer> => {
           : []);
       const hasParts = warrantyParts.length > 0;
 
-      const partsContentH = warrantyParts.reduce((sum: number, p: any) => {
-        let h = 14;
-        if (p.partType !== 'motor' && p.serialNumbers?.length) h += 10;
-        return sum + h;
-      }, 0);
-      const box4H = 66 + partsContentH;
+      doc.font(useFont(false)).fontSize(7.5);
+      let partsContentH = 0;
+      const partHeights: number[] = [];
+      warrantyParts.forEach((part: any) => {
+        let partH = 10;
+        if (part.partType !== 'motor' && part.serialNumbers?.length) {
+          partH += doc.heightOfString(part.serialNumbers.join(', '), { width: dotWidth }) + 2;
+        }
+        partHeights.push(partH);
+        partsContentH += partH;
+      });
+
+      const box4H = 46 + partsContentH + 36;
 
       doc.rect(startX, grid4Y, contentWidth, box4H).stroke();
       doc.font('Helvetica-Bold').fontSize(8.5).text('Office use only', startX + 6, grid4Y + 5);
@@ -339,17 +346,15 @@ export const generateWarrantyPDF = async (claim: any): Promise<Buffer> => {
       printValue(claim.officeComments, startX + 6, grid4Y + 35, dotWidth);
 
       let partsY = grid4Y + 46;
-      warrantyParts.forEach((part: any) => {
+      warrantyParts.forEach((part: any, idx: number) => {
         const label = part.partType === 'other' && part.customLabel
           ? part.customLabel
           : (PART_LABELS[part.partType] || part.partType);
         doc.font('Helvetica-Bold').fontSize(7.5).text(label, startX + 6, partsY);
         if (part.partType !== 'motor' && part.serialNumbers?.length) {
           doc.font(useFont(false)).fontSize(7.5).text(part.serialNumbers.join(', '), startX + 6, partsY + 10, { width: dotWidth });
-          partsY += 24;
-        } else {
-          partsY += 14;
         }
+        partsY += partHeights[idx];
       });
 
       const dottedY = grid4Y + box4H - 36;
