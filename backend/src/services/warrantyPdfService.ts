@@ -367,12 +367,18 @@ export const generateWarrantyPDF = async (claim: any): Promise<Buffer> => {
       }
 
       const sigY = grid4Y + box4H - 18;
-      doc.text('Approved By ', startX + 6, sigY);
-      doc.text('.'.repeat(45), startX + 62, sigY - 2);
-      doc.text('Date ', startX + 320, sigY);
-      doc.text('.'.repeat(40), startX + 342, sigY - 2);
-      printValue(claim.approvedBy, startX + 62, sigY, 250);
-      printValue(formatDate(claim.approvalDate), startX + 342, sigY, 200);
+      const approvedByLabelX = startX + 6;
+      const approvedByValueX = approvedByLabelX + 72;
+      const approvedByWidth = 170;
+      const dateLabelX = startX + 300;
+      const dateValueX = dateLabelX + 30;
+      const dateWidth = 160;
+      doc.text('Approved By ', approvedByLabelX, sigY);
+      doc.text('.'.repeat(40), approvedByValueX, sigY - 2);
+      doc.text('Date ', dateLabelX, sigY);
+      doc.text('.'.repeat(35), dateValueX, sigY - 2);
+      printValue(claim.approvedBy, approvedByValueX, sigY, approvedByWidth);
+      printValue(formatDate(claim.approvalDate), dateValueX, sigY, dateWidth);
 
       const footerY = grid4Y + box4H + 55;
       doc.moveTo(startX + 10, footerY).lineTo(startX + 130, footerY).stroke();
