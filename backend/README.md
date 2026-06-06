@@ -1,6 +1,6 @@
 # Backend API – TMR Trading Lanka
 
-TypeScript Express API powering the TMR Trading Lanka dealership ERP.
+TypeScript Express API powering the TMR Trading Lanka DMS.
 
 ## Highlights
 

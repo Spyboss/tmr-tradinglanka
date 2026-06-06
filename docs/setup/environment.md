@@ -82,7 +82,7 @@ ADMIN_NAME=
 ```env
 VITE_API_URL=http://localhost:8080
 VITE_APP_NAME=TMR Trading Lanka
-VITE_APP_DESCRIPTION=Motorcycle dealership ERP for sales, inventory, and quotations
+VITE_APP_DESCRIPTION=Motorcycle dealership DMS for sales, inventory, and quotations
 ```
 
 ## Secret Management Tips

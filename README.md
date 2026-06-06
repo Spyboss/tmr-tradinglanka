@@ -1,6 +1,6 @@
 # TMR Trading Lanka Business Management System
 
-End-to-end ERP for Sri Lankan motorcycle dealerships. The platform runs in production at TMR Trading Lanka, covering sales, inventory, quotations, and compliance workflows with a TypeScript stack.
+Dealership Management System (DMS) for Sri Lankan motorcycle dealerships. The platform runs in production at TMR Trading Lanka, covering sales, inventory, quotations, and compliance workflows with a TypeScript stack.
 <div align="center">
 
 ![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)

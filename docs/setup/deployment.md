@@ -50,7 +50,7 @@ railway up
 3. Set environment variables:
    - `VITE_API_URL=https://tmr-production.up.railway.app` or `/api` if using Cloudflare proxy.
    - `VITE_APP_NAME=TMR Trading Lanka`
-   - `VITE_APP_DESCRIPTION=Motorcycle dealership ERP`
+   - `VITE_APP_DESCRIPTION=Motorcycle dealership DMS`
 4. Configure `_redirects` to proxy API calls when desired:
    ```
    /api/* https://tmr-production.up.railway.app/api/:splat 200

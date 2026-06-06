@@ -1,6 +1,6 @@
 # Business Context & Product Positioning
 
-The TMR Trading Lanka Business Management System is an internal ERP tailored for a Sri Lankan motorcycle dealership group. It centralises the day-to-day operations that used to live in spreadsheets, paper notebooks, and ad-hoc messaging threads.
+The TMR Trading Lanka Business Management System is an internal DMS (Dealership Management System) tailored for a Sri Lankan motorcycle dealership group. It centralises the day-to-day operations that used to live in spreadsheets, paper notebooks, and ad-hoc messaging threads.
 
 ## Dealership Problems Solved
 
