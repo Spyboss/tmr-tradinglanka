@@ -25,6 +25,11 @@ const BillGeneratorUnified = () => {
   const [loadingInventory, setLoadingInventory] = useState(false);
   const [selectedInventoryItem, setSelectedInventoryItem] = useState(null);
 
+  // Colour modal for manual entry auto-create
+  const [colourModalVisible, setColourModalVisible] = useState(false);
+  const [pendingSubmitValues, setPendingSubmitValues] = useState(null);
+  const [inventoryColour, setInventoryColour] = useState('');
+
   useEffect(() => {
     fetchBikeModels();
   }, []);
@@ -213,27 +218,31 @@ const BillGeneratorUnified = () => {
     } catch (_) {}
   };
 
-  const handleSubmit = async (values) => {
+  const doSubmit = async (values, colour) => {
     try {
       setLoading(true);
-
       if (!selectedModel) {
         toast.error('Please select a vehicle model');
+        setLoading(false);
         return;
       }
 
-      if (!selectedInventoryItem) {
-        await warnIfDuplicateInInventory(values.motor_number, values.chassis_number);
-      }
-
       const billData = await buildBillData(values, false);
-      const response = await apiClient.post('/bills', billData);
-      toast.success('Bill generated successfully');
+      if (colour) billData.colour = colour;
 
+      const response = await apiClient.post('/bills', billData);
       const createdBill = response;
       const billId = createdBill._id || createdBill.id;
       const isCompleted = (createdBill.status || '').toLowerCase() === 'completed';
-      if (!selectedInventoryItem) {
+
+      const isManualEntry = !selectedInventoryItem && values.motor_number && values.chassis_number;
+      const isRealEntry = isManualEntry && values.motor_number !== 'N/A' && values.chassis_number !== 'N/A';
+
+      if (isRealEntry) {
+        toast.success('Bill generated. Bike added to inventory.');
+        navigate(`/bills/${billId}`);
+      } else if (isManualEntry) {
+        toast.success('Bill generated successfully');
         Modal.confirm({
           title: 'Add to Inventory?',
           content: 'Do you want to add this bike to inventory now?',
@@ -279,7 +288,6 @@ const BillGeneratorUnified = () => {
                 dateSold: billDateISO,
                 notes: 'Auto-added from bill creation'
               };
-
               const created = await addToInventory(inventoryPayload);
               try {
                 await apiClient.put(`/bills/${billId}`, { inventoryItemId: created._id || created.id });
@@ -298,6 +306,28 @@ const BillGeneratorUnified = () => {
       toast.error('Failed to generate bill');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSubmit = async (values) => {
+    const isManualEntry = !selectedInventoryItem && values.motor_number && values.chassis_number;
+    const isRealEntry = isManualEntry && values.motor_number !== 'N/A' && values.chassis_number !== 'N/A';
+
+    if (!selectedModel) {
+      toast.error('Please select a vehicle model');
+      return;
+    }
+
+    if (isManualEntry) {
+      warnIfDuplicateInInventory(values.motor_number, values.chassis_number);
+    }
+
+    if (isRealEntry) {
+      setPendingSubmitValues(values);
+      setInventoryColour('');
+      setColourModalVisible(true);
+    } else {
+      doSubmit(values, '');
     }
   };
 
@@ -516,6 +546,23 @@ const BillGeneratorUnified = () => {
         <div className="h-[700px]">
           <iframe src={previewUrl} title="Bill Preview" className="w-full h-full border-0" />
         </div>
+      </Modal>
+
+      <Modal
+        title="Bike Colour"
+        open={colourModalVisible}
+        onCancel={() => { setColourModalVisible(false); setLoading(false); }}
+        onOk={() => { setColourModalVisible(false); doSubmit(pendingSubmitValues, inventoryColour); }}
+        okText="Add & Generate Bill"
+      >
+        <p className="mb-3 text-gray-600 dark:text-gray-400">This bike isn't in inventory yet. It will be added automatically. What colour is it?</p>
+        <Input
+          value={inventoryColour}
+          onChange={e => setInventoryColour(e.target.value)}
+          placeholder="e.g. RED, BLUE, WHITE, BLACK"
+          style={{ textTransform: 'uppercase' }}
+          autoFocus
+        />
       </Modal>
     </div>
   );

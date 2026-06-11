@@ -115,9 +115,38 @@ export const createBill = async (req: AuthRequest, res: Response, next: NextFunc
               400
             ));
           }
+
+          // Auto-create inventory item from manual motor/chassis entry
+          const cleanMotor = motor !== 'N/A' ? motor : null;
+          const cleanChassis = chassis !== 'N/A' ? chassis : null;
+          if (cleanMotor && cleanChassis && billData.bikeModel) {
+            const bikeModel = await mongoose.model('BikeModel').findOne({ name: billData.bikeModel }).session(session);
+            if (bikeModel) {
+              const [newInventory] = await BikeInventory.create([{
+                bikeModelId: bikeModel._id,
+                motorNumber: motor,
+                chassisNumber: chassis,
+                status: BikeStatus.AVAILABLE,
+                dateAdded: new Date(),
+                notes: billData.colour || '',
+                addedBy: billData.owner
+              }], { session });
+
+              billData.inventoryItemId = newInventory._id;
+              billData.bikeModel = bikeModel.name;
+              billData.motorNumber = newInventory.motorNumber;
+              billData.chassisNumber = newInventory.chassisNumber;
+              billData.bikePrice = bikeModel.price;
+              billData.isEbicycle = bikeModel.is_ebicycle;
+              billData.isTricycle = bikeModel.is_tricycle;
+            }
+          }
         }
       }
     }
+
+    // Remove colour from billData (not a Bill schema field, used for inventory notes)
+    delete billData.colour;
     
     // Determine vehicle type and set appropriate flags
     if (billData.isTricycle) {
