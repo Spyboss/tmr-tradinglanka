@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Form, Input, Select, Button, DatePicker, InputNumber, Switch, message, Spin, Card } from 'antd';
+import { Form, Input, Select, Button, DatePicker, InputNumber, Switch, message, Spin, Card, Modal, Table, Tag } from 'antd';
 import moment from 'moment';
 import apiClient from '../config/apiClient';
 import toast from 'react-hot-toast';
+import { getAvailableBikesByModel } from '../services/inventoryService';
 
 const { Option } = Select;
 
@@ -18,6 +19,11 @@ const BillEdit = () => {
   const [billType, setBillType] = useState('');
   const [isAdvancePayment, setIsAdvancePayment] = useState(false);
   const [selectedModel, setSelectedModel] = useState(null);
+  const [inventoryModalVisible, setInventoryModalVisible] = useState(false);
+  const [availableBikes, setAvailableBikes] = useState([]);
+  const [loadingInventory, setLoadingInventory] = useState(false);
+  const [selectedInventoryItem, setSelectedInventoryItem] = useState(null);
+  const [inventoryTouched, setInventoryTouched] = useState(false);
 
   useEffect(() => {
     const loadData = async () => {
@@ -102,9 +108,10 @@ const BillEdit = () => {
   };
 
   const handleModelChange = (value) => {
-    // Look for model by name (updated field name)
     const model = bikeModels.find(m => m.name === value);
     setSelectedModel(model);
+    setSelectedInventoryItem(null);
+    setInventoryTouched(false);
 
     if (model && model.price) {
       form.setFieldsValue({
@@ -113,6 +120,52 @@ const BillEdit = () => {
       });
     }
   };
+
+  const showInventoryModal = async () => {
+    if (!selectedModel) {
+      message.warning('Please select a vehicle model first');
+      return;
+    }
+    try {
+      setLoadingInventory(true);
+      const response = await getAvailableBikesByModel(selectedModel._id || selectedModel.id);
+      setAvailableBikes(response || []);
+      setInventoryModalVisible(true);
+    } catch (error) {
+      message.error('Failed to fetch available bikes');
+    } finally {
+      setLoadingInventory(false);
+    }
+  };
+
+  const handleSelectInventoryItem = (item) => {
+    setSelectedInventoryItem(item);
+    setInventoryTouched(true);
+    form.setFieldsValue({
+      motorNumber: item.motorNumber,
+      chassisNumber: item.chassisNumber
+    });
+    setInventoryModalVisible(false);
+  };
+
+  const clearInventorySelection = () => {
+    setSelectedInventoryItem(null);
+    setInventoryTouched(true);
+    form.setFieldsValue({
+      motorNumber: '',
+      chassisNumber: ''
+    });
+  };
+
+  const inventoryColumns = [
+    { title: 'Motor Number', dataIndex: 'motorNumber', key: 'motorNumber' },
+    { title: 'Chassis Number', dataIndex: 'chassisNumber', key: 'chassisNumber' },
+    { title: 'Date Added', dataIndex: 'dateAdded', key: 'dateAdded', render: (d) => d ? new Date(d).toLocaleDateString() : '-' },
+    { title: 'Status', dataIndex: 'status', key: 'status', render: (s) => <Tag color="green">{s ? s.toUpperCase() : 'AVAILABLE'}</Tag> },
+    { title: 'Action', key: 'action', render: (_, record) => (
+      <Button type="primary" size="small" onClick={() => handleSelectInventoryItem(record)}>Select</Button>
+    )}
+  ];
 
   const handleSubmit = async (values) => {
     try {
@@ -152,6 +205,10 @@ const BillEdit = () => {
         isEbicycle: isEbicycle,
         isAdvancePayment: normalizedBillType === 'advance'
       };
+
+      if (inventoryTouched) {
+        updateData.inventoryItemId = selectedInventoryItem ? selectedInventoryItem._id : null;
+      }
 
       // Calculate total amount based on bill type and model
       if (submitBillType === 'cash') {
@@ -234,6 +291,26 @@ const BillEdit = () => {
               }))}
             />
           </Form.Item>
+
+          <div className="mb-4">
+            <Button type="dashed" onClick={showInventoryModal} disabled={!selectedModel} className="w-full">
+              Select Bike from Inventory
+            </Button>
+          </div>
+
+          {selectedInventoryItem && (
+            <div className="bg-yellow-50 dark:bg-yellow-900/30 p-4 mb-4 rounded border border-yellow-200 dark:border-yellow-700">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-yellow-800 dark:text-yellow-300 font-medium">Bike Selected from Inventory</p>
+                  <p className="text-yellow-600 dark:text-yellow-400 text-sm mt-1">
+                    Motor: {selectedInventoryItem.motorNumber}, Chassis: {selectedInventoryItem.chassisNumber}
+                  </p>
+                </div>
+                <Button type="link" onClick={clearInventorySelection}>Clear selection</Button>
+              </div>
+            </div>
+          )}
 
           <Form.Item
             name="billType"
@@ -374,6 +451,24 @@ const BillEdit = () => {
             </Button>
           </Form.Item>
         </Form>
+
+      <Modal
+        title="Select Bike from Inventory"
+        open={inventoryModalVisible}
+        onCancel={() => setInventoryModalVisible(false)}
+        footer={[<Button key="back" onClick={() => setInventoryModalVisible(false)}>Cancel</Button>]}
+        width={800}
+      >
+        {loadingInventory ? (
+          <div className="flex justify-center items-center py-8"><Spin size="large" /></div>
+        ) : availableBikes.length === 0 ? (
+          <div className="text-center py-8 dark:text-gray-300">
+            <p>No available bikes found for this model.</p>
+          </div>
+        ) : (
+          <Table columns={inventoryColumns} dataSource={availableBikes} rowKey="_id" pagination={{ pageSize: 5 }} />
+        )}
+      </Modal>
       </Card>
     </div>
   );

@@ -163,6 +163,17 @@ export default function Navbar() {
                   >
                     Warranty Claims
                   </Link>
+
+                  <Link
+                    to="/admin/bike-models"
+                    className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
+                      location.pathname.startsWith('/admin/bike-models')
+                        ? 'border-blue-500 text-gray-900 dark:text-white'
+                        : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-300 dark:hover:text-white dark:hover:border-gray-700'
+                    }`}
+                  >
+                    Manage Models
+                  </Link>
                 </>
               )}
             </div>
@@ -473,6 +484,13 @@ export default function Navbar() {
                   onClick={() => setMenuOpen(false)}
                 >
                   Warranty Claims
+                </Link>
+                <Link
+                  to="/admin/bike-models"
+                  className="block px-4 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-300 dark:hover:text-white dark:hover:bg-gray-700 focus:outline-none"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  Manage Models
                 </Link>
               </>
             )}

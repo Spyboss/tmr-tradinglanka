@@ -12,6 +12,7 @@ import { createBill, updateBillStatus } from '../controllers/billController.js';
 
 const router = express.Router();
 const SRI_LANKA_MOBILE_REGEX = /^07\d{8}$/;
+const escapeRegExp = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 const PROFORMA_TYPES = new Set(['leasing', 'finance', 'insurance']);
 
@@ -368,12 +369,94 @@ router.put('/:id', authenticate, async (req: AuthRequest, res: Response) => {
     const oldInventoryItemId = bill.inventoryItemId ? String(bill.inventoryItemId) : null;
     // Only change inventoryItemId if explicitly provided in the request body.
     // If not provided, preserve the existing link instead of treating it as "remove".
-    const hasExplicitInventoryItemId = 'inventoryItemId' in req.body;
-    const newInventoryItemId = hasExplicitInventoryItemId
+    let hasExplicitInventoryItemId = 'inventoryItemId' in req.body;
+    let newInventoryItemId = hasExplicitInventoryItemId
       ? (req.body.inventoryItemId && mongoose.Types.ObjectId.isValid(req.body.inventoryItemId)
           ? req.body.inventoryItemId
           : null)
       : oldInventoryItemId;
+
+    // Auto-link/auto-create: if inventoryItemId wasn't explicitly provided but motor/chassis were,
+    // try to match against existing inventory or auto-create a new inventory item
+    if (!hasExplicitInventoryItemId) {
+      const incomingMotor = req.body.motorNumber;
+      const incomingChassis = req.body.chassisNumber;
+
+      if (incomingMotor && incomingChassis) {
+        const motor = String(incomingMotor).trim();
+        const chassis = String(incomingChassis).trim();
+
+        const motorChanged = motor.toUpperCase() !== (bill.motorNumber || '').trim().toUpperCase();
+        const chassisChanged = chassis.toUpperCase() !== (bill.chassisNumber || '').trim().toUpperCase();
+
+        if ((motorChanged || chassisChanged || !oldInventoryItemId) && motor && chassis) {
+          const motorRegex = new RegExp(`^${escapeRegExp(motor)}$`, 'i');
+          const chassisRegex = new RegExp(`^${escapeRegExp(chassis)}$`, 'i');
+
+          const matchedItem = await BikeInventory.findOne({
+            motorNumber: motorRegex,
+            chassisNumber: chassisRegex,
+            status: BikeStatus.AVAILABLE
+          }).session(session);
+
+          if (matchedItem) {
+            const bikeModel = await mongoose.model('BikeModel').findById(matchedItem.bikeModelId).session(session);
+            if (bikeModel) {
+              req.body.inventoryItemId = matchedItem._id;
+              req.body.bikeModel = bikeModel.name;
+              req.body.motorNumber = matchedItem.motorNumber;
+              req.body.chassisNumber = matchedItem.chassisNumber;
+              req.body.bikePrice = bikeModel.price;
+              req.body.isEbicycle = bikeModel.is_ebicycle;
+              req.body.isTricycle = bikeModel.is_tricycle;
+              hasExplicitInventoryItemId = true;
+              newInventoryItemId = String(matchedItem._id);
+            }
+          } else {
+            const nonAvailableItem = await BikeInventory.findOne({
+              motorNumber: motorRegex,
+              chassisNumber: chassisRegex
+            }).session(session);
+
+            if (nonAvailableItem) {
+              await session.abortTransaction();
+              session.endSession();
+              return res.status(400).json({
+                error: `This bike's motor/chassis numbers belong to an inventory item that is already ${nonAvailableItem.status}. Please select a different bike.`
+              });
+            }
+
+            if (motor !== 'N/A' && chassis !== 'N/A') {
+              const bikeModel = await mongoose.model('BikeModel').findOne({
+                name: req.body.bikeModel || bill.bikeModel
+              }).session(session);
+
+              if (bikeModel) {
+                const [newInventory] = await BikeInventory.create([{
+                  bikeModelId: bikeModel._id,
+                  motorNumber: motor,
+                  chassisNumber: chassis,
+                  status: BikeStatus.AVAILABLE,
+                  dateAdded: new Date(),
+                  notes: req.body.colour || '',
+                  addedBy: req.user?.id
+                }], { session });
+
+                req.body.inventoryItemId = newInventory._id;
+                req.body.bikeModel = bikeModel.name;
+                req.body.motorNumber = newInventory.motorNumber;
+                req.body.chassisNumber = newInventory.chassisNumber;
+                req.body.bikePrice = bikeModel.price;
+                req.body.isEbicycle = bikeModel.is_ebicycle;
+                req.body.isTricycle = bikeModel.is_tricycle;
+                hasExplicitInventoryItemId = true;
+                newInventoryItemId = String(newInventory._id);
+              }
+            }
+          }
+        }
+      }
+    }
 
     let releasedOldInventory: any = null;
     let claimedNewInventory: any = null;
@@ -510,6 +593,27 @@ router.post('/:id/close-sale', authenticate, async (req: AuthRequest, res: Respo
       await session.abortTransaction();
       session.endSession();
       return res.status(400).json({ error: 'This advance bill has already been converted to a final sale' });
+    }
+
+    const motorNum = (bill.motorNumber || '').trim();
+    const chassisNum = (bill.chassisNumber || '').trim();
+    const hasValidMotorChassis = motorNum && chassisNum &&
+      motorNum.toUpperCase() !== 'N/A' && chassisNum.toUpperCase() !== 'N/A';
+
+    if (!hasValidMotorChassis) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({
+        error: 'This advance bill has no valid motor/chassis numbers assigned. Please edit the bill and assign a bike from inventory before closing the sale.'
+      });
+    }
+
+    if (!bill.inventoryItemId) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({
+        error: 'This advance bill is not linked to any inventory item. Please edit the bill and select a bike from inventory before closing the sale.'
+      });
     }
 
     const { totalAmount, rmvCharge } = calculateCompletedSaleAmounts(bill);

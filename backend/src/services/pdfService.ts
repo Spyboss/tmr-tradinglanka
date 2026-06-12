@@ -567,9 +567,11 @@ const generateFooter = (doc: PDFKit.PDFDocument, footerMetrics: FooterMetrics): 
     currentY += footerMetrics.addressLine2Height;
   }
 
+  currentY += footerMetrics.lineGap;
   renderDocumentAttribution(doc, {
     left: footerMetrics.left,
-    width: footerMetrics.width
+    width: footerMetrics.width,
+    y: currentY
   });
 };
 
