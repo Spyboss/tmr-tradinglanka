@@ -4,6 +4,8 @@ import {
   getWarrantyClaimById,
   getPrefillData,
   searchBills,
+  checkFormNumber,
+  suggestNextFormNumber,
   createWarrantyClaim,
   updateWarrantyClaim,
   deleteWarrantyClaim,
@@ -20,6 +22,10 @@ router.get('/', getAllWarrantyClaims);
 router.get('/prefill', getPrefillData);
 
 router.get('/search-bills', searchBills);
+
+router.get('/check-form-number', checkFormNumber);
+
+router.get('/suggest-next-number', suggestNextFormNumber);
 
 router.get('/:id', getWarrantyClaimById);
 

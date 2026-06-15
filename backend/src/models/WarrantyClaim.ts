@@ -141,6 +141,11 @@ WarrantyClaimSchema.pre('validate', function(this: IWarrantyClaim, next) {
   next();
 });
 
+WarrantyClaimSchema.index({ formNumber: 1 }, {
+  unique: true,
+  partialFilterExpression: { formNumber: { $ne: '' } }
+});
+
 WarrantyClaimSchema.index({ owner: 1 });
 WarrantyClaimSchema.index({ chassisNumber: 1 });
 WarrantyClaimSchema.index({ motorNumber: 1 });

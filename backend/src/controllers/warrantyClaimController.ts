@@ -146,7 +146,42 @@ export const searchBills = async (req: AuthRequest, res: Response, next: NextFun
   }
 };
 
+export const checkFormNumber = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { number, excludeId } = req.query as any;
+    if (!number || !String(number).trim()) {
+      res.status(200).json({ available: true });
+      return;
+    }
+
+    const filter: any = { formNumber: String(number).trim() };
+    if (excludeId && mongoose.Types.ObjectId.isValid(String(excludeId))) {
+      filter._id = { $ne: new mongoose.Types.ObjectId(String(excludeId)) };
+    }
+
+    const existing = await WarrantyClaim.findOne(filter).select('_id');
+    res.status(200).json({ available: !existing });
+  } catch (error) {
+    next(new AppError(`Failed to check form number: ${(error as Error).message}`, 500));
+  }
+};
+
+export const suggestNextFormNumber = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const result = await WarrantyClaim.findOne({ formNumber: { $ne: '' } })
+      .sort({ formNumber: -1 })
+      .select('formNumber');
+
+    const maxNum = result ? parseInt(result.formNumber, 10) : 0;
+    const nextNum = isNaN(maxNum) ? 1 : maxNum + 1;
+    res.status(200).json({ formNumber: String(nextNum).padStart(4, '0') });
+  } catch (error) {
+    next(new AppError(`Failed to suggest form number: ${(error as Error).message}`, 500));
+  }
+};
+
 export const createWarrantyClaim = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  const formNumber = req.body?.formNumber as string | undefined;
   try {
     const claimData = req.body;
     claimData.owner = req.user?.id;
@@ -155,16 +190,20 @@ export const createWarrantyClaim = async (req: AuthRequest, res: Response, next:
     const savedClaim = await newClaim.save();
 
     res.status(201).json(savedClaim);
-  } catch (error) {
+  } catch (error: any) {
     if (error instanceof mongoose.Error.ValidationError) {
       const messages = Object.values(error.errors).map(err => err.message);
       return next(new AppError(`Validation error: ${messages.join(', ')}`, 400));
+    }
+    if (error.code === 11000 && error.keyPattern?.formNumber) {
+      return next(new AppError(`Form number "${formNumber}" is already in use. Please check the physical warranty book and use the next available number.`, 409));
     }
     next(new AppError(`Failed to create warranty claim: ${(error as Error).message}`, 500));
   }
 };
 
 export const updateWarrantyClaim = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  const newFormNumber = req.body?.formNumber as string | undefined;
   try {
     const claim = await WarrantyClaim.findById(req.params.id);
     if (!claim) {
@@ -189,7 +228,10 @@ export const updateWarrantyClaim = async (req: AuthRequest, res: Response, next:
     const updatedClaim = await claim.save();
 
     res.status(200).json(updatedClaim);
-  } catch (error) {
+  } catch (error: any) {
+    if (error.code === 11000 && error.keyPattern?.formNumber) {
+      return next(new AppError(`Form number "${newFormNumber}" is already in use by another claim. Please use a different number.`, 409));
+    }
     next(new AppError(`Failed to update warranty claim: ${(error as Error).message}`, 500));
   }
 };

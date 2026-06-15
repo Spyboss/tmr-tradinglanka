@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   Button, Card, Form, Input, DatePicker, Row, Col,
-  message, Spin, Modal, Table, Tag, Select
+  message, Spin, Modal, Table, Tag, Select, Tooltip
 } from 'antd';
-import { PlusOutlined, CloseOutlined, ScanOutlined, SearchOutlined, DeleteOutlined } from '@ant-design/icons';
+import { PlusOutlined, CloseOutlined, ScanOutlined, SearchOutlined, DeleteOutlined, BulbOutlined, CheckCircleOutlined, WarningOutlined } from '@ant-design/icons';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import apiClient from '../../config/apiClient';
 import moment from 'moment';
@@ -29,6 +29,10 @@ const WarrantyClaimForm = () => {
   const [searchLoading, setSearchLoading] = useState(false);
   const [items, setItems] = useState([{ ...emptyItem }]);
   const [selectedBillId, setSelectedBillId] = useState(null);
+  const [formNumberAvailable, setFormNumberAvailable] = useState(null);
+  const [formNumberChecking, setFormNumberChecking] = useState(false);
+  const [formNumberSuggesting, setFormNumberSuggesting] = useState(false);
+  const formNumberTimer = useRef(null);
   const scanInputRef = useRef(null);
 
   const billIdParam = searchParams.get('billId');
@@ -137,6 +141,49 @@ const WarrantyClaimForm = () => {
     loadPrefill(bill._id, null);
   };
 
+  const checkFormNumber = async (number) => {
+    if (!number || number.trim().length === 0) {
+      setFormNumberAvailable(null);
+      return;
+    }
+    setFormNumberChecking(true);
+    try {
+      const params = { number: number.trim() };
+      if (isEditMode) params.excludeId = id;
+      const result = await apiClient.get('/warranty-claims/check-form-number', { params });
+      setFormNumberAvailable(result.available);
+    } catch {
+      setFormNumberAvailable(null);
+    } finally {
+      setFormNumberChecking(false);
+    }
+  };
+
+  const handleFormNumberChange = (e) => {
+    const value = e.target.value;
+    form.setFieldsValue({ formNumber: value });
+    if (formNumberTimer.current) clearTimeout(formNumberTimer.current);
+    if (!value || value.trim().length === 0) {
+      setFormNumberAvailable(null);
+      return;
+    }
+    formNumberTimer.current = setTimeout(() => checkFormNumber(value), 500);
+  };
+
+  const handleSuggestNextNumber = async () => {
+    setFormNumberSuggesting(true);
+    try {
+      const result = await apiClient.get('/warranty-claims/suggest-next-number');
+      form.setFieldsValue({ formNumber: result.formNumber });
+      setFormNumberAvailable(true);
+      checkFormNumber(result.formNumber);
+    } catch {
+      message.error('Could not suggest next number');
+    } finally {
+      setFormNumberSuggesting(false);
+    }
+  };
+
   const handleAddWarrantyPart = () => {
     if (!selectedPartType) return;
     if (selectedPartType === 'other' && !partCustomLabel.trim()) {
@@ -206,6 +253,13 @@ const WarrantyClaimForm = () => {
     try {
       const values = await form.validateFields();
       setLoading(true);
+
+      const formNumberValue = values.formNumber;
+      if (formNumberValue && formNumberAvailable === false) {
+        message.error(`Form number "${formNumberValue}" is already in use. Check the physical warranty book for the next available number.`);
+        setLoading(false);
+        return;
+      }
 
       const payload = {
         ...values,
@@ -510,8 +564,37 @@ const WarrantyClaimForm = () => {
               </Col>
               <Col xs={24} md={6}>
                 <Form.Item name="formNumber" label="Form Number">
-                  <Input placeholder="e.g. 0001" maxLength={4} />
+                  <Input
+                    placeholder="e.g. 0001"
+                    maxLength={4}
+                    onChange={handleFormNumberChange}
+                    prefix={
+                      formNumberChecking
+                        ? <Spin size="small" />
+                        : formNumberAvailable === true
+                          ? <CheckCircleOutlined style={{ color: '#52c41a' }} />
+                          : formNumberAvailable === false
+                            ? <WarningOutlined style={{ color: '#ff4d4f' }} />
+                            : null
+                    }
+                    suffix={
+                      <Tooltip title="Suggest next available number from the book">
+                        <Button
+                          type="text"
+                          size="small"
+                          icon={<BulbOutlined />}
+                          loading={formNumberSuggesting}
+                          onClick={handleSuggestNextNumber}
+                        />
+                      </Tooltip>
+                    }
+                  />
                 </Form.Item>
+                {formNumberAvailable === false && (
+                  <p className="-mt-3 mb-3 text-xs text-red-500">
+                    This form number is already in use. Check the physical warranty book.
+                  </p>
+                )}
               </Col>
               <Col xs={24} md={6}>
                 <Form.Item name="status" label="Status" initialValue="pending">
