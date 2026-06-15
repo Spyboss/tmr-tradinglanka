@@ -16,6 +16,15 @@ All notable changes to this project are documented in this file. The format foll
 - Warranty claim PDF: widened gap between Approved By and Date sections in Office use only area to prevent label overlap.
 - Warranty claim PDF: removed empty dotted lines from Office use only section and tightened overall layout for cleaner output.
 - Warranty claim PDF: battery serial numbers now properly included in the Office use only section (they were missing after the warrantyParts migration).
+- Warranty claim PDF: widened customer name column and constrained text height to prevent content overflow.
+- Warranty claim PDF: balanced name and phone column widths to prevent phone number wrapping onto a new line.
+- Warranty claim PDF: widened phone gap in the Office use only section for cleaner alignment.
+- Quotation PDF: re-captures item `yPos` after a page break, preventing the items table from overlapping the customer details section on multi-page quotations.
+- Quotation PDF: resets fill color to black for the "Authorized Dealer" header and "Company Stamp" area so branding colors no longer leak into those sections.
+- Finance Company Sales report (list): shows `amountToBeLeased` instead of `totalAmount` for accurate leasing values.
+- Finance Company Sales PDF: shows `unitPrice` instead of `amountToBeLeased` in the amount column for consistency with proforma invoices.
+- Finance Company Sales PDF: replaced "Bill No" column with "NIC" to show customer identity instead of internal bill references.
+- Finance Company Sales PDF: reordered columns to `# | Date | Customer | NIC | Chassis No | Motor No | Model | Unit Price` and re-encrypts NIC fields with the current Railway `ENCRYPTION_KEY`.
 
 ### Added
 - FinanceCompany model with name, address, and contact for master list of finance partners.

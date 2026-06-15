@@ -232,7 +232,7 @@ Used by the proforma invoice form to populate a searchable dropdown with auto-fi
 | Method | Path | Auth | Description |
 | --- | --- | --- | --- |
 | GET | `/api/reports/finance-company-sales` | Authenticated | Paginated sales report filtered by finance company, date range, and text search. Non-admins see only their own bills. Returns `bills` array and `pagination` object. |
-| GET | `/api/reports/finance-company-sales/pdf` | Authenticated | Downloadable landscape A4 PDF of the finance company sales report. Requires `financeCompany` query param. Optional `fromDate`/`toDate` filters. PDF includes dealer branding, summary bar (total sales count, total amount, proforma count), and a table with dynamic row heights to accommodate wrapped text. |
+| GET | `/api/reports/finance-company-sales/pdf` | Authenticated | Downloadable landscape A4 PDF of the finance company sales report. Requires `financeCompany` query param. Optional `fromDate`/`toDate` filters. PDF includes dealer branding, summary bar (total sales count, total amount, proforma count), and a table with columns `# | Date | Customer | NIC | Chassis No | Motor No | Model | Unit Price` using dynamic row heights for wrapped text. |
 
 **Finance Company Sales Query Parameters**
 

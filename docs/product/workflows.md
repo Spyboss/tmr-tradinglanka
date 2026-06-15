@@ -233,7 +233,7 @@ GET /api/reports/finance-company-sales (authenticate)
     │  - Server-side search across bill number, customer name, chassis, motor
     ▼
 Results table displayed with columns:
-    │  Bill No | Date | Customer | Chassis No | Motor No | Model | Amount | Proforma | Finance Co.
+    │  # | Date | Customer | NIC | Chassis No | Motor No | Model | Unit Price | Proforma | Finance Co.
     │
     │  Summary bar shows:
     │  - Total Sales (count)
@@ -252,7 +252,8 @@ GET /api/reports/finance-company-sales/pdf
          │    - Report title: "Finance Company Sales Report — {company}"
          │    - Period subtitle if date range specified
          │    - Summary bar: Total Sales | Total Amount | With Proforma
-         │    - Table with dynamic row heights (auto-expands for wrapped text)
+         │    - Table columns: # | Date | Customer | NIC | Chassis No | Motor No | Model | Unit Price
+         │    - Dynamic row heights (auto-expands for wrapped text)
          │    - Alternating row backgrounds for readability
          │    - Total row at bottom
          │    - Footer: "Software solution by UHADEV" with generation timestamp
