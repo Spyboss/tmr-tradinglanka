@@ -95,7 +95,7 @@ Quotation (quotations)
 WarrantyClaim (warrantyclaims)
   _id (ObjectId)
   warrantyNumber (unique, auto-generated WAR-YYMMDD-XXX)
-  formNumber (string, e.g. "0001")
+  formNumber (string, e.g. "0001"; partial unique index — non-empty values enforced unique)
   serialNumber (string, e.g. "5784")
   warrantyDate
   status (pending | completed | cancelled)
@@ -111,8 +111,8 @@ WarrantyClaim (warrantyclaims)
   dateOfSale / dateOfComplaint / dateOfRepair
   defectReported / probableCause / actionTaken / suggestion
   items[] { item, partNumber, description, remark }
-  officeComments / approvedBy / approvalDate
-  batterySerialNumbers[] (string array, QR-ready)
+  warrantyParts[] { partType, customLabel?, serialNumbers[] } (typed part + serial tracking)
+  batterySerialNumbers[] (legacy — string array, kept for backward compatibility)
   qrCodeData
   billId (ref Bill)
   owner (ref User)
@@ -162,6 +162,7 @@ EmailVerificationStatus (emailverificationstatuses)
 ## Indexing & Performance Notes
 
 - `User.email`, `Bill.billNumber`, `Quotation.quotationNumber`, `WarrantyClaim.warrantyNumber`, `BikeInventory.motorNumber`, and `BikeInventory.chassisNumber` are unique for fast lookups.
+- `WarrantyClaim.formNumber` has a **partial unique index** (`{ formNumber: 1 }` with `partialFilterExpression: { formNumber: { $ne: '' } }`) — non-empty form numbers must be unique, empty strings pass through without validation.
 - Compound indexes on `UserActivity` (`userId`, `timestamp`) and `BikeInventory` (`bikeModelId`, `status`) support analytics queries.
 - `Quotation` pre-save hooks recalculate item totals to guarantee consistency between stored data and PDF output.
 - Encryption plugin decrypts marked fields automatically on `find`/`findOne`, so controllers can return plain values without manual handling.

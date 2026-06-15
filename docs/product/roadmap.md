@@ -36,3 +36,8 @@ The roadmap keeps stakeholders aligned on upcoming work. Dates are indicative; a
 - Dashboard redesign — card restructure (merged Bills/New Bill, dedicated Warranty Claims card), "Overview" heading, consistent color patterns with Ant Design icons, quick-action "New Claim" button.
 - Finance Company Sales Report PDF — landscape A4 layout with dynamic row heights that expand for wrapped text, summary bar (total count/amount/proforma percentage), properly centered table, and branding-by-user fallback.
 - Proforma PDF dynamic field rows — customer name, address, and other field boxes now grow to fit content instead of clipping text, preventing truncation of long customer names in generated proforma invoices.
+- **Warranty parts dropdown** — raw `batterySerialNumbers` array replaced with typed part selector (battery, motor, charger, controller, etc.) each with its own serial number list.
+- **Inventory auto-creation** — manually entered motor/chassis numbers on bill submit auto-create an inventory item with colour prompt via modal.
+- **Inventory assignment on close-sale and bill edit** — close-sale enforces inventory selection; bill edit form allows changing or auto-creating inventory items.
+- **Warranty claim form number uniqueness** — partial unique index on `formNumber`, real-time availability check endpoint, next-number suggestion, client-side validation with green/red indicator and pre-submit guard.
+- **Form number visibility** — form number now displayed in warranty claim list table and detail view page.

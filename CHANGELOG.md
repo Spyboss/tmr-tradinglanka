@@ -12,6 +12,10 @@ All notable changes to this project are documented in this file. The format foll
 - Root and backend Dockerfiles no longer copy `.env.production` or hardcode secrets — Railway injects env vars at runtime.
 - Backend Dockerfile now fails loudly if `MONGODB_URI` is unset (removed localhost fallback).
 - Bumped **axios** 1.13.6 → 1.16.1, **mongoose** 8.13.1 → 8.24.0, **qs** 6.13.0 → 6.15.2 to address 30 dependabot advisories.
+- Warranty claim PDF: serial number section height now dynamically measured with `heightOfString` to prevent text overflow onto adjacent fields.
+- Warranty claim PDF: widened gap between Approved By and Date sections in Office use only area to prevent label overlap.
+- Warranty claim PDF: removed empty dotted lines from Office use only section and tightened overall layout for cleaner output.
+- Warranty claim PDF: battery serial numbers now properly included in the Office use only section (they were missing after the warrantyParts migration).
 
 ### Added
 - FinanceCompany model with name, address, and contact for master list of finance partners.
@@ -33,6 +37,13 @@ All notable changes to this project are documented in this file. The format foll
 - Dashboard Reports card now includes both "Inventory Report" and "Finance Company Sales" entry buttons.
 - Dashboard "Warranty Claims" card now includes a "New Claim" button for quick access to warranty claim creation.
 - Proforma PDF `drawFieldRow` now uses `heightOfString` to dynamically expand field boxes for long text (customer names, addresses), preventing text truncation in generated PDFs.
+- **Warranty parts dropdown** in warranty claim form — replaces raw `batterySerialNumbers` text array with a typed part selector (battery pack, motor, charger, controller, display, throttle, wiring harness, or custom "Other..."). Each part type maintains its own serial number list with scan/type input.
+- **Inventory auto-creation on bill submit** — when a user enters motor/chassis numbers manually (not picked from inventory), the system automatically creates a new inventory item linked to that bill, with a colour prompt via modal.
+- **Inventory assignment on close-sale and bill edit** — close-sale flow now enforces that an inventory item is selected (or auto-created) before converting an advance bill. Bill edit form includes inventory selection with the ability to change or auto-create inventory items.
+- **Warranty claim form number uniqueness enforcement** — partial unique index on `formNumber` (non-empty values only). `GET /api/warranty-claims/check-form-number?number=X` for real-time availability. `GET /api/warranty-claims/suggest-next-number` to auto-fill the next sequential book number. Client-side validation shows green checkmark (available) or red warning (taken) with pre-submit guard.
+- **Form number display** in warranty claim list table (new "Form No" column) and detail view page (Office Use Only section), so users can see the physical book number without downloading the PDF.
+- Inventory selection and auto-create in bill edit form — users can change the linked inventory item or auto-create a new one when editing a bill.
+
 ### Changed
 - Dashboard cards restructured: Bills + New Bill merged into one card, Warranty Claims pulled out of Reports into its own card. Reports card reserved for future reporting entry points.
 - "Manage Models" link removed from navbar (now accessible via Dashboard Settings card for admins).
@@ -47,6 +58,7 @@ All notable changes to this project are documented in this file. The format foll
 - Bills card buttons use a cohesive green color scheme (green-600 View Bills, green-500 Create Bill) to break up blue overload in the dashboard. Bike Models settings button changed to teal-600 to avoid clashing with the indigo report buttons. Report buttons use indigo-600/500 to match existing card color pattern.
 - Finance Company Sales Report PDF: layout switched to landscape A4 (842×595) with wider columns for readable content. Dynamic row heights calculated per row using `heightOfString` to eliminate text overflow from wrapped customer names, chassis, and motor numbers. Column widths tuned: #=22, Bill No=100, Date=70, Customer=148, Chassis=122, Motor=116, Model=60, Amount=65. Cell padding increased to 5px for horizontal breathing room. Footer text updated to "Software solution by UHADEV". Branding loaded by userId first with system-wide fallback, matching the pattern used by pdfService.
 - Proforma PDF `drawFieldRow` box heights are now dynamic — fields grow to fit their content instead of clipping wrapped text at a fixed 28px customer name box.
+- Warranty claim payload replaced `batterySerialNumbers` (flat string array) with `warrantyParts` (array of `{ partType, customLabel?, serialNumbers[] }`) for structured part tracking.
 
 ## [2.0.0] - 2024-11-01
 ### Added

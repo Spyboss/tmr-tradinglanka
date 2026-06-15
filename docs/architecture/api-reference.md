@@ -141,10 +141,12 @@ When updating a bill that involves inventory changes, the response includes addi
 | GET | `/api/warranty-claims` | Authenticated | Paginated list. Non-admins filtered by `owner`. Supports `status`, `search`, `page`, `limit`. |
 | GET | `/api/warranty-claims/prefill` | Authenticated | Get prefill data from an existing bill. Query params: `billId` or `chassisNumber`. Returns customer/vehicle data and color from inventory notes. |
 | GET | `/api/warranty-claims/search-bills` | Authenticated | Search bills for prefill. Query param `q` matches billNumber, customerName, chassisNumber, motorNumber. |
+| GET | `/api/warranty-claims/check-form-number` | Authenticated | Check if a form number is already in use. Query params: `number` (required), `excludeId` (optional, for edit mode). Returns `{ available: boolean }`. |
+| GET | `/api/warranty-claims/suggest-next-number` | Authenticated | Suggest the next sequential form number from the physical book. Returns `{ formNumber: "0005" }`. |
 | GET | `/api/warranty-claims/:id` | Authenticated | Fetch a warranty claim by ID. Ownership enforced. |
 | GET | `/api/warranty-claims/:id/pdf` | Authenticated | Download bilingual (EN/SI) warranty claim PDF with NotoSansSinhala font and dealer branding. |
-| POST | `/api/warranty-claims` | Authenticated | Create a warranty claim. Auto-generates warranty number (`WAR-YYMMDD-XXX`). Ownership stamped from authenticated user. |
-| PUT | `/api/warranty-claims/:id` | Authenticated | Update warranty claim fields. Prevents owner reassignment for non-admins. |
+| POST | `/api/warranty-claims` | Authenticated | Create a warranty claim. Auto-generates warranty number (`WAR-YYMMDD-XXX`). Ownership stamped from authenticated user. Returns 409 if `formNumber` is already taken. |
+| PUT | `/api/warranty-claims/:id` | Authenticated | Update warranty claim fields. Prevents owner reassignment for non-admins. Returns 409 if `formNumber` collides with another claim. |
 | DELETE | `/api/warranty-claims/:id` | Authenticated | Delete a warranty claim. Ownership enforced. |
 
 **Prefill Response Snippet**
@@ -187,16 +189,20 @@ When updating a bill that involves inventory changes, the response includes addi
   "items": [
     { "item": "Charger", "partNumber": "CH-001", "description": "Battery charger module", "remark": "Replaced under warranty" }
   ],
+  "warrantyParts": [
+    { "partType": "battery", "serialNumbers": ["BSN001", "BSN002"] }
+  ],
+  "formNumber": "0001",
+  "serialNumber": "5784",
   "officeComments": "Approved for replacement",
   "approvedBy": "Operations Manager",
   "approvalDate": "2025-03-12T00:00:00.000Z",
-  "batterySerialNumbers": ["BSN001", "BSN002"],
   "billId": "65f5...",
   "status": "pending"
 }
 ```
 
-> The warranty number is auto-generated in the format `WAR-YYMMDD-XXX` (e.g., `WAR-250319-042`) using a pre-save Mongoose hook. The PDF is generated using PDFKit with NotoSansSinhala for Sinhala text, matching existing dealer branding and attribution.
+> The warranty number is auto-generated in the format `WAR-YYMMDD-XXX` (e.g., `WAR-250319-042`) using a pre-save Mongoose hook. The PDF is generated using PDFKit with NotoSansSinhala for Sinhala text, matching existing dealer branding and attribution. The `formNumber` field is the physical warranty book number — a partial unique index enforces non-empty values to be unique. The `warrantyParts` array replaces the legacy `batterySerialNumbers` flat array with typed part entries (battery, motor, charger, controller, display, throttle, wiring, or custom) each with its own serial number list.
 
 ## Bike Models & Branding
 

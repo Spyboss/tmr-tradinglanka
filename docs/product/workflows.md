@@ -275,18 +275,25 @@ Warranty Claim Form (frontend/src/pages/WarrantyClaim/WarrantyClaimForm.jsx)
     │    chassis, motor, model, color from inventory notes, date of sale)
     │  - Option B: Manually enter all fields
     │  - Enter defect details, probable cause, action taken, suggestion
-    │  - Add parts/items (up to 4 rows in PDF)
-    │  - Scan or type battery serial numbers (QR-ready)
+    │  - Add parts/items (individual rows for item, part number, description, remark)
+    │  - Add warranty parts: select type from dropdown (battery pack, motor,
+    │    charger, controller, display, throttle, wiring, or "Other..." with
+    │    custom label). Each part collects its own serial numbers via scan/type input
     │  - Fill office use section (comments, approved by, approval date,
     │    serial number, form number)
+    │  - Form number input: real-time validation with debounced check
+    │    against existing claims. Green checkmark = available, red warning = taken.
+    │    Lightbulb button auto-fills the next sequential number from the book.
     ▼
 POST /api/warranty-claims (authenticate → createWarrantyClaim)
     │  - Auto-generates warranty number (WAR-YYMMDD-XXX)
+    │  - Returns 409 if formNumber is already taken (db-level partial unique index)
+    │  - Pre-submit guard blocks duplicate form numbers client-side
     │  - Optionally links to a source bill via billId
     ▼
 WarrantyClaim document persisted
     │
-    │ 4. Detail view shows all claim data
+    │ 4. Detail view shows all claim data including form number in Office Use section
     ▼
 PDF button → GET /api/warranty-claims/:id/pdf
     │  - Generates bilingual (EN/SI) PDF using NotoSansSinhala font
