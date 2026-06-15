@@ -56,6 +56,18 @@ const severityColor = {
   critical: 'red'
 };
 
+const roundInt = (value) => Math.round(value || 0);
+
+const projectedTrendMeta = (value, reference) => {
+  if (value >= reference) return { icon: <ArrowUpOutlined />, color: 'success', label: 'Above target' };
+  return { icon: <ArrowDownOutlined />, color: 'error', label: 'Below target' };
+};
+
+const paceTrendMeta = (sold, expected) => {
+  if (sold >= expected) return { icon: <ArrowUpOutlined />, color: 'success', label: 'Ahead of pace' };
+  return { icon: <ArrowDownOutlined />, color: 'error', label: 'Behind pace' };
+};
+
 const InventoryReport = () => {
   const [loading, setLoading] = useState(true);
   const [analytics, setAnalytics] = useState(null);
@@ -316,16 +328,26 @@ const InventoryReport = () => {
           </Col>
           <Col xs={24} md={12} xl={5}>
             <Card size="small">
-              <Statistic title="Expected By Today" value={monthlyPerformance.expectedUnitsByToday || 0} precision={1} />
-              <Text type="secondary">
-                Pace is <Text strong>{formatSigned(monthlyPerformance.paceGap || 0)}</Text> bikes {monthlyPerformance.paceStatus || 'on-track'}
-              </Text>
+              <Statistic title="Expected By Today" value={roundInt(monthlyPerformance.expectedUnitsByToday)} />
+              <div className="mt-2 flex items-center gap-2">
+                <Tag color={paceTrendMeta(monthlyPerformance.soldUnitsMTD, monthlyPerformance.expectedUnitsByToday).color}
+                  icon={paceTrendMeta(monthlyPerformance.soldUnitsMTD, monthlyPerformance.expectedUnitsByToday).icon}>
+                  {paceTrendMeta(monthlyPerformance.soldUnitsMTD, monthlyPerformance.expectedUnitsByToday).label}
+                </Tag>
+                <Text type="secondary">{formatSigned(roundInt(monthlyPerformance.paceGap))} bikes</Text>
+              </div>
             </Card>
           </Col>
           <Col xs={24} md={12} xl={5}>
             <Card size="small">
-              <Statistic title="Projected Month-End Sales" value={monthlyPerformance.projectedMonthEndUnits || 0} precision={1} />
-              <Text type="secondary">Target benchmark: {monthlyPerformance.targetUnits || 25} bikes</Text>
+              <Statistic title="Projected Month-End Sales" value={roundInt(monthlyPerformance.projectedMonthEndUnits)} />
+              <div className="mt-2 flex items-center gap-2">
+                <Tag color={projectedTrendMeta(monthlyPerformance.projectedMonthEndUnits, monthlyPerformance.targetUnits).color}
+                  icon={projectedTrendMeta(monthlyPerformance.projectedMonthEndUnits, monthlyPerformance.targetUnits).icon}>
+                  {projectedTrendMeta(monthlyPerformance.projectedMonthEndUnits, monthlyPerformance.targetUnits).label}
+                </Tag>
+                <Text type="secondary">Target: {monthlyPerformance.targetUnits || 25} bikes</Text>
+              </div>
             </Card>
           </Col>
           <Col xs={24} md={12} xl={5}>
@@ -350,7 +372,7 @@ const InventoryReport = () => {
             <Alert
               type={monthlyPerformance.paceStatus === 'ahead' ? 'success' : monthlyPerformance.paceStatus === 'behind' ? 'warning' : 'info'}
               showIcon
-              message={`${monthlyPerformance.monthLabel}: ${monthlyPerformance.soldUnitsMTD || 0} bikes sold, projected ${(monthlyPerformance.projectedMonthEndUnits || 0).toFixed(1)} by month-end.`}
+              message={`${monthlyPerformance.monthLabel}: ${monthlyPerformance.soldUnitsMTD || 0} bikes sold, projected ${roundInt(monthlyPerformance.projectedMonthEndUnits)} by month-end.`}
               description={topModel?.soldUnits
                 ? `${topModel.modelName} is the top-selling model this month with ${topModel.soldUnits} units.`
                 : 'No model sales recorded yet for this month.'}
