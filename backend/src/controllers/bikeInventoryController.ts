@@ -1087,7 +1087,7 @@ export const getInventoryReportAnalytics = async (req: AuthRequest, res: Respons
                         { $eq: ['$status', 'completed'] }
                       ]
                     },
-                    then: { $ifNull: ['$totalAmount', 0] }
+                    then: { $ifNull: ['$bikePrice', 0] }
                   }
                 ],
                 default: 0
