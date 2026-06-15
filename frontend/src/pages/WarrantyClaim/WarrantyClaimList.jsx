@@ -121,6 +121,13 @@ const WarrantyClaimList = () => {
       )
     },
     {
+      title: 'Form No',
+      dataIndex: 'formNumber',
+      key: 'formNumber',
+      width: 90,
+      render: (text) => text ? <Tag color="blue">{text}</Tag> : '-'
+    },
+    {
       title: 'Customer',
       dataIndex: 'customerName',
       key: 'customerName',

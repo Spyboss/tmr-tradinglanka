@@ -234,6 +234,9 @@ const WarrantyClaimView = () => {
       <Card title="Office Use Only" className="mb-4 dark:bg-slate-800">
         <Descriptions column={{ xs: 1, sm: 2, md: 3 }} size="small">
           <Descriptions.Item label="Serial Number">{claim.serialNumber || '-'}</Descriptions.Item>
+          <Descriptions.Item label="Form Number">
+            {claim.formNumber ? <Tag color="blue">{claim.formNumber}</Tag> : '-'}
+          </Descriptions.Item>
           <Descriptions.Item label="Approved By">{claim.approvedBy || '-'}</Descriptions.Item>
           <Descriptions.Item label="Approval Date">
             {claim.approvalDate ? moment(claim.approvalDate).format('DD/MM/YYYY') : '-'}
