@@ -297,7 +297,26 @@ router.get('/:id', authenticate, async (req: AuthRequest, res: Response) => {
       return res.status(403).json({ error: 'You do not have permission to view this bill' });
     }
 
-    res.status(200).json(bill);
+    // Look up colour from the linked inventory item's notes
+    let colour: string | null = null;
+    if (bill.inventoryItemId) {
+      try {
+        const BikeInventory = req.app.locals.models?.BikeInventory;
+        const invItem = await BikeInventory.findById(bill.inventoryItemId).select('notes');
+        if (invItem?.notes && invItem.notes !== 'Auto-added from bill creation') {
+          colour = invItem.notes;
+        }
+      } catch {
+        // Silently fail - colour is non-critical
+      }
+    }
+
+    const billObj = bill.toObject() as unknown as Record<string, unknown>;
+    if (colour) {
+      billObj.colour = colour;
+    }
+
+    res.status(200).json(billObj);
   } catch (error) {
     res.status(500).json({ error: (error as Error).message });
   }

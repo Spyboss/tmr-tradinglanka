@@ -480,6 +480,7 @@ const BillView = () => {
             </Descriptions.Item>
             <Descriptions.Item label="Motor Number">{bill.motorNumber || 'N/A'}</Descriptions.Item>
             <Descriptions.Item label="Chassis Number">{bill.chassisNumber || 'N/A'}</Descriptions.Item>
+            <Descriptions.Item label="Colour">{bill.colour || 'N/A'}</Descriptions.Item>
           </Descriptions>
         </Card>
 
