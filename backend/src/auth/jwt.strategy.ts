@@ -139,30 +139,22 @@ export const verifyToken = async (token: string) => {
 export const isTokenRevoked = async (userId: string, tokenVersion?: number): Promise<boolean> => {
   const jwtVersion = tokenVersion ?? 0;
 
-  // Fast path: try Redis first
-  let redisAvailable = true;
+  // Redis can confirm revocation (fast path), but can NOT confirm validity
   try {
     const redis = getRedisClient();
     const userRevoked = await redis.get(`revoked:user:${userId}`);
     if (userRevoked) return true;
   } catch (error) {
-    redisAvailable = false;
-    logger.warn(`Redis unavailable for revocation check, falling back to MongoDB: ${(error as Error).message}`);
+    logger.warn(`Redis unavailable for revocation check: ${(error as Error).message}`);
   }
 
-  // If Redis was available and didn't find a revocation, token is valid
-  if (redisAvailable) return false;
-
-  // Fallback path: check tokenVersion from MongoDB (source of truth)
+  // Source of truth: MongoDB tokenVersion
   try {
     const user = await User.findById(userId).select('tokenVersion').lean();
-    // User deleted or missing → revoke all their tokens
     if (!user) return true;
-    const dbVersion = user.tokenVersion ?? 0;
-    return dbVersion > jwtVersion;
+    return (user.tokenVersion ?? 0) > jwtVersion;
   } catch (error) {
-    // Both Redis and MongoDB are unreachable → fail closed (deny access)
-    logger.error(`Cannot verify revocation status — Redis and MongoDB both unavailable: ${(error as Error).message}`);
+    logger.error(`Cannot verify revocation — MongoDB unavailable: ${(error as Error).message}`);
     return true;
   }
 };
