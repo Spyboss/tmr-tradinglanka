@@ -19,6 +19,7 @@ export interface IUser extends Document {
   refreshTokenHash?: string; // Added field for token hash
   lastLogin?: Date;
   deletedAt?: Date; // New field to track account deletion
+  tokenVersion: number; // Incremented on logout/password-change to revoke all JWTs
   loginAttempts?: number; // Track failed login attempts for security
   accountLocked?: boolean; // Flag for account lockout after too many failed attempts
   createdAt: Date;
@@ -84,6 +85,10 @@ const UserSchema = new Schema<IUser>({
   accountLocked: {
     type: Boolean,
     default: false
+  },
+  tokenVersion: {
+    type: Number,
+    default: 0
   }
 }, {
   timestamps: true,

@@ -3,6 +3,7 @@ import * as crypto from 'node:crypto';
 // Import jose
 import { SignJWT, jwtVerify } from 'jose';
 import { getRedisClient } from '../config/redis.js';
+import User from '../models/User.js';
 import logger from '../utils/logger.js';
 import securityMonitor from '../utils/security-monitor.js';
 
@@ -42,9 +43,20 @@ const REFRESH_TOKEN_EXPIRY_SECONDS = process.env.NODE_ENV === 'production' ? 7 *
 export const createToken = async (userId: string): Promise<string> => {
   const tokenId = crypto.randomBytes(32).toString('hex'); // 256-bit ID for revocation
 
+  // Read the current tokenVersion from MongoDB (source of truth for revocation)
+  // Legacy users (no tokenVersion field) default to version 0
+  let tokenVersion = 0;
+  try {
+    const user = await User.findById(userId).select('tokenVersion').lean();
+    tokenVersion = user?.tokenVersion ?? 0;
+  } catch (error) {
+    logger.error(`Failed to read tokenVersion for user ${userId}: ${(error as Error).message}`);
+  }
+
   return await new SignJWT({
     sub: userId,
-    jti: tokenId // JWT ID for revocation of specific tokens
+    jti: tokenId, // JWT ID for revocation
+    tvn: tokenVersion // Token version for revocation checks
   })
     .setProtectedHeader({ alg: 'HS256', typ: 'JWT' })
     .setIssuedAt()
@@ -93,8 +105,8 @@ export const verifyToken = async (token: string) => {
       throw new Error('Invalid token: missing subject claim');
     }
 
-    // Check if token has been revoked
-    const isRevoked = await isTokenRevoked(payload.sub as string, payload.jti as string);
+    // Check if token has been revoked (MongoDB source of truth, Redis cache)
+    const isRevoked = await isTokenRevoked(payload.sub as string, payload.tvn as number | undefined);
     if (isRevoked) {
       // Track revoked token usage attempt
       securityMonitor.trackApiAnomaly(
@@ -116,45 +128,71 @@ export const verifyToken = async (token: string) => {
 };
 
 /**
- * Check if a user's token has been revoked
+ * Check if a user's token has been revoked.
+ * Uses Redis as a fast cache, falls back to MongoDB tokenVersion (source of truth).
+ * Fails closed: denies access when neither Redis nor MongoDB is reachable.
+ *
  * @param userId User ID to check
- * @param tokenId Optional specific token ID to check
+ * @param tokenVersion Token version from JWT claim (undefined for legacy tokens → treated as 0)
  * @returns True if token is revoked, false otherwise
  */
-export const isTokenRevoked = async (userId: string, tokenId?: string): Promise<boolean> => {
+export const isTokenRevoked = async (userId: string, tokenVersion?: number): Promise<boolean> => {
+  const jwtVersion = tokenVersion ?? 0;
+
+  // Fast path: try Redis first
+  let redisAvailable = true;
   try {
     const redis = getRedisClient();
-
-    // Check for user-level revocation
     const userRevoked = await redis.get(`revoked:user:${userId}`);
     if (userRevoked) return true;
-
-    // Check for specific token revocation if token ID provided
-    if (tokenId) {
-      const tokenRevoked = await redis.get(`revoked:token:${tokenId}`);
-      if (tokenRevoked) return true;
-    }
-
-    return false;
   } catch (error) {
-    logger.error(`Token revocation check error: ${(error as Error).message}`);
-    return false; // Fail open - don't block authentication if Redis is down
+    redisAvailable = false;
+    logger.warn(`Redis unavailable for revocation check, falling back to MongoDB: ${(error as Error).message}`);
+  }
+
+  // If Redis was available and didn't find a revocation, token is valid
+  if (redisAvailable) return false;
+
+  // Fallback path: check tokenVersion from MongoDB (source of truth)
+  try {
+    const user = await User.findById(userId).select('tokenVersion').lean();
+    // User deleted or missing → revoke all their tokens
+    if (!user) return true;
+    const dbVersion = user.tokenVersion ?? 0;
+    return dbVersion > jwtVersion;
+  } catch (error) {
+    // Both Redis and MongoDB are unreachable → fail closed (deny access)
+    logger.error(`Cannot verify revocation status — Redis and MongoDB both unavailable: ${(error as Error).message}`);
+    return true;
   }
 };
 
 /**
- * Revoke all tokens for a user
+ * Revoke all tokens for a user.
+ * Increments tokenVersion in MongoDB (source of truth) and writes to Redis cache.
+ *
  * @param userId User ID to revoke tokens for
- * @param expirySeconds How long to keep the revocation record (default: 24 hours)
  */
-export const revokeTokens = async (userId: string, expirySeconds = 86400): Promise<void> => {
+export const revokeTokens = async (userId: string): Promise<void> => {
+  // MongoDB is the authoritative source of truth
+  const result = await User.updateOne(
+    { _id: userId },
+    { $inc: { tokenVersion: 1 } }
+  );
+
+  if (result.matchedCount === 0) {
+    logger.warn(`revokeTokens called for non-existent user ${userId}`);
+    return;
+  }
+
+  logger.info(`Token version incremented for user ${userId}`);
+
+  // Best-effort Redis cache update (non-fatal if it fails)
   try {
     const redis = getRedisClient();
-    await redis.set(`revoked:user:${userId}`, Date.now().toString(), 'EX', expirySeconds);
-    logger.info(`Tokens revoked for user ${userId}`);
+    await redis.set(`revoked:user:${userId}`, Date.now().toString(), 'EX', 86400);
   } catch (error) {
-    logger.error(`Token revocation error: ${(error as Error).message}`);
-    throw new Error('Failed to revoke tokens');
+    logger.warn(`Redis cache write failed during token revocation for ${userId}: ${(error as Error).message}`);
   }
 };
 
