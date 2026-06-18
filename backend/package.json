@@ -33,7 +33,6 @@
   "author": "Uminda Herath <contact@uhadev.com> (https://uhadev.com)",
   "license": "MIT",
   "dependencies": {
-    "@fastify/helmet": "^13.0.1",
     "@types/archiver": "^6.0.3",
     "archiver": "^7.0.1",
     "argon2": "^0.41.1",
@@ -51,7 +50,6 @@
     "jose": "^6.0.10",
     "lru-cache": "^7.14.1",
     "mongodb": "^6.3.0",
-    "mongodb-client-encryption": "^6.0.1",
     "mongoose": "^8.24.0",
     "morgan": "^1.10.1",
     "pdfkit": "^0.14.0",
