@@ -5,10 +5,10 @@ import Bill from '../models/Bill.js';
 import archiver from 'archiver';
 import { AuthRequest } from '../auth/auth.middleware.js';
 import { Response } from 'express';
-import encryptionService from '../utils/encryption.js';
 import logger from '../utils/logger.js';
 import { revokeTokens } from '../auth/jwt.strategy.js';
 import crypto from 'crypto';
+import { encryptWithPassword } from '../utils/export-encryption.js';
 
 const router = Router();
 
@@ -20,25 +20,37 @@ const router = Router();
 router.post('/export', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?.id;
-    
+
     if (!userId) {
       return res.status(401).json({ message: 'Unauthorized' });
     }
-    
-    // Get user data
+
+    const { password } = req.body;
+    if (!password) {
+      return res.status(400).json({ message: 'Password confirmation is required for export' });
+    }
+
+    // Verify password before exporting sensitive data
+    const userRecord = await User.findById(userId).select('+password');
+    if (!userRecord) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    const isPasswordValid = await userRecord.comparePassword(password);
+    if (!isPasswordValid) {
+      return res.status(401).json({ message: 'Invalid password' });
+    }
+
+    // Get user data excluding sensitive fields
     const user = await User.findById(userId).lean();
-    
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
-    
-    // Remove sensitive fields
     delete user.password;
     delete user.refreshToken;
-    
+
     // Get user's bills
     const bills = await Bill.find({ owner: userId }).lean();
-    
+
     // Create a data object to export
     const exportData = {
       user,
@@ -47,55 +59,69 @@ router.post('/export', authenticate, async (req: AuthRequest, res: Response) => 
       exportRequestIP: req.ip
     };
 
-    // Generate one-time encryption key for this export
-    const exportKey = crypto.randomBytes(32).toString('hex');
-    
     // Set up the ZIP file for download
     res.setHeader('Content-Type', 'application/zip');
     res.setHeader('Content-Disposition', `attachment; filename=user-data-export-${Date.now()}.zip`);
-    
+
     // Create zip archive
     const archive = archiver('zip', {
-      zlib: { level: 9 } // Maximum compression
+      zlib: { level: 9 }
     });
-    
+
     // Pipe the archive to the response
     archive.pipe(res);
-    
-    // Encrypt the data before adding to archive
+
+    // Encrypt with the user's own password — key is never stored
     const exportDataString = JSON.stringify(exportData, null, 2);
-    const encryptedData = encryptionService.encrypt(exportDataString);
-    
-    // Add encrypted JSON data file to the archive
-    archive.append(encryptedData, { name: 'user-data.enc' });
-    
-    // Add the decryption key separately (in real-world, this would be delivered through a separate secure channel)
-    archive.append(exportKey, { name: 'README-FIRST.txt' });
-    
-    // Add a readme file explaining the data and how to use the encryption key
-    const readme = `# User Data Export (Encrypted)
+    const { encrypted, salt, iv, authTag } = encryptWithPassword(exportDataString, password);
+
+    // Ciphertext file
+    archive.append(encrypted, { name: 'user-data.enc' });
+
+    // Metadata needed for decryption (salt, IV, auth tag) — NOT the password
+    const metadata = {
+      algorithm: 'aes-256-gcm',
+      kdf: 'pbkdf2',
+      kdfIterations: 600000,
+      kdfDigest: 'sha512',
+      salt,
+      iv,
+      authTag
+    };
+    archive.append(JSON.stringify(metadata, null, 2), { name: 'metadata.json' });
+
+    // Instructions — the user's login password is the decryption key
+    const instructions = `# User Data Export (Encrypted)
 Date of Export: ${new Date().toISOString()}
 
-This export contains encrypted data for security purposes:
+This export contains your personal data encrypted for security:
 - Your account information
 - Your bills and invoices
 
-## Security Information
-- The file user-data.enc contains your encrypted data
-- For maximum security, we recommend storing this encryption key separately from the data file
-- To view your data, use our secure data viewer tool at https://tmr-tradinglanka.pages.dev/secure-viewer
+## How to Decrypt
 
-Your data can be decrypted using the key provided in README-FIRST.txt.
+This file was encrypted using your account password.
+To decrypt, provide the following files to a decryption tool:
+  - user-data.enc   (the encrypted data)
+  - metadata.json   (encryption parameters: salt, IV, auth tag)
+
+The decryption key is your TMR Trading Lanka account password.
+No separate key file is needed — your password is the key.
+
+## Security
+
+- Your password was never stored alongside this export
+- The encryption parameters (salt, IV) are safe to share
+- Without your password, the data cannot be decrypted
 
 This data is provided to comply with data portability requirements.
-For questions about your data, please contact privacy@gunawardanamotors.lk.
+For questions, please contact privacy@gunawardanamotors.lk.
 `;
-    
-    archive.append(readme, { name: 'instructions.md' });
+    archive.append(instructions, { name: 'instructions.md' });
 
     // Log the export for audit purposes
     logger.info(`GDPR data export completed for user ${userId} from IP ${req.ip}`);
-    
+
     // Finalize the archive
     await archive.finalize();
   } catch (error) {
