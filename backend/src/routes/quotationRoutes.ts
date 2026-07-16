@@ -265,7 +265,9 @@ router.post('/:id/convert-to-invoice', authenticate, async (req: AuthRequest, re
       quotationNumber: undefined, // Will be auto-generated with INV prefix
       type: 'invoice',
       status: 'sent',
-      remarks: 'Payment should be made within 7 days of invoice date.',
+      remarks: quotation.remarks
+        ? `${quotation.remarks}\n\nPayment should be made within 7 days of invoice date.`
+        : 'Payment should be made within 7 days of invoice date.',
       owner: req.user?.id
     };
 

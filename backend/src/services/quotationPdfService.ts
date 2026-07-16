@@ -374,8 +374,15 @@ export const generateQuotationPDF = async (quotation: IQuotation): Promise<Buffe
           doc.fontSize(10)
             .font('Helvetica')
             .fillColor('#cc0000')
-            .text(`${discountLabel} -LKR ${quotation.discountAmount.toFixed(2)}`, 350, yPos, { align: 'right', width: 200 })
-            .fillColor('#000000');
+            .text(`${discountLabel} -LKR ${quotation.discountAmount.toFixed(2)}`, 350, yPos, { align: 'right', width: 200 });
+
+          if (quotation.discountNote) {
+            yPos += 14;
+            doc.fontSize(8)
+              .text(`${quotation.discountNote}`, 50, yPos);
+          }
+
+          doc.fillColor('#000000');
         }
 
         // Final Total
