@@ -168,17 +168,17 @@ export const generateQuotationPDF = async (quotation: IQuotation): Promise<Buffe
         }
 
         doc.fontSize(20)
-           .font('Helvetica-Bold')
-           .fillColor(branding.primaryColor)
-           .text(branding.brandPartner, titleX, topY);
+          .font('Helvetica-Bold')
+          .fillColor(branding.primaryColor)
+          .text(branding.brandPartner, titleX, topY);
 
         const addressLine1 = branding.addressLine1 || '';
         const dealerHeader = `Authorized Dealer: ${branding.dealerName}${addressLine1 ? ` - ${addressLine1}` : ''}`;
 
         doc.fontSize(12)
-           .font('Helvetica')
-           .fillColor('#000000')
-           .text(dealerHeader, titleX, topY + 26);
+          .font('Helvetica')
+          .fillColor('#000000')
+          .text(dealerHeader, titleX, topY + 26);
 
         const footerNote = (branding as any).footerNote || '';
         if (footerNote) {
@@ -188,220 +188,248 @@ export const generateQuotationPDF = async (quotation: IQuotation): Promise<Buffe
         // Document title
         const title = quotation.type === 'invoice' ? 'INVOICE' : 'QUOTATION';
         doc.fontSize(24)
-           .font('Helvetica-Bold')
-           .text(title, 50, 130);
+          .font('Helvetica-Bold')
+          .text(title, 50, 130);
 
         // Document details
         doc.fontSize(12)
-           .font('Helvetica')
-           .text(`${title} No: ${quotation.quotationNumber}`, 50, 170)
-           .text(`Date: ${quotation.quotationDate.toLocaleDateString()}`, 50, 185);
+          .font('Helvetica')
+          .text(`${title} No: ${quotation.quotationNumber}`, 50, 170)
+          .text(`Date: ${quotation.quotationDate.toLocaleDateString()}`, 50, 185);
 
         if (quotation.validUntil && quotation.type === 'quotation') {
           doc.text(`Valid Until: ${quotation.validUntil.toLocaleDateString()}`, 50, 200);
         }
 
-      // Customer details with proper text wrapping
-      doc.fontSize(14)
-         .font('Helvetica-Bold')
-         .text('Customer Details:', 50, 230);
-
-      let yPos = 250;
-      const lineHeight = 15;
-      const labelWidth = 150;
-      const contentStartX = 50 + labelWidth + 10;
-      const contentWidth = 550 - contentStartX;
-      const sectionSpacing = 5; // Consistent spacing between fields
-      
-      doc.fontSize(12).font('Helvetica');
-      
-      // Customer Name with text wrapping
-      doc.text('Name:', 50, yPos, { width: labelWidth });
-      const nameLines = wrapText(quotation.customerName, contentWidth, 12);
-      nameLines.forEach((line, index) => {
-        doc.text(line, contentStartX, yPos + (index * lineHeight));
-      });
-      yPos += Math.max(nameLines.length * lineHeight, lineHeight) + sectionSpacing;
-      
-      // Address with text wrapping
-      doc.text('Address:', 50, yPos, { width: labelWidth });
-      const addressLines = wrapText(quotation.customerAddress, contentWidth, 12);
-      addressLines.forEach((line, index) => {
-        doc.text(line, contentStartX, yPos + (index * lineHeight));
-      });
-      yPos += Math.max(addressLines.length * lineHeight, lineHeight) + sectionSpacing;
-
-      if (quotation.customerNIC) {
-        doc.text('NIC:', 50, yPos, { width: labelWidth });
-        doc.text(quotation.customerNIC, contentStartX, yPos);
-        yPos += lineHeight + sectionSpacing;
-      }
-
-      if (quotation.customerPhone) {
-        doc.text('Phone:', 50, yPos, { width: labelWidth });
-        doc.text(quotation.customerPhone, contentStartX, yPos);
-        yPos += lineHeight + sectionSpacing;
-      }
-
-      if (quotation.bikeRegNo) {
-        doc.text('Bike Registration No:', 50, yPos, { width: labelWidth });
-        doc.text(quotation.bikeRegNo, contentStartX, yPos);
-        yPos += lineHeight + sectionSpacing;
-      }
-
-      // Insurance details (if available)
-      const insurance = (quotation as any).insuranceDetails?.companyName ?? (quotation as any).insuranceDetails;
-      if (insurance) {
-        doc.text('Insurance:', 50, yPos, { width: labelWidth });
-        doc.text(String(insurance), contentStartX, yPos);
-        yPos += lineHeight + (sectionSpacing * 2); // Double spacing before items section
-      }
-
-      const pageBottomMargin = 60;
-      const pageUsableBottom = () => doc.page.height - pageBottomMargin;
-      const ensureSpace = (spaceNeeded: number, onNewPage?: () => void) => {
-        if (yPos + spaceNeeded > pageUsableBottom()) {
-          doc.addPage();
-          yPos = 50;
-          if (onNewPage) onNewPage();
-        }
-      };
-
-      // Items table with improved alignment
-      yPos += (sectionSpacing * 4); // Consistent spacing before table
-      ensureSpace(120);
-
-      // Define column positions and widths
-      const columns = {
-        description: { x: 50, width: 280 },
-        qty: { x: 340, width: 40 },
-        rate: { x: 390, width: 70 },
-        amount: { x: 470, width: 80 }
-      };
-
-      const drawItemsHeader = () => {
+        // Customer details with proper text wrapping
         doc.fontSize(14)
-           .font('Helvetica-Bold')
-           .text('Items:', 50, yPos);
+          .font('Helvetica-Bold')
+          .text('Customer Details:', 50, 230);
 
-        yPos += 30;
+        let yPos = 250;
+        const lineHeight = 15;
+        const labelWidth = 150;
+        const contentStartX = 50 + labelWidth + 10;
+        const contentWidth = 550 - contentStartX;
+        const sectionSpacing = 5; // Consistent spacing between fields
+      
+        doc.fontSize(12).font('Helvetica');
+      
+        // Customer Name with text wrapping
+        doc.text('Name:', 50, yPos, { width: labelWidth });
+        const nameLines = wrapText(quotation.customerName, contentWidth, 12);
+        nameLines.forEach((line, index) => {
+          doc.text(line, contentStartX, yPos + (index * lineHeight));
+        });
+        yPos += Math.max(nameLines.length * lineHeight, lineHeight) + sectionSpacing;
+      
+        // Address with text wrapping
+        doc.text('Address:', 50, yPos, { width: labelWidth });
+        const addressLines = wrapText(quotation.customerAddress, contentWidth, 12);
+        addressLines.forEach((line, index) => {
+          doc.text(line, contentStartX, yPos + (index * lineHeight));
+        });
+        yPos += Math.max(addressLines.length * lineHeight, lineHeight) + sectionSpacing;
 
-        doc.fontSize(12)
-           .font('Helvetica-Bold')
-           .text('Description', columns.description.x, yPos)
-           .text('Qty', columns.qty.x, yPos, { align: 'center', width: columns.qty.width })
-           .text('Rate', columns.rate.x, yPos, { align: 'right', width: columns.rate.width })
-           .text('Amount', columns.amount.x, yPos, { align: 'right', width: columns.amount.width });
+        if (quotation.customerNIC) {
+          doc.text('NIC:', 50, yPos, { width: labelWidth });
+          doc.text(quotation.customerNIC, contentStartX, yPos);
+          yPos += lineHeight + sectionSpacing;
+        }
 
-        doc.fontSize(10)
-           .font('Helvetica')
-           .text('(LKR)', columns.rate.x, yPos + 15, { align: 'right', width: columns.rate.width })
-           .text('(LKR)', columns.amount.x, yPos + 15, { align: 'right', width: columns.amount.width });
+        if (quotation.customerPhone) {
+          doc.text('Phone:', 50, yPos, { width: labelWidth });
+          doc.text(quotation.customerPhone, contentStartX, yPos);
+          yPos += lineHeight + sectionSpacing;
+        }
 
-        yPos += (sectionSpacing * 7);
+        if (quotation.bikeRegNo) {
+          doc.text('Bike Registration No:', 50, yPos, { width: labelWidth });
+          doc.text(quotation.bikeRegNo, contentStartX, yPos);
+          yPos += lineHeight + sectionSpacing;
+        }
 
-        doc.moveTo(50, yPos)
-           .lineTo(550, yPos)
-           .stroke();
+        // Insurance details (if available)
+        const insurance = (quotation as any).insuranceDetails?.companyName ?? (quotation as any).insuranceDetails;
+        if (insurance) {
+          doc.text('Insurance:', 50, yPos, { width: labelWidth });
+          doc.text(String(insurance), contentStartX, yPos);
+          yPos += lineHeight + (sectionSpacing * 2); // Double spacing before items section
+        }
 
-        yPos += 10;
-      };
+        const pageBottomMargin = 60;
+        const pageUsableBottom = () => doc.page.height - pageBottomMargin;
+        const ensureSpace = (spaceNeeded: number, onNewPage?: () => void) => {
+          if (yPos + spaceNeeded > pageUsableBottom()) {
+            doc.addPage();
+            yPos = 50;
+            if (onNewPage) onNewPage();
+          }
+        };
 
-      drawItemsHeader();
+        // Items table with improved alignment
+        yPos += (sectionSpacing * 4); // Consistent spacing before table
+        ensureSpace(120);
 
-      // Add items with proper text wrapping
-      quotation.items.forEach((item) => {
+        // Define column positions and widths
+        const columns = {
+          description: { x: 50, width: 280 },
+          qty: { x: 340, width: 40 },
+          rate: { x: 390, width: 70 },
+          amount: { x: 470, width: 80 }
+        };
+
+        const drawItemsHeader = () => {
+          doc.fontSize(14)
+            .font('Helvetica-Bold')
+            .text('Items:', 50, yPos);
+
+          yPos += 30;
+
+          doc.fontSize(12)
+            .font('Helvetica-Bold')
+            .text('Description', columns.description.x, yPos)
+            .text('Qty', columns.qty.x, yPos, { align: 'center', width: columns.qty.width })
+            .text('Rate', columns.rate.x, yPos, { align: 'right', width: columns.rate.width })
+            .text('Amount', columns.amount.x, yPos, { align: 'right', width: columns.amount.width });
+
+          doc.fontSize(10)
+            .font('Helvetica')
+            .text('(LKR)', columns.rate.x, yPos + 15, { align: 'right', width: columns.rate.width })
+            .text('(LKR)', columns.amount.x, yPos + 15, { align: 'right', width: columns.amount.width });
+
+          yPos += (sectionSpacing * 7);
+
+          doc.moveTo(50, yPos)
+            .lineTo(550, yPos)
+            .stroke();
+
+          yPos += 10;
+        };
+
+        drawItemsHeader();
+
+        // Add items with proper text wrapping
+        quotation.items.forEach((item) => {
         // Compute item dimensions before ensureSpace (so page-break check knows the height)
-        const descriptionLines = wrapText(item.description, columns.description.width, 10);
-        const itemHeight = Math.max(descriptionLines.length * 12, 20);
+          const descriptionLines = wrapText(item.description, columns.description.width, 10);
+          const itemHeight = Math.max(descriptionLines.length * 12, 20);
 
-        ensureSpace(itemHeight + sectionSpacing, drawItemsHeader);
+          ensureSpace(itemHeight + sectionSpacing, drawItemsHeader);
 
-        // Capture yPos AFTER ensureSpace — if a page break occurred, yPos is now
-        // at the correct position on the new page (drawItemsHeader advanced it)
-        const startY = yPos;
+          // Capture yPos AFTER ensureSpace — if a page break occurred, yPos is now
+          // at the correct position on the new page (drawItemsHeader advanced it)
+          const startY = yPos;
         
-        doc.fontSize(10).font('Helvetica');
+          doc.fontSize(10).font('Helvetica');
         
-        // Draw description with multiple lines
-        descriptionLines.forEach((line, index) => {
-          doc.text(line, columns.description.x, startY + (index * 12));
+          // Draw description with multiple lines
+          descriptionLines.forEach((line, index) => {
+            doc.text(line, columns.description.x, startY + (index * 12));
+          });
+        
+          // Align other columns to the middle of the item height
+          const middleY = startY + (itemHeight / 2) - 6;
+        
+          doc.text(item.quantity.toString(), columns.qty.x, middleY, { 
+            align: 'center', 
+            width: columns.qty.width 
+          })
+            .text(item.rate.toFixed(2), columns.rate.x, middleY, { 
+              align: 'right', 
+              width: columns.rate.width 
+            })
+            .text(item.amount.toFixed(2), columns.amount.x, middleY, { 
+              align: 'right', 
+              width: columns.amount.width 
+            });
+
+          yPos += itemHeight + sectionSpacing;
         });
-        
-        // Align other columns to the middle of the item height
-        const middleY = startY + (itemHeight / 2) - 6;
-        
-        doc.text(item.quantity.toString(), columns.qty.x, middleY, { 
-          align: 'center', 
-          width: columns.qty.width 
-        })
-        .text(item.rate.toFixed(2), columns.rate.x, middleY, { 
-          align: 'right', 
-          width: columns.rate.width 
-        })
-        .text(item.amount.toFixed(2), columns.amount.x, middleY, { 
-          align: 'right', 
-          width: columns.amount.width 
-        });
 
-        yPos += itemHeight + sectionSpacing;
-      });
+        // Compute subtotal from items
+        const subtotal = quotation.items.reduce((sum: number, item: any) => sum + (item.amount || 0), 0);
 
-      // Draw line before total
-      yPos += (sectionSpacing * 2);
-      ensureSpace(40);
-      doc.moveTo(350, yPos)
-         .lineTo(550, yPos)
-         .stroke();
+        // Draw line before totals
+        yPos += (sectionSpacing * 2);
+        ensureSpace(60);
+        doc.moveTo(350, yPos)
+          .lineTo(550, yPos)
+          .stroke();
 
-      // Total
-      yPos += (sectionSpacing * 3);
-      ensureSpace(24);
-      doc.fontSize(12)
-         .font('Helvetica-Bold')
-         .text(`Total Amount: LKR ${quotation.totalAmount.toFixed(2)}`, 350, yPos, { align: 'right', width: 200 });
+        // Subtotal
+        yPos += (sectionSpacing * 3);
+        ensureSpace(20);
+        doc.fontSize(10)
+          .font('Helvetica')
+          .text(`Subtotal: LKR ${subtotal.toFixed(2)}`, 350, yPos, { align: 'right', width: 200 });
 
-      // Remarks with text wrapping
-      if (quotation.remarks) {
-        const remarksLines = wrapText(quotation.remarks, 500, 10);
-        const remarksHeight = (sectionSpacing * 8)
+        // Discount line (if any)
+        if (quotation.discountAmount > 0) {
+          yPos += (sectionSpacing * 3);
+          ensureSpace(20);
+          const discountLabel = quotation.discountType === 'percentage'
+            ? `Discount (${quotation.discountValue}%):`
+            : 'Discount:';
+          doc.fontSize(10)
+            .font('Helvetica')
+            .fillColor('#cc0000')
+            .text(`${discountLabel} -LKR ${quotation.discountAmount.toFixed(2)}`, 350, yPos, { align: 'right', width: 200 })
+            .fillColor('#000000');
+        }
+
+        // Final Total
+        yPos += (sectionSpacing * 3);
+        ensureSpace(24);
+        doc.moveTo(350, yPos)
+          .lineTo(550, yPos)
+          .stroke();
+        yPos += (sectionSpacing * 2);
+        doc.fontSize(12)
+          .font('Helvetica-Bold')
+          .text(`Total Amount: LKR ${quotation.totalAmount.toFixed(2)}`, 350, yPos, { align: 'right', width: 200 });
+
+        // Remarks with text wrapping
+        if (quotation.remarks) {
+          const remarksLines = wrapText(quotation.remarks, 500, 10);
+          const remarksHeight = (sectionSpacing * 8)
           + 16
           + (sectionSpacing * 4)
           + (remarksLines.length * 12)
           + (sectionSpacing * 4);
-        ensureSpace(remarksHeight);
+          ensureSpace(remarksHeight);
+          yPos += (sectionSpacing * 8);
+          doc.fontSize(12)
+            .font('Helvetica-Bold')
+            .text('Remarks:', 50, yPos);
+
+          yPos += (sectionSpacing * 4);
+          doc.fontSize(10).font('Helvetica');
+          remarksLines.forEach((line, index) => {
+            doc.text(line, 50, yPos + (index * 12));
+          });
+          yPos += remarksLines.length * 12 + (sectionSpacing * 4);
+        }
+
+        // Footer with consistent spacing
+        const footerHeight = (sectionSpacing * 12) + 36;
+        ensureSpace(footerHeight);
         yPos += (sectionSpacing * 8);
-        doc.fontSize(12)
-           .font('Helvetica-Bold')
-           .text('Remarks:', 50, yPos);
+        doc.fontSize(10)
+          .font('Helvetica')
+          .text('Thank you for your business!', 50, yPos)
+          .text('This is a computer-generated document.', 50, yPos + (sectionSpacing * 3));
 
-        yPos += (sectionSpacing * 4);
-        doc.fontSize(10).font('Helvetica');
-        remarksLines.forEach((line, index) => {
-          doc.text(line, 50, yPos + (index * 12));
+        renderDocumentAttribution(doc, {
+          left: 50,
+          width: 500
         });
-        yPos += remarksLines.length * 12 + (sectionSpacing * 4);
-      }
 
-      // Footer with consistent spacing
-      const footerHeight = (sectionSpacing * 12) + 36;
-      ensureSpace(footerHeight);
-      yPos += (sectionSpacing * 8);
-      doc.fontSize(10)
-         .font('Helvetica')
-         .text('Thank you for your business!', 50, yPos)
-         .text('This is a computer-generated document.', 50, yPos + (sectionSpacing * 3));
-
-      renderDocumentAttribution(doc, {
-        left: 50,
-        width: 500
-      });
-
-      // Company stamp area
-      doc.fillColor('#000000')
-         .fontSize(8)
-         .text('Authorized Signature: ___________________', 350, yPos)
-         .text('Company Stamp', 350, yPos + (sectionSpacing * 6));
+        // Company stamp area
+        doc.fillColor('#000000')
+          .fontSize(8)
+          .text('Authorized Signature: ___________________', 350, yPos)
+          .text('Company Stamp', 350, yPos + (sectionSpacing * 6));
 
         // Finalize the PDF
         doc.end();

@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import apiClient from '../config/apiClient';
 import toast from 'react-hot-toast';
 import moment from 'moment';
+import { calculateDiscount } from '../utils/discount';
 
 const { Option } = Select;
 const { TextArea } = Input;
@@ -20,6 +21,9 @@ const QuotationGenerator = () => {
   const [customerSuggestions, setCustomerSuggestions] = useState([]);
   const [customerSearchLoading, setCustomerSearchLoading] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [discountType, setDiscountType] = useState('none');
+  const [discountValue, setDiscountValue] = useState(0);
+  const [discountNote, setDiscountNote] = useState('');
 
   const docType = Form.useWatch('type', form);
 
@@ -35,11 +39,12 @@ const QuotationGenerator = () => {
     }
   }, [docType, form]);
 
-  // Calculate total amount whenever items change
+  // Calculate total amount whenever items or discount change
   useEffect(() => {
-    const total = items.reduce((sum, item) => sum + (item.amount || 0), 0);
-    setTotalAmount(total);
-  }, [items]);
+    const subtotal = items.reduce((sum, item) => sum + (item.amount || 0), 0);
+    const discountAmt = calculateDiscount(subtotal, discountType, discountValue);
+    setTotalAmount(Math.max(subtotal - discountAmt, 0));
+  }, [items, discountType, discountValue]);
 
   // Search for existing customers
   const searchCustomers = async (searchText) => {
@@ -113,10 +118,17 @@ const QuotationGenerator = () => {
         return;
       }
 
+      const subtotal = validItems.reduce((sum, item) => sum + (item.amount || 0), 0);
+      const discountAmt = calculateDiscount(subtotal, discountType, discountValue);
+
       const quotationData = {
         ...values,
         items: validItems,
         totalAmount,
+        discountType,
+        discountValue: discountType === 'none' ? 0 : discountValue,
+        discountAmount: discountAmt,
+        discountNote: discountNote || undefined,
         quotationDate: values.quotationDate ? values.quotationDate.toDate() : new Date(),
         validUntil: values.validUntil ? values.validUntil.toDate() : null,
         accidentDate: values.accidentDate ? values.accidentDate.toDate() : null
@@ -407,9 +419,69 @@ const QuotationGenerator = () => {
             >
               Add Item
             </Button>
+          </div>
 
-            <div className="text-lg font-semibold">
-              Total: LKR {totalAmount.toLocaleString()}
+          <div className="border-t pt-4 space-y-2">
+            <div className="flex justify-between items-center text-base">
+              <span className="text-gray-600 dark:text-gray-400">Subtotal:</span>
+              <span className="font-medium">LKR {items.reduce((s, i) => s + (i.amount || 0), 0).toLocaleString()}</span>
+            </div>
+
+            <div className="flex items-center gap-3 flex-wrap">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-600 dark:text-gray-400">Discount:</span>
+                <Select
+                  value={discountType}
+                  onChange={(v) => { setDiscountType(v); if (v === 'none') setDiscountValue(0); }}
+                  className="w-28"
+                  size="small"
+                  options={[
+                    { label: 'None', value: 'none' },
+                    { label: 'Percentage', value: 'percentage' },
+                    { label: 'Fixed (LKR)', value: 'fixed' }
+                  ]}
+                />
+              </div>
+              {discountType !== 'none' && (
+                <InputNumber
+                  value={discountValue}
+                  onChange={(v) => setDiscountValue(v || 0)}
+                  min={0}
+                  className="w-28"
+                  size="small"
+                  placeholder={discountType === 'percentage' ? '%' : 'Amount'}
+                  formatter={discountType === 'percentage'
+                    ? (v) => `${v}%`
+                    : (v) => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                  parser={(v) => v.replace(/[%\s,]/g, '')}
+                />
+              )}
+              <input
+                type="text"
+                value={discountNote}
+                onChange={(e) => setDiscountNote(e.target.value)}
+                placeholder="Discount note (optional)"
+                className="flex-1 min-w-[160px] px-2 py-1 text-sm border rounded dark:bg-slate-700 dark:border-slate-600 dark:text-gray-200"
+              />
+            </div>
+
+            {discountType !== 'none' && discountValue > 0 && (
+              <div className="flex justify-between items-center text-base text-red-600 dark:text-red-400">
+                <span>
+                  Discount
+                  {discountType === 'percentage' ? ` (${discountValue}%)` : ''}:
+                </span>
+                <span>-LKR {(() => {
+                  const s = items.reduce((sum, i) => sum + (i.amount || 0), 0);
+                  const d = calculateDiscount(s, discountType, discountValue);
+                  return d.toLocaleString();
+                })()}</span>
+              </div>
+            )}
+
+            <div className="border-t pt-2 flex justify-between items-center text-lg font-bold">
+              <span>Total:</span>
+              <span>LKR {totalAmount.toLocaleString()}</span>
             </div>
           </div>
         </Card>

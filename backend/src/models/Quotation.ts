@@ -1,4 +1,5 @@
 import mongoose, { Document, Schema } from 'mongoose';
+import { calculateDiscount } from '../utils/discount.js';
 
 // Define interface for quotation item
 export interface IQuotationItem {
@@ -29,6 +30,12 @@ export interface IQuotation extends Document {
   // Items
   items: IQuotationItem[];
   totalAmount: number;
+
+  // Discount
+  discountType: 'none' | 'percentage' | 'fixed';
+  discountValue: number;
+  discountAmount: number;
+  discountNote?: string;
 
   // Additional details
   remarks: string;
@@ -127,6 +134,36 @@ const QuotationSchema = new Schema({
     min: 0
   },
 
+  // Discount
+  discountType: {
+    type: String,
+    enum: ['none', 'percentage', 'fixed'],
+    default: 'none'
+  },
+  discountValue: {
+    type: Number,
+    default: 0,
+    min: 0,
+    validate: {
+      validator: function(this: any, v: number) {
+        if (this.discountType === 'percentage') {
+          return v >= 0 && v <= 100;
+        }
+        return v >= 0;
+      },
+      message: 'Percentage discount must be between 0 and 100'
+    }
+  },
+  discountAmount: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  discountNote: {
+    type: String,
+    default: ''
+  },
+
   // Additional details
   remarks: {
     type: String,
@@ -173,13 +210,16 @@ QuotationSchema.pre('validate', function(this: any, next) {
   next();
 });
 
-// Calculate total amount before saving
+// Calculate total amount before saving (with discount support)
 QuotationSchema.pre('save', function(this: any, next) {
   if (this.items && this.items.length > 0) {
-    this.totalAmount = this.items.reduce((total: number, item: IQuotationItem) => {
+    const subtotal = this.items.reduce((total: number, item: IQuotationItem) => {
       item.amount = item.quantity * item.rate;
       return total + item.amount;
     }, 0);
+
+    this.discountAmount = calculateDiscount(subtotal, this.discountType, this.discountValue);
+    this.totalAmount = Math.max(subtotal - this.discountAmount, 0);
   }
   next();
 });

@@ -1,9 +1,8 @@
-import express, { Request, Response } from 'express';
-import { ObjectId } from 'mongodb';
+import express, { Response } from 'express';
 import Quotation from '../models/Quotation.js';
 import Bill from '../models/Bill.js';
 import { generateQuotationPDF } from '../services/quotationPdfService.js';
-import { authenticate, requireAdmin, AuthRequest } from '../auth/auth.middleware.js';
+import { authenticate, AuthRequest } from '../auth/auth.middleware.js';
 
 const router = express.Router();
 const MAX_SEARCH_LENGTH = 64;
@@ -153,14 +152,12 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
 // Update quotation - Protected route with ownership check
 router.put('/:id', authenticate, async (req: AuthRequest, res: Response) => {
   try {
-    // First check ownership
     const quotation = await Quotation.findById(req.params.id);
 
     if (!quotation) {
       return res.status(404).json({ error: 'Quotation not found' });
     }
 
-    // Check ownership or admin status
     const user = await req.app.locals.models?.User.findById(req.user?.id);
     const isAdmin = user?.role === 'admin';
     const isOwner = quotation.owner && quotation.owner.toString() === req.user?.id;
@@ -169,18 +166,17 @@ router.put('/:id', authenticate, async (req: AuthRequest, res: Response) => {
       return res.status(403).json({ error: 'You do not have permission to update this quotation' });
     }
 
-    // Don't allow changing the owner
     if (req.body.owner && !isAdmin) {
       delete req.body.owner;
     }
 
-    const updatedQuotation = await Quotation.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true, runValidators: true }
-    ).populate('referenceBillId', 'billNumber customerName');
+    Object.assign(quotation, req.body);
+    await quotation.save();
 
-    res.status(200).json(updatedQuotation);
+    const updated = await Quotation.findById(quotation._id)
+      .populate('referenceBillId', 'billNumber customerName');
+
+    res.status(200).json(updated);
   } catch (error) {
     res.status(500).json({ error: (error as Error).message });
   }

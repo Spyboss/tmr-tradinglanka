@@ -322,16 +322,43 @@ const QuotationView = () => {
           dataSource={quotation.items}
           pagination={false}
           rowKey={(record, index) => index}
-          summary={() => (
-            <Table.Summary.Row>
-              <Table.Summary.Cell index={0} colSpan={3}>
-                <strong>Total</strong>
-              </Table.Summary.Cell>
-              <Table.Summary.Cell index={1}>
-                <strong>LKR {quotation.totalAmount.toLocaleString()}</strong>
-              </Table.Summary.Cell>
-            </Table.Summary.Row>
-          )}
+          summary={() => {
+            const subtotal = (quotation.items || []).reduce((s, i) => s + (i.amount || 0), 0);
+            const hasDiscount = quotation.discountAmount > 0;
+            return (
+              <>
+                <Table.Summary.Row>
+                  <Table.Summary.Cell index={0} colSpan={3}>
+                    <strong>Subtotal</strong>
+                  </Table.Summary.Cell>
+                  <Table.Summary.Cell index={1}>
+                    <strong>LKR {subtotal.toLocaleString()}</strong>
+                  </Table.Summary.Cell>
+                </Table.Summary.Row>
+                {hasDiscount && (
+                  <Table.Summary.Row>
+                    <Table.Summary.Cell index={0} colSpan={3}>
+                      <span className="text-red-600">
+                        Discount{quotation.discountType === 'percentage' ? ` (${quotation.discountValue}%)` : ''}
+                        {quotation.discountNote ? ` - ${quotation.discountNote}` : ''}
+                      </span>
+                    </Table.Summary.Cell>
+                    <Table.Summary.Cell index={1}>
+                      <span className="text-red-600">-LKR {quotation.discountAmount.toLocaleString()}</span>
+                    </Table.Summary.Cell>
+                  </Table.Summary.Row>
+                )}
+                <Table.Summary.Row>
+                  <Table.Summary.Cell index={0} colSpan={3}>
+                    <strong>Total</strong>
+                  </Table.Summary.Cell>
+                  <Table.Summary.Cell index={1}>
+                    <strong>LKR {quotation.totalAmount.toLocaleString()}</strong>
+                  </Table.Summary.Cell>
+                </Table.Summary.Row>
+              </>
+            );
+          }}
         />
       </Card>
 
