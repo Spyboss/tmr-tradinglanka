@@ -10,6 +10,7 @@ import {
   getInventoryAnalytics,
   getInventoryReportAnalytics,
   getAvailableBikesByModel,
+  getInventoryColours,
   generateInventoryReportPDF
 } from '../controllers/bikeInventoryController.js';
 import { authenticate, requireAdmin } from '../auth/auth.middleware.js';
@@ -53,6 +54,13 @@ router.get('/report/analytics', getInventoryReportAnalytics);
  * @access  Private
  */
 router.get('/report/pdf', generateInventoryReportPDF);
+
+/**
+ * @route   GET /api/inventory/colours
+ * @desc    Get distinct colour values already used across inventory
+ * @access  Private
+ */
+router.get('/colours', getInventoryColours);
 
 /**
  * @route   GET /api/inventory/available/:modelId

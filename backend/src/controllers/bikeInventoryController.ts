@@ -1418,6 +1418,43 @@ export const getAvailableBikesByModel = async (req: AuthRequest, res: Response, 
 };
 
 /**
+ * Get distinct colour values already used across inventory
+ * @route GET /api/inventory/colours
+ * @access Private
+ */
+export const getInventoryColours = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const items = await BikeInventory.find({ notes: { $exists: true, $ne: '' }, isDeleted: { $ne: true } })
+      .select('notes')
+      .lean();
+
+    const seen = new Set<string>();
+    const colours: string[] = [];
+
+    for (const item of items) {
+      const raw = (item.notes || '').trim();
+      if (!raw) continue;
+
+      const upper = raw.toUpperCase();
+      if (upper.length > 30 || /\d/.test(upper)) continue;
+
+      const words = upper.split(/\s+/).filter(Boolean);
+      if (words.length === 0 || words.length > 4) continue;
+
+      if (seen.has(upper)) continue;
+      seen.add(upper);
+      colours.push(upper);
+    }
+
+    colours.sort();
+    res.status(200).json(colours.slice(0, 100));
+  } catch (error) {
+    logger.error(`Error getting inventory colours: ${(error as Error).message}`);
+    next(new AppError(`Failed to get inventory colours: ${(error as Error).message}`, 500));
+  }
+};
+
+/**
  * Generate PDF for inventory report
  * @route GET /api/inventory/report/pdf
  * @access Private

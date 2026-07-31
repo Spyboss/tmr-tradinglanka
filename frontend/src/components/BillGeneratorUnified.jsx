@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Form, Input, Select, Button, DatePicker, InputNumber, Switch, message, Modal, Table, Spin, Tag } from 'antd';
+import { Form, Input, Select, Button, DatePicker, InputNumber, Switch, message, Modal, Table, Spin, Tag, AutoComplete } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import apiClient from '../config/apiClient';
 import toast from 'react-hot-toast';
-import { getAvailableBikesByModel, getInventory, addToInventory, updateInventory } from '../services/inventoryService';
+import { getAvailableBikesByModel, getInventory, getInventoryColours, addToInventory, updateInventory } from '../services/inventoryService';
 
 const { Option } = Select;
 
@@ -25,14 +25,28 @@ const BillGeneratorUnified = () => {
   const [loadingInventory, setLoadingInventory] = useState(false);
   const [selectedInventoryItem, setSelectedInventoryItem] = useState(null);
 
-  // Colour modal for manual entry auto-create
-  const [colourModalVisible, setColourModalVisible] = useState(false);
-  const [pendingSubmitValues, setPendingSubmitValues] = useState(null);
-  const [inventoryColour, setInventoryColour] = useState('');
+  // Colour suggestions from existing inventory (manual entry still allowed)
+  const [colourOptions, setColourOptions] = useState([]);
 
   useEffect(() => {
     fetchBikeModels();
+    fetchInventoryColours();
   }, []);
+
+  const fetchInventoryColours = async () => {
+    try {
+      const response = await getInventoryColours();
+      setColourOptions(Array.isArray(response) ? response : []);
+    } catch (_) {}
+  };
+
+  const looksLikeColour = (notes) => {
+    if (!notes) return false;
+    const upper = notes.trim().toUpperCase();
+    if (!upper || upper.length > 30 || /\d/.test(upper)) return false;
+    const words = upper.split(/\s+/).filter(Boolean);
+    return words.length > 0 && words.length <= 4;
+  };
 
   const fetchBikeModels = async () => {
     try {
@@ -90,6 +104,9 @@ const BillGeneratorUnified = () => {
       chassis_number: item.chassisNumber,
       inventoryItemId: item._id
     });
+    if (looksLikeColour(item.notes)) {
+      form.setFieldsValue({ colour: item.notes.trim().toUpperCase() });
+    }
     setInventoryModalVisible(false);
   };
 
@@ -286,7 +303,7 @@ const BillGeneratorUnified = () => {
                 status: 'sold',
                 dateAdded: billDateISO,
                 dateSold: billDateISO,
-                notes: 'Auto-added from bill creation'
+                notes: values.colour ? values.colour.toUpperCase() : 'Auto-added from bill creation'
               };
               const created = await addToInventory(inventoryPayload);
               try {
@@ -322,13 +339,7 @@ const BillGeneratorUnified = () => {
       warnIfDuplicateInInventory(values.motor_number, values.chassis_number);
     }
 
-    if (isRealEntry) {
-      setPendingSubmitValues(values);
-      setInventoryColour('');
-      setColourModalVisible(true);
-    } else {
-      doSubmit(values, '');
-    }
+    doSubmit(values, values.colour || '');
   };
 
   const inventoryColumns = [
@@ -499,6 +510,21 @@ const BillGeneratorUnified = () => {
           <Input disabled={!!selectedInventoryItem} style={{ textTransform: 'uppercase' }} autoCapitalize="characters" />
         </Form.Item>
 
+        <Form.Item
+          name="colour"
+          label="Colour"
+          rules={[{ required: true, message: 'Please enter the colour' }]}
+          getValueFromEvent={v => (typeof v === 'string' ? v.toUpperCase() : '')}
+        >
+          <AutoComplete
+            options={colourOptions.map(c => ({ value: c }))}
+            placeholder="Select an existing colour or type a new one"
+            style={{ textTransform: 'uppercase' }}
+            filterOption={(input, option) => (option?.value || '').toUpperCase().includes(input.toUpperCase())}
+            allowClear
+          />
+        </Form.Item>
+
         <Form.Item name="inventoryItemId" hidden>
           <Input />
         </Form.Item>
@@ -546,23 +572,6 @@ const BillGeneratorUnified = () => {
         <div className="h-[700px]">
           <iframe src={previewUrl} title="Bill Preview" className="w-full h-full border-0" />
         </div>
-      </Modal>
-
-      <Modal
-        title="Bike Colour"
-        open={colourModalVisible}
-        onCancel={() => { setColourModalVisible(false); setLoading(false); }}
-        onOk={() => { setColourModalVisible(false); doSubmit(pendingSubmitValues, inventoryColour); }}
-        okText="Add & Generate Bill"
-      >
-        <p className="mb-3 text-gray-600 dark:text-gray-400">This bike isn't in inventory yet. It will be added automatically. What colour is it?</p>
-        <Input
-          value={inventoryColour}
-          onChange={e => setInventoryColour(e.target.value)}
-          placeholder="e.g. RED, BLUE, WHITE, BLACK"
-          style={{ textTransform: 'uppercase' }}
-          autoFocus
-        />
       </Modal>
     </div>
   );

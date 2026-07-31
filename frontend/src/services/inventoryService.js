@@ -73,6 +73,20 @@ export const getAvailableBikesByModel = async (modelId) => {
 };
 
 /**
+ * Get distinct colour values already used across inventory
+ * @returns {Promise} - Promise with colour string array
+ */
+export const getInventoryColours = async () => {
+  try {
+    const response = await apiClient.get('/inventory/colours');
+    return response;
+  } catch (error) {
+    console.error('Error fetching inventory colours:', error);
+    throw error;
+  }
+};
+
+/**
  * Get inventory item by ID
  * @param {string} id - Inventory item ID
  * @returns {Promise} - Promise with inventory item
@@ -154,6 +168,7 @@ export default {
   getInventoryAnalytics,
   getInventoryReportAnalytics,
   getAvailableBikesByModel,
+  getInventoryColours,
   getInventoryById,
   addToInventory,
   batchAddToInventory,
