@@ -119,7 +119,7 @@ const port = process.env.PORT || 8080;
 // CORS Configuration
 // Default hard-coded origins kept as safe fallback
 const defaultAllowedOrigins = [
-  'https://tmr-production.up.railway.app',
+  'https://tmr-tradinglanka-api-production.up.railway.app',
   'https://tmr-tradinglanka.pages.dev',
   'http://localhost:5173' // For local development
 ];

@@ -345,7 +345,7 @@ export const deleteInventory = async (req: Request, res: Response, next: NextFun
       const allowed: string[] = Array.isArray(req.app?.locals?.allowedOrigins) && req.app.locals.allowedOrigins.length
         ? req.app.locals.allowedOrigins
         : [
-            'https://tmr-production.up.railway.app',
+            'https://tmr-tradinglanka-api-production.up.railway.app',
             'https://tmr-tradinglanka.pages.dev'
           ];
       const originHeader = req.headers.origin as string | undefined;

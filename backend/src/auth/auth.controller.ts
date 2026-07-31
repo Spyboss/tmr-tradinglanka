@@ -47,7 +47,7 @@ const getAllowedOrigins = (req: Request): string[] => {
   if (fromApp && Array.isArray(fromApp) && fromApp.length) return fromApp;
 
   const defaultAllowedOrigins = [
-    'https://tmr-production.up.railway.app',
+    'https://tmr-tradinglanka-api-production.up.railway.app',
     'https://tmr-tradinglanka.pages.dev',
     'http://localhost:5173'
   ];
