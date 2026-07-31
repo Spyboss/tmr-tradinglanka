@@ -6,10 +6,12 @@ This document covers production-grade deployment for the SPA and API.
 
 | Component | Platform | Trigger |
 | --- | --- | --- |
-| Frontend | Cloudflare Pages | GitHub Action on `main` build |
-| Backend | Railway | GitHub Action on `main` build |
+| Frontend | Cloudflare Pages | Git-connected build from `main` (see `frontend/build.config.json`) or manual `wrangler pages deploy` |
+| Backend | Railway | Railway Git integration with Docker build (see `railway.json`) or manual `railway up` |
 | Database | MongoDB Atlas | Managed cluster |
 | Cache / Queue | Redis Cloud | Managed instance |
+
+Deployments run through each platform's native Git integration; see the sections below for details.
 
 ## Railway (Backend API)
 
@@ -31,7 +33,7 @@ This document covers production-grade deployment for the SPA and API.
 
 ### Manual Deploy
 
-When CI is unavailable:
+When the Railway Git integration is not connected, deploy from the CLI:
 
 ```bash
 cd backend
@@ -48,12 +50,12 @@ railway up
    - Output directory: `frontend/dist`
    - Node version: `18`
 3. Set environment variables:
-   - `VITE_API_URL=https://tmr-production.up.railway.app` or `/api` if using Cloudflare proxy.
+   - `VITE_API_URL=https://tmr-tradinglanka-api-production.up.railway.app` or `/api` if using Cloudflare proxy.
    - `VITE_APP_NAME=TMR Trading Lanka`
    - `VITE_APP_DESCRIPTION=Motorcycle dealership DMS`
 4. Configure `_redirects` to proxy API calls when desired:
    ```
-   /api/* https://tmr-production.up.railway.app/api/:splat 200
+   /api/* https://tmr-tradinglanka-api-production.up.railway.app/api/:splat 200
    /* /index.html 200
    ```
 5. Protect preview deployments with Cloudflare Zero Trust (email/SSO) so staging data stays private.
@@ -73,7 +75,7 @@ railway up
 1. `npm run lint` and `npm run test` (backend) pass locally.
 2. Update [CHANGELOG](../../CHANGELOG.md) with release notes.
 3. Confirm `.env` secrets in Railway/Cloudflare.
-4. Merge PR to `main` to trigger CI deployments.
+4. Merge PR to `main` — Cloudflare Pages and Railway deploy via their native Git integrations (or deploy manually with `wrangler pages deploy` / `railway up`).
 5. Validate:
    - Login + refresh flow
    - Bill creation and PDF download

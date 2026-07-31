@@ -1,6 +1,6 @@
 # Architecture Overview
 
-The platform is delivered as a TypeScript monorepo with a React SPA (`frontend/`) and an Express API (`backend/`). The two applications deploy independently but share a release cadence through GitHub Actions.
+The platform is delivered as a TypeScript monorepo with a React SPA (`frontend/`) and an Express API (`backend/`). The two applications deploy independently: the SPA is served by Cloudflare Pages and the API runs on Railway, each deploying through its platform's native Git integration.
 
 ## High-Level Topology
 
@@ -59,11 +59,11 @@ The platform is delivered as a TypeScript monorepo with a React SPA (`frontend/`
 
 ## Deployment Flow
 
-1. Pull requests run lint/tests (backend) and Vite build (frontend) through GitHub Actions.
-2. Merges to `main` trigger two jobs:
-   - **Frontend** – Build artefacts, publish to Cloudflare Pages using production environment variables.
-   - **Backend** – Compile TypeScript, package Docker image, and release to Railway. Railway health checks `GET /api/health`.
-3. Railway auto-rolls containers; Cloudflare Pages serves new assets via CDN once build completes.
+1. Before pushing, run `npm run check` locally (backend lint + typecheck + tests, frontend build).
+2. Pushing to `main` triggers each platform's native integration:
+   - **Frontend** – Cloudflare Pages builds from the repo (settings in `frontend/build.config.json`) and publishes the SPA.
+   - **Backend** – Railway builds the Docker image (see `railway.json`) and rolls the container; the health check is `GET /api/health`.
+3. If an integration is disconnected, deploy manually with `wrangler pages deploy` / `railway up`. See [Deployment Runbook](../setup/deployment.md).
 
 ## Further Reading
 
