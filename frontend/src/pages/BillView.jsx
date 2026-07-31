@@ -4,7 +4,6 @@ import { Spin, Button, Badge, Descriptions, Card, Popconfirm, message, Alert, Ta
 import { DownloadOutlined, DeleteOutlined, EditOutlined, PrinterOutlined, EyeOutlined, FileDoneOutlined, UserOutlined, BankOutlined } from '@ant-design/icons';
 import toast from 'react-hot-toast';
 import apiClient from '../config/apiClient';
-import AdvancementConversion from '../components/AdvancementConversion';
 import dayjs from 'dayjs';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -161,19 +160,6 @@ const BillView = () => {
       toast.error(`Failed to download PDF: ${error.message || 'Server error'}`);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleConvertToLeasing = async () => {
-    try {
-      await apiClient.put(`/bills/${bill.id}/convert-to-leasing`, {
-        // ... existing code ...
-      });
-      toast.success('Bill converted to leasing successfully');
-      fetchBill(id);
-    } catch (error) {
-      console.error('Error converting bill:', error);
-      toast.error('Failed to convert bill');
     }
   };
 
@@ -535,19 +521,6 @@ const BillView = () => {
           >
             Mark as Cancelled
           </Button>
-        )}
-        
-        {(bill.billType === 'cash' && bill.status !== 'converted' && !bill.isEbicycle) && (
-          <Popconfirm
-            title="Convert this cash bill to leasing?"
-            onConfirm={handleConvertToLeasing}
-            okText="Yes"
-            cancelText="No"
-          >
-            <Button>
-              Convert to Leasing
-            </Button>
-          </Popconfirm>
         )}
       </div>
 

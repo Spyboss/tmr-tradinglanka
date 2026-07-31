@@ -10,7 +10,6 @@ import Dashboard from './pages/Dashboard';
 import BillGenerator from './components/BillGenerator';
 import BillGeneratorWithInventory from './components/BillGeneratorWithInventory';
 import BillGeneratorUnified from './components/BillGeneratorUnified';
-import BillConversion from './components/BillConversion';
 import BillEdit from './pages/BillEdit';
 import Login from './pages/auth/Login';
 import QuotationGenerator from './components/QuotationGenerator';
@@ -53,7 +52,6 @@ const ProtectedBillList = () => <ProtectedRoute><BillList /></ProtectedRoute>;
 const ProtectedBillForm = () => <ProtectedRoute><BillForm /></ProtectedRoute>;
 const ProtectedBillView = () => <ProtectedRoute><BillView /></ProtectedRoute>;
 const ProtectedBillGenerator = () => <ProtectedRoute><BillGenerator /></ProtectedRoute>;
-const ProtectedBillConversion = () => <ProtectedRoute><BillConversion /></ProtectedRoute>;
 const ProtectedBillEdit = () => <ProtectedRoute><BillEdit /></ProtectedRoute>;
 const ProtectedDashboard = () => <ProtectedRoute><Dashboard /></ProtectedRoute>;
 const ProtectedInventoryList = () => <ProtectedRoute><InventoryList /></ProtectedRoute>;
@@ -127,7 +125,6 @@ const AppContent = () => {
             <Route path="/bills/new" element={<ProtectedBillGeneratorUnified />} />
             <Route path="/bills/new-with-inventory" element={<ProtectedBillGeneratorUnified />} />
             <Route path="/bills/:id" element={<ProtectedBillView />} />
-            <Route path="/bills/:id/convert" element={<ProtectedBillConversion />} />
             <Route path="/bills/:id/edit" element={<ProtectedBillEdit />} />
             <Route path="/inventory" element={<ProtectedInventoryList />} />
             <Route path="/inventory/add" element={<ProtectedAddInventoryItem />} />

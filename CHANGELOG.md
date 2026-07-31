@@ -79,6 +79,7 @@ All notable changes to this project are documented in this file. The format foll
 - Email verification feature flag with optional enforcement middleware.
 
 ### Changed
+- Removed the dead cash-to-leasing conversion UI (`/bills/:id/convert` page and "Convert to Leasing" button) — no server-side endpoint ever existed; advance-to-final-sale conversion is handled by Close Sale.
 - Authentication flow now uses Redis-backed refresh tokens with secure cookie settings.
 - Security middleware enforces CORS allowlist, request sanitisation, and rate limiting for sensitive routes.
 - Frontend rebuilt with Vite, Ant Design, and Tailwind for faster builds and modern UX.
