@@ -519,6 +519,16 @@ router.put('/:id', authenticate, async (req: AuthRequest, res: Response) => {
       }
     }
 
+    // Sync colour onto the bill's linked inventory item (stored as notes)
+    const linkedInventoryId = newInventoryItemId || oldInventoryItemId;
+    if (linkedInventoryId && typeof req.body.colour === 'string' && req.body.colour.trim()) {
+      await BikeInventory.findOneAndUpdate(
+        { _id: linkedInventoryId, isDeleted: { $ne: true } },
+        { notes: req.body.colour.trim().toUpperCase() },
+        { session }
+      );
+    }
+
     if (req.user?.id && mongoose.Types.ObjectId.isValid(req.user.id)) {
       await UserActivity.create([{
         userId: new mongoose.Types.ObjectId(req.user.id),
@@ -556,6 +566,7 @@ router.put('/:id', authenticate, async (req: AuthRequest, res: Response) => {
     }
 
     Object.entries(req.body).forEach(([key, value]) => {
+      if (key === 'colour') return;
       (bill as any).set(key, value);
     });
 

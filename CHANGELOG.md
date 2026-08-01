@@ -79,7 +79,7 @@ All notable changes to this project are documented in this file. The format foll
 - Email verification feature flag with optional enforcement middleware.
 
 ### Changed
-- Bill creation form now has a required inline **Colour** field with autocomplete suggestions from existing inventory colours (`GET /api/inventory/colours`), replacing the post-submit "Bike Colour" modal. Manually typed colours are allowed; the colour also auto-fills when selecting a bike from inventory.
+- Bill creation and edit forms now have a required inline **Colour** field with autocomplete suggestions from existing inventory colours (`GET /api/inventory/colours`), replacing the post-submit "Bike Colour" modal on creation. Manually typed colours are allowed; the colour auto-fills when selecting a bike from inventory, and editing a bill syncs the colour onto the linked inventory item.
 - Removed the dead cash-to-leasing conversion UI (`/bills/:id/convert` page and "Convert to Leasing" button) — no server-side endpoint ever existed; advance-to-final-sale conversion is handled by Close Sale.
 - Authentication flow now uses Redis-backed refresh tokens with secure cookie settings.
 - Security middleware enforces CORS allowlist, request sanitisation, and rate limiting for sensitive routes.

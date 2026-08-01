@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Form, Input, Select, Button, DatePicker, InputNumber, Switch, message, Spin, Card, Modal, Table, Tag } from 'antd';
+import { Form, Input, Select, Button, DatePicker, InputNumber, Switch, message, Spin, Card, Modal, Table, Tag, AutoComplete } from 'antd';
 import moment from 'moment';
 import apiClient from '../config/apiClient';
 import toast from 'react-hot-toast';
-import { getAvailableBikesByModel } from '../services/inventoryService';
+import { getAvailableBikesByModel, getInventoryColours } from '../services/inventoryService';
 
 const { Option } = Select;
 
@@ -24,14 +24,31 @@ const BillEdit = () => {
   const [loadingInventory, setLoadingInventory] = useState(false);
   const [selectedInventoryItem, setSelectedInventoryItem] = useState(null);
   const [inventoryTouched, setInventoryTouched] = useState(false);
+  const [colourOptions, setColourOptions] = useState([]);
 
   useEffect(() => {
     const loadData = async () => {
       await fetchBill();
       await fetchBikeModels();
+      await fetchInventoryColours();
     };
     loadData();
   }, [id]);
+
+  const fetchInventoryColours = async () => {
+    try {
+      const response = await getInventoryColours();
+      setColourOptions(Array.isArray(response) ? response : []);
+    } catch (_) {}
+  };
+
+  const looksLikeColour = (notes) => {
+    if (!notes) return false;
+    const upper = notes.trim().toUpperCase();
+    if (!upper || upper.length > 30 || /\d/.test(upper)) return false;
+    const words = upper.split(/\s+/).filter(Boolean);
+    return words.length > 0 && words.length <= 4;
+  };
 
   // Set selected model when both bill and bike models are loaded
   useEffect(() => {
@@ -82,6 +99,7 @@ const BillEdit = () => {
 
         billDate: data.billDate ? moment(data.billDate) : null,
         estimatedDeliveryDate: data.estimatedDeliveryDate ? moment(data.estimatedDeliveryDate) : null,
+        colour: looksLikeColour(data.colour) ? data.colour.trim().toUpperCase() : '',
       };
 
       console.log('Setting form values:', formValues);
@@ -145,6 +163,9 @@ const BillEdit = () => {
       motorNumber: item.motorNumber,
       chassisNumber: item.chassisNumber
     });
+    if (looksLikeColour(item.notes)) {
+      form.setFieldsValue({ colour: item.notes.trim().toUpperCase() });
+    }
     setInventoryModalVisible(false);
   };
 
@@ -203,7 +224,8 @@ const BillEdit = () => {
         billDate: values.billDate ? values.billDate.toISOString() : new Date().toISOString(),
         estimatedDeliveryDate: values.estimatedDeliveryDate ? values.estimatedDeliveryDate.toISOString() : null,
         isEbicycle: isEbicycle,
-        isAdvancePayment: normalizedBillType === 'advance'
+        isAdvancePayment: normalizedBillType === 'advance',
+        colour: values.colour ? values.colour.trim().toUpperCase() : ''
       };
 
       if (inventoryTouched) {
@@ -429,6 +451,21 @@ const BillEdit = () => {
             rules={[{ required: true, message: 'Please enter chassis number' }]}
           >
             <Input />
+          </Form.Item>
+
+          <Form.Item
+            name="colour"
+            label="Colour"
+            rules={[{ required: true, message: 'Please enter the colour' }]}
+            getValueFromEvent={v => (typeof v === 'string' ? v.toUpperCase() : '')}
+          >
+            <AutoComplete
+              options={colourOptions.map(c => ({ value: c }))}
+              placeholder="Select an existing colour or type a new one"
+              style={{ textTransform: 'uppercase' }}
+              filterOption={(input, option) => (option?.value || '').toUpperCase().includes(input.toUpperCase())}
+              allowClear
+            />
           </Form.Item>
 
           <Form.Item
