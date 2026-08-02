@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import apiClient from '../config/apiClient'
+import { formatColomboDate } from '../utils/formatDate'
 import { Table, Tag, Button, Space, Popconfirm, message, Spin, Input, Badge, Select, Skeleton, Card, DatePicker, InputNumber } from 'antd'
 import { PlusOutlined, SearchOutlined, DownloadOutlined, EyeOutlined, EditOutlined, DeleteOutlined, FileExcelOutlined } from '@ant-design/icons'
 
@@ -178,21 +179,7 @@ const BillList = () => {
   }
 
   const formatDate = (dateString) => {
-    if (!dateString) return '';
-    try {
-      const d = new Date(dateString);
-      if (isNaN(d.getTime())) return '';
-      
-      // Use UTC methods to avoid timezone conversion issues
-      const day = d.getUTCDate().toString().padStart(2, '0');
-      const month = (d.getUTCMonth() + 1).toString().padStart(2, '0');
-      const year = d.getUTCFullYear();
-      
-      return `${day}/${month}/${year}`;
-    } catch (error) {
-      console.error('Error formatting date:', error);
-      return '';
-    }
+    return formatColomboDate(dateString);
   }
 
   const getStatusBadgeClass = (status) => {

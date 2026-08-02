@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Form, Input, Select, Button, DatePicker, InputNumber, Switch, message, Spin, Card, Modal, Table, Tag, AutoComplete } from 'antd';
 import moment from 'moment';
+import { formatColomboDate } from '../utils/formatDate';
 import apiClient from '../config/apiClient';
 import toast from 'react-hot-toast';
 import { getAvailableBikesByModel, getInventoryColours } from '../services/inventoryService';
@@ -181,7 +182,7 @@ const BillEdit = () => {
   const inventoryColumns = [
     { title: 'Motor Number', dataIndex: 'motorNumber', key: 'motorNumber' },
     { title: 'Chassis Number', dataIndex: 'chassisNumber', key: 'chassisNumber' },
-    { title: 'Date Added', dataIndex: 'dateAdded', key: 'dateAdded', render: (d) => d ? new Date(d).toLocaleDateString() : '-' },
+    { title: 'Date Added', dataIndex: 'dateAdded', key: 'dateAdded', render: (d) => d ? formatColomboDate(d) : '-' },
     { title: 'Status', dataIndex: 'status', key: 'status', render: (s) => <Tag color="green">{s ? s.toUpperCase() : 'AVAILABLE'}</Tag> },
     { title: 'Action', key: 'action', render: (_, record) => (
       <Button type="primary" size="small" onClick={() => handleSelectInventoryItem(record)}>Select</Button>

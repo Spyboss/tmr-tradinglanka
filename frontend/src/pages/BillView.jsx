@@ -5,6 +5,7 @@ import { DownloadOutlined, DeleteOutlined, EditOutlined, PrinterOutlined, EyeOut
 import toast from 'react-hot-toast';
 import apiClient from '../config/apiClient';
 import dayjs from 'dayjs';
+import { formatColomboDate } from '../utils/formatDate';
 import { useAuth } from '../contexts/AuthContext';
 
 const BillView = () => {
@@ -56,21 +57,8 @@ const BillView = () => {
   };
 
   const formatDate = (dateString) => {
-    if (!dateString) return 'N/A';
-    try {
-      const d = new Date(dateString);
-      if (isNaN(d.getTime())) return 'N/A';
-      
-      // Use UTC methods to avoid timezone conversion issues
-      const day = d.getUTCDate().toString().padStart(2, '0');
-      const month = (d.getUTCMonth() + 1).toString().padStart(2, '0');
-      const year = d.getUTCFullYear();
-      
-      return `${day}/${month}/${year}`;
-    } catch (error) {
-      console.error('Error formatting date:', error);
-      return 'N/A';
-    }
+    const formatted = formatColomboDate(dateString);
+    return formatted || 'N/A';
   };
 
   const getStatusBadgeClass = (status) => {

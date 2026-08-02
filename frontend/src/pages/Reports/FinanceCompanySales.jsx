@@ -5,12 +5,13 @@ import { ArrowLeftOutlined, DownloadOutlined, SearchOutlined } from '@ant-design
 import dayjs from 'dayjs';
 import reportService from '../../services/reportService';
 import financeCompanyService from '../../services/financeCompanyService';
+import { formatColomboDateLong } from '../../utils/formatDate';
 
 const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
 
 const formatCurrency = (value = 0) => `Rs. ${Number(value).toLocaleString()}`;
-const formatDate = (d) => d ? dayjs(d).format('DD MMM YYYY') : '—';
+const formatDate = (d) => d ? formatColomboDateLong(d) : '—';
 
 const FinanceCompanySales = () => {
   const navigate = useNavigate();

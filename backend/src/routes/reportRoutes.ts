@@ -5,6 +5,7 @@ import Bill from '../models/Bill.js';
 import Branding from '../models/Branding.js';
 import https from 'https';
 import http from 'http';
+import { formatColomboDateShort } from '../utils/dateFormat.js';
 
 const router = Router();
 
@@ -23,11 +24,7 @@ const loadLogoBuffer = (url?: string): Promise<Buffer | undefined> => {
 const formatCurrency = (amount: number = 0) =>
   `Rs. ${amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-const formatDate = (d: any) => {
-  if (!d) return '—';
-  const date = new Date(d);
-  return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-};
+const formatDate = (d: any) => formatColomboDateShort(d);
 
 router.get('/finance-company-sales', authenticate, async (req: AuthRequest, res: Response) => {
   try {
@@ -290,7 +287,7 @@ router.get('/finance-company-sales/pdf', authenticate, async (req: AuthRequest, 
     // Footer
     doc.fontSize(7).fillColor('#999999').font('Helvetica')
       .text(
-        `Software solution by UHADEV — ${new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}`,
+        `Software solution by UHADEV — ${formatColomboDateShort(new Date())} ${new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Colombo', hour: '2-digit', minute: '2-digit' }).format(new Date())}`,
         leftMargin, pageHeight - doc.page.margins.bottom - 20, { align: 'center', width: usableWidth }
       );
 

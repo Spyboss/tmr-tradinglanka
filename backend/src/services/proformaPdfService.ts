@@ -3,6 +3,7 @@ import http from 'http';
 import https from 'https';
 import Branding from '../models/Branding.js';
 import { renderDocumentAttribution } from './pdfAttribution.js';
+import { formatColomboDate } from '../utils/dateFormat.js';
 
 type ProformaPayload = {
   type?: string;
@@ -478,12 +479,7 @@ const toNumber = (value: unknown, fallback: number): number => {
 
 const formatDate = (value?: string | Date): string => {
   if (!value) return '-';
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return '-';
-  const day = d.getUTCDate().toString().padStart(2, '0');
-  const month = (d.getUTCMonth() + 1).toString().padStart(2, '0');
-  const year = d.getUTCFullYear();
-  return `${day}/${month}/${year}`;
+  return formatColomboDate(value);
 };
 
 const loadBranding = async (userId?: string): Promise<BrandingData> => {

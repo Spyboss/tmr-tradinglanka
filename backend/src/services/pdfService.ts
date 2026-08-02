@@ -4,6 +4,7 @@ import Branding from '../models/Branding.js';
 import https from 'https';
 import http from 'http';
 import { getDocumentAttributionHeight, renderDocumentAttribution } from './pdfAttribution.js';
+import { formatColomboDate } from '../utils/dateFormat.js';
 
 type FooterMetrics = {
   left: number;
@@ -681,18 +682,5 @@ const formatAmount = (value: number | string): string => {
  */
 const formatDate = (date: string | Date): string => {
   if (!date) return '';
-  try {
-    const d = new Date(date);
-    if (isNaN(d.getTime())) return '';
-    
-    // Use UTC methods to avoid timezone conversion issues
-    const day = d.getUTCDate().toString().padStart(2, '0');
-    const month = (d.getUTCMonth() + 1).toString().padStart(2, '0');
-    const year = d.getUTCFullYear();
-    
-    return `${day}/${month}/${year}`;
-  } catch (error) {
-    console.error('Error formatting date:', error);
-    return '';
-  }
+  return formatColomboDate(date);
 };

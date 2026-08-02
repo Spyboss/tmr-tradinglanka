@@ -4,6 +4,7 @@ import { IQuotation } from '../models/Quotation.js';
 import http from 'http';
 import https from 'https';
 import { renderDocumentAttribution } from './pdfAttribution.js';
+import { formatColomboDate } from '../utils/dateFormat.js';
 
 /**
  * Utility function to wrap text properly within specified width
@@ -195,10 +196,10 @@ export const generateQuotationPDF = async (quotation: IQuotation): Promise<Buffe
         doc.fontSize(12)
           .font('Helvetica')
           .text(`${title} No: ${quotation.quotationNumber}`, 50, 170)
-          .text(`Date: ${quotation.quotationDate.toLocaleDateString()}`, 50, 185);
+          .text(`Date: ${formatColomboDate(quotation.quotationDate)}`, 50, 185);
 
         if (quotation.validUntil && quotation.type === 'quotation') {
-          doc.text(`Valid Until: ${quotation.validUntil.toLocaleDateString()}`, 50, 200);
+          doc.text(`Valid Until: ${formatColomboDate(quotation.validUntil)}`, 50, 200);
         }
 
         // Customer details with proper text wrapping
