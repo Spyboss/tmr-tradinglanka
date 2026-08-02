@@ -20,6 +20,9 @@ dist/
 build/
 out/
 
+# Cloudflare tooling cache
+.wrangler/
+
 # IDE and editor files
 .idea/
 .vscode/
