@@ -301,7 +301,6 @@ router.get('/:id', authenticate, async (req: AuthRequest, res: Response) => {
     let colour: string | null = null;
     if (bill.inventoryItemId) {
       try {
-        const BikeInventory = req.app.locals.models?.BikeInventory;
         const invItem = await BikeInventory.findById(bill.inventoryItemId).select('notes');
         if (invItem?.notes && invItem.notes !== 'Auto-added from bill creation') {
           colour = invItem.notes;
