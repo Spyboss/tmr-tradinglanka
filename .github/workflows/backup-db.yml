@@ -1,0 +1,28 @@
+name: Database Backup
+
+on:
+  schedule:
+    # Fridays 00:00 UTC (05:30 Sri Lanka time) - change to suit
+    - cron: '0 0 * * 5'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    container:
+      image: mongo:8.0
+    steps:
+      - name: Install curl and git (for Telegram upload + checkout)
+        run: apt-get update && apt-get install -y --no-install-recommends curl git
+      - name: Checkout repo (for backup script)
+        uses: actions/checkout@v4
+      - name: Run backup + upload to Telegram
+        env:
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          BACKUP_DIR: /tmp/tmr-backups
+        run: bash backend/scripts/backup-db.sh
