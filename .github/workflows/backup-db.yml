@@ -18,7 +18,7 @@ jobs:
       - name: Install curl and git (for Telegram upload + checkout)
         run: apt-get update && apt-get install -y --no-install-recommends curl git
       - name: Checkout repo (for backup script)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Run backup + upload to Telegram
         env:
           MONGODB_URI: ${{ secrets.MONGODB_URI }}
