@@ -17,7 +17,7 @@ The platform is delivered as a TypeScript monorepo with a React SPA (`frontend/`
                │                    │
                │ HTTPS (private)    │
 ┌──────────────┴──────────────┐     │
-│    MongoDB Atlas (M10)      │◄────┘  Redis Cloud (session + rate limit)
+│    MongoDB Atlas (free)     │◄────┘  Redis Cloud (session + rate limit)
 │  Encrypted customer fields  │
 └──────────────────────────────┘
 ```

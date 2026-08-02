@@ -62,7 +62,7 @@ railway up
 
 ## Database & Cache
 
-- **MongoDB Atlas**: deploy an M10 replica set. Enable IP allowlist for Railway/Cloudflare egress IPs. Turn on automated backups.
+- **MongoDB Atlas**: free-tier cluster (current). Enable IP allowlist for Railway/Cloudflare egress IPs. The free tier has **no automated backups** — run `backend/scripts/backup-db.sh` on a schedule (writes to `~/tmr-backups`, optional Telegram upload).
 - **Redis Cloud**: create a fixed-size instance. Enable TLS and set `REDIS_URL` to `rediss://` form in production.
 
 ## Domain & TLS
@@ -86,7 +86,7 @@ railway up
 
 ## Disaster Recovery
 
-- MongoDB Atlas automated backups: point-in-time restore available.
+- MongoDB Atlas: no automated backups on the free tier. Restore from the latest manual `mongodump` archive with `mongorestore --gzip --archive=<file>`. Keep archives off-machine (Telegram/Drive).
 - Redis: enable daily snapshots if using persistent plan; otherwise treat as ephemeral.
 - Store `.env` secrets in secure password manager to rebuild environments quickly.
 - Runbooks for manual recovery live in `docs/operations/observability.md` (alert handling) and `docs/product/future-expansion.md` (multi-site readiness).

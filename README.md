@@ -90,7 +90,7 @@ Further business context lives in [`docs/overview/business-context.md`](./docs/o
                │                     │
                │ HTTPS (private)     │
 ┌──────────────┴──────────────┐      │
-│    MongoDB Atlas (M10)      │◄─────┘ Redis Cloud (sessions, rate limits, verification)
+│    MongoDB Atlas (free)     │◄─────┘ Redis Cloud (sessions, rate limits, verification)
 │  Customer data encrypted    │
 └──────────────────────────────┘
 ```
