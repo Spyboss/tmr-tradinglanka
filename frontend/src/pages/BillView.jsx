@@ -324,10 +324,10 @@ const BillView = () => {
 
   return (
     <div className="p-4 sm:p-6 dark:bg-slate-900 min-h-screen">
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-2xl font-semibold">Bill #{bill._id || bill.id}</h1>
-          <div className="flex items-center mt-2">
+      <div className="flex flex-col gap-4 mb-6 xl:flex-row xl:items-center xl:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl font-semibold break-all">Bill #{bill._id || bill.id}</h1>
+          <div className="flex items-center mt-2 flex-wrap gap-1">
             {getBillTypeTag(isAdvanceBill ? 'advance' : bill.billType)}
             <Badge 
               status={getStatusBadgeClass(bill.status)} 
@@ -336,7 +336,7 @@ const BillView = () => {
             />
           </div>
         </div>
-        <div className="flex flex-col sm:flex-row gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button 
             icon={<EyeOutlined />}
             onClick={handlePreviewPDF}
@@ -519,7 +519,7 @@ const BillView = () => {
           setPreviewVisible(false);
           URL.revokeObjectURL(previewUrl);
         }}
-        width={800}
+        width="min(96vw, 800px)"
         footer={[
           <Button key="back" onClick={() => {
             setPreviewVisible(false);
@@ -556,7 +556,7 @@ const BillView = () => {
         title="Proforma Invoice Details"
         open={proformaVisible}
         onCancel={() => setProformaVisible(false)}
-        width={820}
+        width="min(96vw, 820px)"
         footer={[
           <Button key="cancel" onClick={() => setProformaVisible(false)}>
             Cancel

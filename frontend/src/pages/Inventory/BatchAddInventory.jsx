@@ -271,7 +271,7 @@ const BatchAddInventory = () => {
               rowKey="key"
               pagination={false}
               size="small"
-              scroll={{ y: 400 }}
+              scroll={{ x: 'max-content', y: 400 }}
             />
           )}
         </Card>

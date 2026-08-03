@@ -265,14 +265,15 @@ const QuotationEdit = () => {
 
   return (
     <div className="max-w-6xl mx-auto p-6 dark:bg-slate-800 rounded-lg shadow-lg">
-      <div className="flex items-center space-x-4 mb-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:space-x-4 mb-6">
         <Button
           icon={<ArrowLeftOutlined />}
+          className="w-full sm:w-auto"
           onClick={() => navigate(`/quotations/${id}`)}
         >
           Back to View
         </Button>
-        <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
+        <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-gray-100 break-words min-w-0">
           Edit {quotation.type === 'invoice' ? 'Invoice' : 'Quotation'} - {quotation.quotationNumber}
         </h1>
       </div>
@@ -433,6 +434,7 @@ const QuotationEdit = () => {
             columns={itemColumns}
             pagination={false}
             rowKey={(record, index) => index}
+            scroll={{ x: 'max-content' }}
             className="mb-4"
           />
 
@@ -512,7 +514,7 @@ const QuotationEdit = () => {
         </Card>
 
         {/* Action Buttons */}
-        <div className="flex justify-end space-x-4">
+        <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end sm:space-x-4">
           <Button onClick={() => navigate(`/quotations/${id}`)}>
             Cancel
           </Button>

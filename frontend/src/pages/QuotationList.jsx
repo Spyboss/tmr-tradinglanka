@@ -362,13 +362,21 @@ const QuotationList = () => {
                 <span>{q.type?.toUpperCase()}</span>
                 <span>{q.totalAmount?.toLocaleString()} LKR</span>
               </div>
-              <div className="mt-3 flex justify-end gap-2">
-                <Button size="small" onClick={() => navigate(`/quotations/${q._id}`)}>View</Button>
-                <Button size="small" onClick={() => navigate(`/quotations/${q._id}/edit`)}>Edit</Button>
-                <Button size="small" onClick={() => handleDownloadPDF(q._id, q.quotationNumber)}>PDF</Button>
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                <Button onClick={() => navigate(`/quotations/${q._id}`)}>View</Button>
+                <Button onClick={() => navigate(`/quotations/${q._id}/edit`)}>Edit</Button>
+                <Button onClick={() => handleDownloadPDF(q._id, q.quotationNumber)}>PDF</Button>
                 {q.type === 'quotation' && q.status !== 'converted' && (
-                  <Button size="small" onClick={() => handleConvertToInvoice(q._id)}>Convert</Button>
+                  <Button onClick={() => handleConvertToInvoice(q._id)}>Convert</Button>
                 )}
+                <Popconfirm
+                  title="Are you sure you want to delete this quotation?"
+                  onConfirm={() => handleDelete(q._id)}
+                  okText="Yes"
+                  cancelText="No"
+                >
+                  <Button danger>Delete</Button>
+                </Popconfirm>
               </div>
             </div>
           ))

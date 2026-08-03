@@ -302,7 +302,7 @@ const fetchBikeModels = async () => {
       <form onSubmit={handleSubmit} className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-4 sm:p-6">
         <div className="mb-6">
           <label className="label">Bill Type</label>
-          <div className="flex space-x-4">
+          <div className="flex flex-wrap gap-x-4 gap-y-2">
             <label className="inline-flex items-center">
             <input
               type="radio"

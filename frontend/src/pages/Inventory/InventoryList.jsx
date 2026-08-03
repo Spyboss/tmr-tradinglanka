@@ -191,9 +191,9 @@ const InventoryList = () => {
 
   return (
     <div className="p-4 sm:p-6 dark:bg-slate-900 min-h-screen">
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col gap-3 mb-6 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Bike Inventory</h1>
-        <Space>
+        <div className="flex flex-wrap gap-2">
           <Button 
             type="primary" 
             icon={<PlusOutlined />}
@@ -213,7 +213,7 @@ const InventoryList = () => {
           >
             Inventory Report
           </Button>
-        </Space>
+        </div>
       </div>
 
       <div className="bg-white dark:bg-gray-800 dark:border dark:border-gray-700 p-4 sm:p-6 rounded-lg shadow mb-6">
@@ -249,6 +249,7 @@ const InventoryList = () => {
             columns={columns}
             dataSource={inventory}
             rowKey="_id"
+            scroll={{ x: 'max-content' }}
             pagination={{
               ...pagination,
               showSizeChanger: true,
@@ -269,21 +270,21 @@ const InventoryList = () => {
           ) : (
             inventory.map((item) => (
               <div key={item._id} className="bg-white dark:bg-slate-800 rounded-lg shadow p-4">
-                <div className="flex justify-between items-center">
-                  <div>
+                <div className="flex justify-between items-start gap-3">
+                  <div className="min-w-0">
                     <div className="text-sm text-gray-500 dark:text-gray-400">{item.bikeModelId?.name || 'N/A'}</div>
-                    <div className="text-base font-medium text-gray-900 dark:text-gray-100">{item.chassisNumber}</div>
+                    <div className="text-base font-medium text-gray-900 dark:text-gray-100 break-all">{item.chassisNumber}</div>
                   </div>
-                  <Tag color={statusColors[item.status] || 'default'}>{(item.status || '').toUpperCase()}</Tag>
+                  <Tag className="shrink-0" color={statusColors[item.status] || 'default'}>{(item.status || '').toUpperCase()}</Tag>
                 </div>
                 <div className="mt-2 text-sm text-gray-600 dark:text-gray-300">
                   <div className="flex justify-between"><span>Motor</span><span>{item.motorNumber}</span></div>
                   <div className="flex justify-between"><span>Date</span><span>{item.dateAdded ? format(new Date(item.dateAdded), 'dd/MM/yyyy') : 'N/A'}</span></div>
                 </div>
-                <div className="mt-3 flex justify-end gap-2">
-                  <Button size="small" onClick={() => navigate(`/inventory/edit/${item._id}`)}>Edit</Button>
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  <Button onClick={() => navigate(`/inventory/edit/${item._id}`)}>Edit</Button>
                   {isAdmin() && (
-                    <Button size="small" danger onClick={() => showDeleteModal(item)}>Delete</Button>
+                    <Button danger onClick={() => showDeleteModal(item)}>Delete</Button>
                   )}
                 </div>
               </div>
@@ -298,6 +299,7 @@ const InventoryList = () => {
         onOk={handleDelete}
         onCancel={() => setDeleteModalVisible(false)}
         confirmLoading={loading}
+        width="min(92vw, 520px)"
         // Assuming Antd Modal will pick up dark theme from ConfigProvider. 
         // If not, specific styling for modal content might be needed if text is unreadable.
       >

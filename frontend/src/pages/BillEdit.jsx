@@ -495,7 +495,7 @@ const BillEdit = () => {
         open={inventoryModalVisible}
         onCancel={() => setInventoryModalVisible(false)}
         footer={[<Button key="back" onClick={() => setInventoryModalVisible(false)}>Cancel</Button>]}
-        width={800}
+        width="min(94vw, 800px)"
       >
         {loadingInventory ? (
           <div className="flex justify-center items-center py-8"><Spin size="large" /></div>
@@ -504,7 +504,7 @@ const BillEdit = () => {
             <p>No available bikes found for this model.</p>
           </div>
         ) : (
-          <Table columns={inventoryColumns} dataSource={availableBikes} rowKey="_id" pagination={{ pageSize: 5 }} />
+          <Table columns={inventoryColumns} dataSource={availableBikes} rowKey="_id" pagination={{ pageSize: 5 }} scroll={{ x: 'max-content' }} />
         )}
       </Modal>
       </Card>

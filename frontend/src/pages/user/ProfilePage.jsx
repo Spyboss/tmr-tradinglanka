@@ -53,12 +53,12 @@ const ProfilePage = () => {
               >
                 <div className="space-y-6">
                   <Card className="shadow-sm">
-                    <div className="flex items-center justify-between">
-                      <div>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
                         <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Email Verification Status</h3>
                         <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">Your account may require email verification to access all features.</p>
                       </div>
-                      <VerificationBadge hideWhenDisabled={false} />
+                      <div className="shrink-0"><VerificationBadge hideWhenDisabled={false} /></div>
                     </div>
                   </Card>
                   <Card className="shadow-sm">

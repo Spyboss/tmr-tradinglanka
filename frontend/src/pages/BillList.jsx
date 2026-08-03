@@ -409,24 +409,29 @@ const BillList = () => {
 
   return (
     <div className="p-4 sm:p-6 dark:bg-slate-900 min-h-full">
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col gap-4 mb-6 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Bills</h1>
-        <div className="flex space-x-3">
+        <div className="grid grid-cols-1 gap-2 sm:flex sm:flex-wrap sm:items-center sm:gap-3">
           <Input.Search
             placeholder="Search by customer, bill no, phone, chassis..."
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
             onSearch={(value) => setDebouncedSearch(value)}
-            style={{ width: 320 }}
+            className="w-full sm:w-80"
             allowClear
             enterButton
           />
-          <DatePicker.RangePicker onChange={(v) => setFilters(prev => ({ ...prev, dateRange: v }))} />
-          <InputNumber placeholder="Min" onChange={(v) => setFilters(prev => ({ ...prev, minAmount: v }))} />
-          <InputNumber placeholder="Max" onChange={(v) => setFilters(prev => ({ ...prev, maxAmount: v }))} />
+          <DatePicker.RangePicker
+            className="w-full sm:w-auto"
+            onChange={(v) => setFilters(prev => ({ ...prev, dateRange: v }))}
+          />
+          <div className="grid grid-cols-2 gap-2 sm:flex">
+            <InputNumber placeholder="Min" className="w-full" onChange={(v) => setFilters(prev => ({ ...prev, minAmount: v }))} />
+            <InputNumber placeholder="Max" className="w-full" onChange={(v) => setFilters(prev => ({ ...prev, maxAmount: v }))} />
+          </div>
           <Select
             placeholder="Status"
-            style={{ width: 120 }}
+            className="w-full sm:w-[120px]"
             allowClear
             value={filters.status || undefined}
             onChange={(v) => setFilters(prev => ({ ...prev, status: v || '' }))}
@@ -439,7 +444,7 @@ const BillList = () => {
           />
           <Select
             placeholder="Type"
-            style={{ width: 120 }}
+            className="w-full sm:w-[120px]"
             allowClear
             value={filters.billType || undefined}
             onChange={(v) => setFilters(prev => ({ ...prev, billType: v || '' }))}
@@ -449,21 +454,22 @@ const BillList = () => {
               { label: 'Advance Payment', value: 'advance' }
             ]}
           />
-          <Space>
+          <div className="flex gap-2">
             <Button
               type="primary"
               icon={<PlusOutlined />}
+              className="flex-1 sm:flex-none"
               onClick={() => navigate('/bills/new')}
             >
               Create Bill
             </Button>
-          </Space>
-          <Button
-            icon={<FileExcelOutlined />}
-            onClick={handleExportToExcel}
-          >
-            Export
-          </Button>
+            <Button
+              icon={<FileExcelOutlined />}
+              onClick={handleExportToExcel}
+            >
+              Export
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -477,6 +483,7 @@ const BillList = () => {
             rowKey="_id"
             dataSource={bills}
             columns={columns}
+            scroll={{ x: 'max-content' }}
             pagination={{ current: pagination.current, pageSize: pagination.pageSize, total: pagination.total, onChange: handlePageChange }}
             className="bg-white dark:bg-gray-800 rounded-lg shadow dark:border dark:border-gray-700"
             onRow={(record) => ({
@@ -508,11 +515,19 @@ const BillList = () => {
                 <span>{formatAmount(bill.totalAmount)}</span>
                 <span>{formatDate(bill.billDate || bill.createdAt)}</span>
               </div>
-              <div className="mt-3 flex justify-end gap-2">
-                <Button size="small" onClick={() => handlePreviewPDF(bill._id)}>Preview</Button>
-                <Button size="small" onClick={() => navigate(`/bills/${bill._id}/edit`)}>Edit</Button>
-                <Button size="small" onClick={() => handleDownloadPDF(bill._id)}>PDF</Button>
-                <Button size="small" onClick={() => toggleBookmark(bill._id)}>{bookmarks.includes(bill._id) ? 'Unbookmark' : 'Bookmark'}</Button>
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                <Button onClick={() => handlePreviewPDF(bill._id)}>Preview</Button>
+                <Button onClick={() => navigate(`/bills/${bill._id}/edit`)}>Edit</Button>
+                <Button onClick={() => handleDownloadPDF(bill._id)}>PDF</Button>
+                <Button onClick={() => toggleBookmark(bill._id)}>{bookmarks.includes(bill._id) ? 'Unbookmark' : 'Bookmark'}</Button>
+                <Popconfirm
+                  title="Are you sure you want to delete this bill?"
+                  onConfirm={() => handleDelete(bill._id)}
+                  okText="Yes"
+                  cancelText="No"
+                >
+                  <Button danger>Delete</Button>
+                </Popconfirm>
               </div>
             </div>
           ))

@@ -270,9 +270,17 @@ const WarrantyClaimList = () => {
                 {c.motorNumber && <div>Motor: {c.motorNumber}</div>}
               </div>
               <div className="mt-3 grid grid-cols-2 gap-2">
-                <Button size="small" onClick={() => navigate(`/warranty-claims/${c._id}`)}>View</Button>
-                <Button size="small" onClick={() => navigate(`/warranty-claims/${c._id}/edit`)}>Edit</Button>
-                <Button size="small" onClick={() => handleDownloadPDF(c._id, c.warrantyNumber)}>PDF</Button>
+                <Button onClick={() => navigate(`/warranty-claims/${c._id}`)}>View</Button>
+                <Button onClick={() => navigate(`/warranty-claims/${c._id}/edit`)}>Edit</Button>
+                <Button onClick={() => handleDownloadPDF(c._id, c.warrantyNumber)}>PDF</Button>
+                <Popconfirm
+                  title="Are you sure you want to delete this warranty claim?"
+                  onConfirm={() => handleDelete(c._id)}
+                  okText="Yes"
+                  cancelText="No"
+                >
+                  <Button danger>Delete</Button>
+                </Popconfirm>
               </div>
             </div>
           ))

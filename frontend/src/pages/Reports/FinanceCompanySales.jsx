@@ -138,12 +138,12 @@ const FinanceCompanySales = () => {
         </div>
 
         <div className="flex flex-wrap items-end gap-4 mb-6">
-          <div>
+          <div className="w-full sm:w-auto">
             <Text className="block mb-1 text-sm font-medium">Finance Company</Text>
             <Select
               showSearch
               placeholder="Select finance company..."
-              style={{ width: 250 }}
+              className="w-full sm:w-[250px]"
               value={selectedCompany}
               onChange={setSelectedCompany}
               filterOption={(input, option) =>
@@ -153,19 +153,20 @@ const FinanceCompanySales = () => {
               allowClear
             />
           </div>
-          <div>
+          <div className="w-full sm:w-auto">
             <Text className="block mb-1 text-sm font-medium">Date Range</Text>
             <RangePicker
               value={dateRange}
               onChange={setDateRange}
               format="DD/MM/YYYY"
+              className="w-full sm:w-auto"
             />
           </div>
-          <div>
+          <div className="w-full sm:w-auto">
             <Text className="block mb-1 text-sm font-medium">Server Search</Text>
             <Input.Search
               placeholder="Bill / Customer / Chassis / Motor"
-              style={{ width: 240 }}
+              className="w-full sm:w-[240px]"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               onSearch={() => fetchData(1)}
@@ -174,16 +175,18 @@ const FinanceCompanySales = () => {
               onClear={() => { setSearch(''); fetchData(1); }}
             />
           </div>
-          <Button type="primary" onClick={() => fetchData(1)} loading={loading}>
-            Load Report
-          </Button>
-          <Button icon={<DownloadOutlined />} onClick={handleDownloadPdf} loading={pdfLoading}>
-            Download PDF
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button type="primary" onClick={() => fetchData(1)} loading={loading}>
+              Load Report
+            </Button>
+            <Button icon={<DownloadOutlined />} onClick={handleDownloadPdf} loading={pdfLoading}>
+              Download PDF
+            </Button>
+          </div>
         </div>
 
         {bills.length > 0 && (
-          <div className="flex gap-6 mb-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg text-sm">
+          <div className="flex flex-wrap gap-4 sm:gap-6 mb-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg text-sm">
             <div><Text type="secondary">Total Sales</Text><div className="font-bold">{filteredBills.length}</div></div>
             <div><Text type="secondary">Total Amount</Text><div className="font-bold">{formatCurrency(totalAmount)}</div></div>
             <div><Text type="secondary">With Proforma</Text><div className="font-bold">{withProforma} of {filteredBills.length}</div></div>
@@ -222,7 +225,7 @@ const FinanceCompanySales = () => {
             </Text>
             <Input.Search
               placeholder="Filter by bill number, customer, chassis, motor..."
-              style={{ width: 350 }}
+              className="w-full max-w-sm"
               value={localSearch}
               onChange={(e) => setLocalSearch(e.target.value)}
               allowClear

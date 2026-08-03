@@ -156,16 +156,16 @@ const QuotationView = () => {
   return (
     <div className="p-6 dark:bg-slate-900 min-h-full">
       {/* Header */}
-      <div className="flex justify-between items-center mb-6">
-        <div className="flex items-center space-x-4">
+      <div className="flex flex-col gap-4 mb-6 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex items-center space-x-4 min-w-0">
           <Button
             icon={<ArrowLeftOutlined />}
             onClick={() => navigate('/quotations')}
           >
             Back to Quotations
           </Button>
-          <div>
-            <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-gray-100 break-all">
               {quotation.quotationNumber}
             </h1>
             <div className="flex items-center space-x-2 mt-1">
@@ -179,7 +179,7 @@ const QuotationView = () => {
           </div>
         </div>
 
-        <div className="flex space-x-2">
+        <div className="flex flex-wrap gap-2">
           <Button
             icon={<DownloadOutlined />}
             onClick={handleDownloadPDF}
@@ -295,7 +295,7 @@ const QuotationView = () => {
       {/* Insurance Details */}
       {(quotation.claimNumber || quotation.insuranceCompany || quotation.accidentDate) && (
         <Card title="Insurance/Accident Details" className="mb-6">
-          <Descriptions column={3} size="small">
+          <Descriptions column={{ xs: 1, sm: 3 }} size="small">
             {quotation.claimNumber && (
               <Descriptions.Item label="Claim Number">
                 {quotation.claimNumber}
@@ -322,6 +322,7 @@ const QuotationView = () => {
           dataSource={quotation.items}
           pagination={false}
           rowKey={(record, index) => index}
+          scroll={{ x: 'max-content' }}
           summary={() => {
             const subtotal = (quotation.items || []).reduce((s, i) => s + (i.amount || 0), 0);
             const hasDiscount = quotation.discountAmount > 0;
@@ -373,7 +374,7 @@ const QuotationView = () => {
 
       {/* Timestamps */}
       <Card title="System Information" size="small">
-        <Descriptions column={2} size="small">
+        <Descriptions column={{ xs: 1, sm: 2 }} size="small">
           <Descriptions.Item label="Created">
             {moment(quotation.createdAt).format('DD/MM/YYYY HH:mm')}
           </Descriptions.Item>
