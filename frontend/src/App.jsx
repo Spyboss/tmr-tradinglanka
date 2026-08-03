@@ -21,6 +21,7 @@ import Verify from './pages/Verify';
 import { AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext'; // Import ThemeProvider and useTheme
 import ProtectedRoute from './components/ProtectedRoute';
+import PwaInstallPrompt from './components/PwaInstallPrompt';
 
 // Inventory pages
 import InventoryList from './pages/Inventory/InventoryList';
@@ -158,6 +159,7 @@ const AppContent = () => {
           <p>Made with ❤️ by Uminda <a href="https://uminda.dev" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300">@uhadev</a></p>
         </footer>
         <Toaster position="top-right" />
+        <PwaInstallPrompt />
       </div>
     </ConfigProvider>
   );
