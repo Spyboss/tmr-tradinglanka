@@ -4,7 +4,7 @@
  * API requests (/api/*) always hit the network - never cached.
  */
 
-const CACHE_NAME = 'tmr-shell-v1';
+const CACHE_NAME = 'tmr-shell-v2';
 const SHELL_URLS = ['/', '/index.html', '/site.webmanifest'];
 
 self.addEventListener('install', (event) => {

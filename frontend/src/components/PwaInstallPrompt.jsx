@@ -106,7 +106,7 @@ export default function PwaInstallPrompt() {
       <div className="relative w-full sm:max-w-sm bg-white dark:bg-gray-800 rounded-t-2xl sm:rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 animate-[slideUp_0.25s_ease-out] p-5">
         <div className="flex items-start gap-4">
           <img
-            src="/android-chrome-192x192.png"
+            src="/icon-192.png"
             alt="TMR Trading Lanka"
             className="h-14 w-14 rounded-xl shadow flex-shrink-0"
           />
