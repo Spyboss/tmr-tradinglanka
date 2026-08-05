@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Spin, Button, Badge, Descriptions, Card, Popconfirm, message, Alert, Tag, Modal, Form, Input, InputNumber, Select, DatePicker } from 'antd';
+import { Spin, Button, Badge, Descriptions, Card, Popconfirm, message, Alert, Tag, Modal, Form, Input, InputNumber, Select, AutoComplete, DatePicker } from 'antd';
 import { DownloadOutlined, DeleteOutlined, EditOutlined, PrinterOutlined, EyeOutlined, FileDoneOutlined, UserOutlined, BankOutlined } from '@ant-design/icons';
 import toast from 'react-hot-toast';
 import apiClient from '../config/apiClient';
@@ -616,17 +616,16 @@ const BillView = () => {
             label="Leasing/Finance By"
             rules={[{ required: true, message: 'Enter finance company name' }]}
           >
-            <Select
-              showSearch
-              placeholder="Search finance company..."
+            <AutoComplete
+              placeholder="Search or type new finance company..."
               filterOption={(input, option) =>
-                (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+                (option?.value ?? '').toString().toLowerCase().includes(input.toLowerCase())
               }
               options={financeCompanies.map(c => ({
                 label: c.name,
                 value: c.name
               }))}
-              onChange={(value) => {
+              onSelect={(value) => {
                 const company = financeCompanies.find(c => c.name === value);
                 if (company) {
                   proformaForm.setFieldsValue({
@@ -635,7 +634,6 @@ const BillView = () => {
                   });
                 }
               }}
-              notFoundContent={null}
             />
           </Form.Item>
 
