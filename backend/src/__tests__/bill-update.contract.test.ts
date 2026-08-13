@@ -29,6 +29,17 @@ describe('PUT /api/bills/:id (camelCase contract)', () => {
     }
     vi.spyOn(mongoose, 'startSession').mockResolvedValue(session)
     vi.spyOn(BikeInventory, 'findOneAndUpdate').mockResolvedValue(null as any)
+    vi.spyOn(BikeInventory, 'findOne').mockReturnValue({
+      session: vi.fn().mockResolvedValue(null)
+    } as any)
+    vi.spyOn(mongoose, 'model').mockReturnValue({
+      findOne: vi.fn().mockReturnValue({
+        session: vi.fn().mockResolvedValue(null)
+      }),
+      findById: vi.fn().mockReturnValue({
+        session: vi.fn().mockResolvedValue(null)
+      })
+    } as any)
     vi.spyOn(UserActivity, 'create').mockResolvedValue([] as any)
   })
 
