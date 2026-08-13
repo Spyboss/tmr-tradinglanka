@@ -3,8 +3,8 @@ import { Link, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import apiClient from '../config/apiClient'
 import { formatColomboDate } from '../utils/formatDate'
-import { Table, Tag, Button, Space, Popconfirm, message, Spin, Input, Badge, Select, Skeleton, Card, DatePicker, InputNumber } from 'antd'
-import { PlusOutlined, SearchOutlined, DownloadOutlined, EyeOutlined, EditOutlined, DeleteOutlined, FileExcelOutlined } from '@ant-design/icons'
+import { Table, Tag, Button, Space, Popconfirm, message, Spin, Input, Badge, Select, Skeleton, Card, DatePicker, InputNumber, Modal } from 'antd'
+import { PlusOutlined, SearchOutlined, DownloadOutlined, EyeOutlined, EditOutlined, DeleteOutlined, FileExcelOutlined, PrinterOutlined } from '@ant-design/icons'
 
 const BillList = () => {
   const navigate = useNavigate()
@@ -128,15 +128,24 @@ const BillList = () => {
     })
   }
 
+  const [previewVisible, setPreviewVisible] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState('');
+
+  const closePreview = () => {
+    setPreviewVisible(false);
+    URL.revokeObjectURL(previewUrl);
+    setPreviewUrl('');
+  };
+
   const handlePreviewPDF = async (billId) => {
     try {
-      const response = await apiClient.get(`/bills/${billId}/pdf?preview=true`, {
+      const blob = await apiClient.get(`/bills/${billId}/pdf?preview=true`, {
         responseType: 'blob'
       });
 
-      const blob = new Blob([response.data], { type: 'application/pdf' });
       const url = URL.createObjectURL(blob);
-      window.open(url, '_blank');
+      setPreviewUrl(url);
+      setPreviewVisible(true);
     } catch (error) {
       console.error('Error previewing PDF:', error);
       toast.error('Failed to preview PDF: ' + (error.response?.data?.error || error.message || 'Server error'));
@@ -145,11 +154,10 @@ const BillList = () => {
 
   const handleDownloadPDF = async (billId) => {
     try {
-      const response = await apiClient.get(`/bills/${billId}/pdf`, {
+      const blob = await apiClient.get(`/bills/${billId}/pdf`, {
         responseType: 'blob'
       });
 
-      const blob = new Blob([response.data], { type: 'application/pdf' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
@@ -551,6 +559,36 @@ const BillList = () => {
           ))}
         </Space>
       </div>
+
+      <Modal
+        title="Bill Preview"
+        open={previewVisible}
+        onCancel={closePreview}
+        width="min(96vw, 800px)"
+        footer={[
+          <Button key="close" onClick={closePreview}>Close</Button>,
+          <Button
+            key="print"
+            type="primary"
+            icon={<PrinterOutlined />}
+            onClick={() => {
+              const printFrame = document.getElementById('bill-preview-frame');
+              if (printFrame) printFrame.contentWindow.print();
+            }}
+          >
+            Print
+          </Button>,
+        ]}
+      >
+        <div className="h-[70vh] sm:h-[700px]">
+          <iframe
+            id="bill-preview-frame"
+            src={previewUrl}
+            title="Bill Preview"
+            className="w-full h-full border-0"
+          />
+        </div>
+      </Modal>
     </div>
   )
 }
