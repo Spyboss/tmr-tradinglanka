@@ -6,6 +6,7 @@ import { generatePDF } from '../services/pdfService.js';
 import { AuthRequest } from '../auth/auth.middleware.js';
 import { AppError } from '../middleware/errorHandler.js';
 import logger from '../utils/logger.js';
+import { sendReviewRequest } from '../services/whatsappBotService.js';
 
 const escapeRegExp = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const SRI_LANKA_MOBILE_REGEX = /^07\d{8}$/;
@@ -236,6 +237,11 @@ export const createBill = async (req: AuthRequest, res: Response, next: NextFunc
     await session.commitTransaction();
     session.endSession();
     
+    // Fire-and-forget: ask the customer for a Google review after a completed sale
+    if (savedBill.status === 'completed') {
+      void sendReviewRequest(savedBill.customerPhone || '', savedBill.customerName || '');
+    }
+    
     logger.info('Bill saved successfully');
     res.status(201).json(savedBill);
   } catch (error) {
@@ -321,6 +327,11 @@ export const updateBillStatus = async (req: AuthRequest, res: Response, next: Ne
     // Commit the transaction
     await session.commitTransaction();
     session.endSession();
+    
+    // Fire-and-forget: bill finalized -> ask the customer for a Google review
+    if (status === 'completed') {
+      void sendReviewRequest(bill.customerPhone || '', bill.customerName || '');
+    }
     
     res.status(200).json(bill);
   } catch (error) {
