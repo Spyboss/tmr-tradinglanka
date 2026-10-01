@@ -3,7 +3,7 @@ import Branding from '../models/Branding.js';
 import { IQuotation } from '../models/Quotation.js';
 import http from 'http';
 import https from 'https';
-import { getDocumentAttributionHeight, renderDocumentAttribution } from './pdfAttribution.js';
+import { getDocumentAttributionTop, renderDocumentAttribution } from './pdfAttribution.js';
 import { formatColomboDate } from '../utils/dateFormat.js';
 
 // Fetch remote logo into a Buffer with size and time safeguards
@@ -60,10 +60,13 @@ const loadLogoBuffer = async (url?: string): Promise<Buffer | undefined> => {
 export const generateQuotationPDF = async (quotation: IQuotation): Promise<Buffer> => {
   return new Promise((resolve, reject) => {
     try {
-      // Create a document
+      // Create a document. The bottom margin is deliberately shallow: it only
+      // guards PDFKit's automatic "text flowed past the margin, start a new
+      // page" behaviour, and the real content limit is the attribution strip
+      // measured above (contentBottomY), not this number.
       const doc = new PDFDocument({
-        margin: 50,
-        size: 'A4'
+        size: 'A4',
+        margins: { top: 50, left: 50, right: 50, bottom: 18 }
       });
 
       // Set up streams to capture PDF data
@@ -185,11 +188,12 @@ export const generateQuotationPDF = async (quotation: IQuotation): Promise<Buffe
         //    anchored to the bottom of the final page.
         // ------------------------------------------------------------------
         const attributionWidth = 500;
-        const attributionHeight = getDocumentAttributionHeight(doc, attributionWidth);
         const attributionGap = 6;
 
+        // Body content may run down to just above the attribution strip, which
+        // itself sits close to the bottom edge of the sheet.
         const contentBottomY = (): number =>
-          doc.page.height - doc.page.margins.bottom - attributionHeight - attributionGap;
+          getDocumentAttributionTop(doc, attributionWidth) - attributionGap;
 
         const measureText = (
           text: string,
@@ -466,23 +470,31 @@ export const generateQuotationPDF = async (quotation: IQuotation): Promise<Buffe
           yPos += remarks.height;
         }
 
-        // Closing group: thank-you lines, signature and stamp are one block,
-        // reserved against the space above the attribution strip rather than a
-        // guessed constant.
+        // Closing group: a real signing area — clear space above the line, a
+        // 7cm rule to sign on, the label beneath it and the stamp label below
+        // that — reserved against the space above the attribution strip rather
+        // than a guessed constant. The thank-you lines run alongside it in the
+        // left column, so the block never gets taller than the signature column.
         const closingLayout = (top: number) => {
-          const thankYouY = top + (sectionSpacing * 8);
-          const thankYouHeight = measureText('Thank you for your business!', 10, { width: 500 });
+          const signatureRuleY = top + 36; // room above the line to write in
+          const signatureY = signatureRuleY + 6;
+          const signatureHeight = measureText('Authorized Signature:', 10, { width: 200 });
+          const stampY = signatureY + signatureHeight + 20;
+          const stampHeight = measureText('Company Stamp', 10, { width: 200 });
+
+          const thankYouY = signatureRuleY;
+          const thankYouHeight = measureText('Thank you for your business!', 10, { width: 290 });
           const computerY = thankYouY + Math.max(thankYouHeight, sectionSpacing * 3);
-          const computerHeight = measureText('This is a computer-generated document.', 10, { width: 500 });
-          const stampY = top + (sectionSpacing * 6);
-          const stampHeight = measureText('Company Stamp', 8, { width: 200 });
-          const bottom = Math.max(computerY + computerHeight, stampY + stampHeight);
+          const computerHeight = measureText('This is a computer-generated document.', 10, { width: 290 });
+
+          const bottom = Math.max(stampY + stampHeight, computerY + computerHeight);
 
           return {
+            signatureRuleY,
+            signatureY,
+            stampY,
             thankYouY,
             computerY,
-            signatureY: top,
-            stampY,
             height: bottom - top
           };
         };
@@ -490,22 +502,24 @@ export const generateQuotationPDF = async (quotation: IQuotation): Promise<Buffe
         ensureSpace(closingLayout(yPos).height);
         const closing = closingLayout(yPos);
 
-        doc.fontSize(10)
+        doc.fillColor('#000000')
+          .fontSize(10)
           .font('Helvetica')
-          .text('Thank you for your business!', 50, closing.thankYouY)
-          .text('This is a computer-generated document.', 50, closing.computerY);
+          .text('Thank you for your business!', 50, closing.thankYouY, { width: 290 })
+          .text('This is a computer-generated document.', 50, closing.computerY, { width: 290 });
+
+        // Signature rule the customer actually signs on, then the labels.
+        doc.moveTo(350, closing.signatureRuleY)
+          .lineTo(550, closing.signatureRuleY)
+          .stroke();
+
+        doc.text('Authorized Signature:', 350, closing.signatureY, { width: 200 })
+          .text('Company Stamp', 350, closing.stampY, { width: 200 });
 
         renderDocumentAttribution(doc, {
           left: 50,
           width: attributionWidth
         });
-
-        // Company stamp area
-        doc.fillColor('#000000')
-          .fontSize(8)
-          .font('Helvetica')
-          .text('Authorized Signature: ___________________', 350, closing.signatureY)
-          .text('Company Stamp', 350, closing.stampY);
 
         // Finalize the PDF
         doc.end();

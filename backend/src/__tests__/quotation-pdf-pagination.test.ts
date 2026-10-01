@@ -63,6 +63,28 @@ describe('quotation/invoice PDF pagination', () => {
     // signature/stamp area, then the faded attribution at the page bottom.
     expect(attribution!.y, 'attribution must sit below the closing line').toBeGreaterThan(thankYou!.y);
     expect(pages[0].every(run => run.y >= BOTTOM_MARGIN - 10), 'content overflowed past the bottom margin').toBe(true);
+
+    // The footer hugs the bottom edge of the sheet (A4 = 841.9pt tall)
+    // instead of floating above a half inch of white space.
+    expect(attribution!.y, 'footer too far from the bottom edge').toBeGreaterThanOrEqual(805);
+    expect(attribution!.y, 'footer ran off the sheet').toBeLessThan(830);
+
+    // The signature needs a real signing area: clear space above the rule and
+    // a stamp label that does not crowd it.
+    const signature = findRun(pdf, 'Authorized Signature:');
+    const stamp = findRun(pdf, 'Company Stamp');
+    expect(signature, 'signature line missing').toBeDefined();
+    expect(stamp, 'stamp label missing').toBeDefined();
+    const remarksBody = findRun(pdf, 'Payment should be made within 7 days');
+    expect(remarksBody, 'remarks body missing').toBeDefined();
+    expect(
+      signature!.y - remarksBody!.y,
+      'signature is crowded by the block above it'
+    ).toBeGreaterThanOrEqual(60);
+    expect(
+      stamp!.y - signature!.y,
+      'no room between the signature line and the stamp'
+    ).toBeGreaterThanOrEqual(30);
   });
 
   it('never places content below the bottom margin on any page', async () => {
