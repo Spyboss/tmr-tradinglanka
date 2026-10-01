@@ -1,13 +1,10 @@
 import { describe, it, expect, vi } from 'vitest';
-import Branding from '../models/Branding.js';
 import { generateQuotationPDF } from '../services/quotationPdfService.js';
 import { countPages, textByPage, findRun } from '../test-utils/pdfProbe.js';
 
 vi.mock('../models/Branding.js', () => ({
   default: { findOne: vi.fn().mockReturnValue({ lean: () => Promise.resolve(null) }) }
 }));
-
-const FIXTURE_FOOTER_NOTE = 'Contact: +94 77 8318 061 | Email: gunawardanaenttangalle@gmail.com';
 
 /** The real invoice that spilled onto two pages despite ample space. */
 const realInvoice = (): any => ({
@@ -80,6 +77,11 @@ describe('quotation/invoice PDF pagination', () => {
         ).toBeGreaterThanOrEqual(BOTTOM_MARGIN - 10);
       });
     });
+
+    // The attribution strip always trails the document on its final page.
+    const attribution = findRun(pdf, 'dms.uhadev.com');
+    expect(attribution, 'attribution missing').toBeDefined();
+    expect(attribution!.page, 'attribution must be the last page').toBe(pages.length - 1);
   });
 
   it('repeats the items table header when rows continue on a new page', async () => {

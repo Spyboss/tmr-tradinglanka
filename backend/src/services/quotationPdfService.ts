@@ -472,7 +472,7 @@ export const generateQuotationPDF = async (quotation: IQuotation): Promise<Buffe
         const closingLayout = (top: number) => {
           const thankYouY = top + (sectionSpacing * 8);
           const thankYouHeight = measureText('Thank you for your business!', 10, { width: 500 });
-          const computerY = thankYouY + (sectionSpacing * 3);
+          const computerY = thankYouY + Math.max(thankYouHeight, sectionSpacing * 3);
           const computerHeight = measureText('This is a computer-generated document.', 10, { width: 500 });
           const stampY = top + (sectionSpacing * 6);
           const stampHeight = measureText('Company Stamp', 8, { width: 200 });
