@@ -103,7 +103,10 @@ describe('quotation/invoice PDF pagination', () => {
     expect(total!.page).toBe(remarks!.page);
     expect(remarks!.page).toBe(closing!.page);
     // Remarks heading must precede its body, which must precede the closing line.
-    expect(remarks!.y).toBeGreaterThan(findRun(pdf, 'Payment should be made within 7 days')!.y);
-    expect(findRun(pdf, 'Payment should be made within 7 days')!.y).toBeGreaterThan(closing!.y);
+    // (Probe y grows downward from the top of the page.)
+    const remarksBody = findRun(pdf, 'Payment should be made within 7 days');
+    expect(remarksBody, 'remarks body missing').toBeDefined();
+    expect(remarks!.y).toBeLessThan(remarksBody!.y);
+    expect(remarksBody!.y).toBeLessThan(closing!.y);
   });
 });

@@ -3,51 +3,8 @@ import Branding from '../models/Branding.js';
 import { IQuotation } from '../models/Quotation.js';
 import http from 'http';
 import https from 'https';
-import { renderDocumentAttribution } from './pdfAttribution.js';
+import { getDocumentAttributionHeight, renderDocumentAttribution } from './pdfAttribution.js';
 import { formatColomboDate } from '../utils/dateFormat.js';
-
-/**
- * Utility function to wrap text properly within specified width
- */
-const wrapText = (text: string, maxWidth: number, fontSize: number = 10): string[] => {
-  if (!text) return [''];
-  
-  // Handle manual line breaks (\n) first
-  const manualLines = text.split('\n');
-  const wrappedLines: string[] = [];
-  
-  manualLines.forEach(line => {
-    if (!line.trim()) {
-      wrappedLines.push('');
-      return;
-    }
-    
-    const words = line.split(' ');
-    let currentLine = '';
-    
-    // Approximate character limit based on font size and width
-    const charLimit = Math.floor(maxWidth / (fontSize * 0.6));
-    
-    words.forEach(word => {
-      const testLine = currentLine ? `${currentLine} ${word}` : word;
-      
-      if (testLine.length <= charLimit) {
-        currentLine = testLine;
-      } else {
-        if (currentLine) {
-          wrappedLines.push(currentLine);
-        }
-        currentLine = word;
-      }
-    });
-    
-    if (currentLine) {
-      wrappedLines.push(currentLine);
-    }
-  });
-  
-  return wrappedLines.length > 0 ? wrappedLines : [''];
-};
 
 // Fetch remote logo into a Buffer with size and time safeguards
 const loadLogoBuffer = async (url?: string): Promise<Buffer | undefined> => {
@@ -213,24 +170,58 @@ export const generateQuotationPDF = async (quotation: IQuotation): Promise<Buffe
         const contentStartX = 50 + labelWidth + 10;
         const contentWidth = 550 - contentStartX;
         const sectionSpacing = 5; // Consistent spacing between fields
-      
+
+        // ------------------------------------------------------------------
+        // Pagination engine
+        //
+        // 1. Text is measured with PDFKit (heightOfString) using the exact
+        //    font/size/width/alignment the renderer passes to text(), so a fit
+        //    decision can never disagree with what gets drawn. No character
+        //    counting, no magic constants.
+        // 2. Each block lays itself out through one pure function used by both
+        //    the fit check and the renderer.
+        // 3. A block moves as a whole; related lines are never split.
+        // 4. Body content stays above the faded attribution strip, which is
+        //    anchored to the bottom of the final page.
+        // ------------------------------------------------------------------
+        const attributionWidth = 500;
+        const attributionHeight = getDocumentAttributionHeight(doc, attributionWidth);
+        const attributionGap = 6;
+
+        const contentBottomY = (): number =>
+          doc.page.height - doc.page.margins.bottom - attributionHeight - attributionGap;
+
+        const measureText = (
+          text: string,
+          size: number,
+          opts: { font?: string; width?: number; align?: 'left' | 'center' | 'right' } = {}
+        ): number =>
+          doc
+            .font(opts.font ?? 'Helvetica')
+            .fontSize(size)
+            .heightOfString(text, { width: opts.width, align: opts.align ?? 'left' });
+
+        const ensureSpace = (spaceNeeded: number, onNewPage?: () => void): void => {
+          if (yPos + spaceNeeded > contentBottomY()) {
+            doc.addPage();
+            yPos = doc.page.margins.top;
+            if (onNewPage) onNewPage();
+          }
+        };
+
         doc.fontSize(12).font('Helvetica');
       
-        // Customer Name with text wrapping
+        // Customer name/address: measured and drawn with the same width so the
+        // advance below always matches the rendered block.
         doc.text('Name:', 50, yPos, { width: labelWidth });
-        const nameLines = wrapText(quotation.customerName, contentWidth, 12);
-        nameLines.forEach((line, index) => {
-          doc.text(line, contentStartX, yPos + (index * lineHeight));
-        });
-        yPos += Math.max(nameLines.length * lineHeight, lineHeight) + sectionSpacing;
-      
-        // Address with text wrapping
+        const nameHeight = measureText(quotation.customerName, 12, { width: contentWidth });
+        doc.text(quotation.customerName, contentStartX, yPos, { width: contentWidth });
+        yPos += Math.max(nameHeight, lineHeight) + sectionSpacing;
+
         doc.text('Address:', 50, yPos, { width: labelWidth });
-        const addressLines = wrapText(quotation.customerAddress, contentWidth, 12);
-        addressLines.forEach((line, index) => {
-          doc.text(line, contentStartX, yPos + (index * lineHeight));
-        });
-        yPos += Math.max(addressLines.length * lineHeight, lineHeight) + sectionSpacing;
+        const addressHeight = measureText(quotation.customerAddress, 12, { width: contentWidth });
+        doc.text(quotation.customerAddress, contentStartX, yPos, { width: contentWidth });
+        yPos += Math.max(addressHeight, lineHeight) + sectionSpacing;
 
         if (quotation.customerNIC) {
           doc.text('NIC:', 50, yPos, { width: labelWidth });
@@ -258,19 +249,22 @@ export const generateQuotationPDF = async (quotation: IQuotation): Promise<Buffe
           yPos += lineHeight + (sectionSpacing * 2); // Double spacing before items section
         }
 
-        const pageBottomMargin = 60;
-        const pageUsableBottom = () => doc.page.height - pageBottomMargin;
-        const ensureSpace = (spaceNeeded: number, onNewPage?: () => void) => {
-          if (yPos + spaceNeeded > pageUsableBottom()) {
-            doc.addPage();
-            yPos = 50;
-            if (onNewPage) onNewPage();
-          }
+        // Pure layout for the items column header: shared by the fit check and
+        // the renderer so the header can never be taller than reserved.
+        const itemsHeaderLayout = (top: number) => {
+          const headingY = top;
+          const headingHeight = measureText('Items:', 14, { font: 'Helvetica-Bold' });
+          const labelsY = headingY + headingHeight + 10;
+          const labelsHeight = measureText('Description', 12, { font: 'Helvetica-Bold' });
+          const unitRowHeight = 15 + measureText('(LKR)', 10);
+          const labelsBottom = labelsY + Math.max(labelsHeight, unitRowHeight);
+          const ruleY = Math.max(labelsY + sectionSpacing * 7, labelsBottom + 5);
+          return { headingY, labelsY, ruleY, height: ruleY + 10 - top };
         };
 
         // Items table with improved alignment
         yPos += (sectionSpacing * 4); // Consistent spacing before table
-        ensureSpace(120);
+        ensureSpace(itemsHeaderLayout(yPos).height);
 
         // Define column positions and widths
         const columns = {
@@ -281,68 +275,65 @@ export const generateQuotationPDF = async (quotation: IQuotation): Promise<Buffe
         };
 
         const drawItemsHeader = () => {
+          const layout = itemsHeaderLayout(yPos);
+
           doc.fontSize(14)
             .font('Helvetica-Bold')
-            .text('Items:', 50, yPos);
-
-          yPos += 30;
+            .text('Items:', 50, layout.headingY);
 
           doc.fontSize(12)
             .font('Helvetica-Bold')
-            .text('Description', columns.description.x, yPos)
-            .text('Qty', columns.qty.x, yPos, { align: 'center', width: columns.qty.width })
-            .text('Rate', columns.rate.x, yPos, { align: 'right', width: columns.rate.width })
-            .text('Amount', columns.amount.x, yPos, { align: 'right', width: columns.amount.width });
+            .text('Description', columns.description.x, layout.labelsY)
+            .text('Qty', columns.qty.x, layout.labelsY, { align: 'center', width: columns.qty.width })
+            .text('Rate', columns.rate.x, layout.labelsY, { align: 'right', width: columns.rate.width })
+            .text('Amount', columns.amount.x, layout.labelsY, { align: 'right', width: columns.amount.width });
 
           doc.fontSize(10)
             .font('Helvetica')
-            .text('(LKR)', columns.rate.x, yPos + 15, { align: 'right', width: columns.rate.width })
-            .text('(LKR)', columns.amount.x, yPos + 15, { align: 'right', width: columns.amount.width });
+            .text('(LKR)', columns.rate.x, layout.labelsY + 15, { align: 'right', width: columns.rate.width })
+            .text('(LKR)', columns.amount.x, layout.labelsY + 15, { align: 'right', width: columns.amount.width });
 
-          yPos += (sectionSpacing * 7);
-
-          doc.moveTo(50, yPos)
-            .lineTo(550, yPos)
+          doc.moveTo(50, layout.ruleY)
+            .lineTo(550, layout.ruleY)
             .stroke();
 
-          yPos += 10;
+          yPos = layout.ruleY + 10;
         };
 
         drawItemsHeader();
 
-        // Add items with proper text wrapping
+        // Add items. Row height comes from PDFKit's own measurement of the
+        // description at the column width, which is also the width it draws
+        // with, so a row can never be shorter than what it renders.
         quotation.items.forEach((item) => {
-        // Compute item dimensions before ensureSpace (so page-break check knows the height)
-          const descriptionLines = wrapText(item.description, columns.description.width, 10);
-          const itemHeight = Math.max(descriptionLines.length * 12, 20);
+          const descriptionHeight = measureText(item.description, 10, {
+            width: columns.description.width
+          });
+          const itemHeight = Math.max(descriptionHeight, 20);
 
           ensureSpace(itemHeight + sectionSpacing, drawItemsHeader);
 
-          // Capture yPos AFTER ensureSpace — if a page break occurred, yPos is now
-          // at the correct position on the new page (drawItemsHeader advanced it)
           const startY = yPos;
-        
+
           doc.fontSize(10).font('Helvetica');
-        
-          // Draw description with multiple lines
-          descriptionLines.forEach((line, index) => {
-            doc.text(line, columns.description.x, startY + (index * 12));
+          doc.text(item.description, columns.description.x, startY, {
+            width: columns.description.width
           });
-        
+
           // Align other columns to the middle of the item height
           const middleY = startY + (itemHeight / 2) - 6;
-        
-          doc.text(item.quantity.toString(), columns.qty.x, middleY, { 
-            align: 'center', 
-            width: columns.qty.width 
+
+          doc.text(item.quantity.toString(), columns.qty.x, middleY, {
+            align: 'center',
+            width: columns.qty.width
           })
-            .text(item.rate.toFixed(2), columns.rate.x, middleY, { 
-              align: 'right', 
-              width: columns.rate.width 
+            .text(item.rate.toFixed(2), columns.rate.x, middleY, {
+              align: 'right',
+              width: columns.rate.width
             })
-            .text(item.amount.toFixed(2), columns.amount.x, middleY, { 
-              align: 'right', 
-              width: columns.amount.width 
+            .text(item.amount.toFixed(2), columns.amount.x, middleY, {
+              align: 'right',
+              width: columns.amount.width
             });
 
           yPos += itemHeight + sectionSpacing;
@@ -351,93 +342,170 @@ export const generateQuotationPDF = async (quotation: IQuotation): Promise<Buffe
         // Compute subtotal from items
         const subtotal = quotation.items.reduce((sum: number, item: any) => sum + (item.amount || 0), 0);
 
-        // Draw line before totals
-        yPos += (sectionSpacing * 2);
-        ensureSpace(60);
-        doc.moveTo(350, yPos)
-          .lineTo(550, yPos)
+        const subtotalText = `Subtotal: LKR ${subtotal.toFixed(2)}`;
+        const totalText = `Total Amount: LKR ${quotation.totalAmount.toFixed(2)}`;
+        const discountLabel = quotation.discountAmount > 0
+          ? (quotation.discountType === 'percentage'
+            ? `Discount (${quotation.discountValue}%):`
+            : 'Discount:')
+          : '';
+        const discountText = discountLabel
+          ? `${discountLabel} -LKR ${quotation.discountAmount.toFixed(2)}`
+          : '';
+        const discountNoteText = discountText && quotation.discountNote
+          ? String(quotation.discountNote)
+          : '';
+
+        // Totals: laid out as one block so a break can never strand a subtotal
+        // without its total.
+        const totalsLayout = (top: number) => {
+          let y = top + (sectionSpacing * 2);
+          const rule1Y = y;
+
+          y += (sectionSpacing * 3);
+          const subtotalY = y;
+          const subtotalHeight = measureText(subtotalText, 10, { width: 200, align: 'right' });
+          y = subtotalY + Math.max(subtotalHeight, sectionSpacing * 3);
+
+          let discountY = 0;
+          let discountNoteY = 0;
+          if (discountText) {
+            y += (sectionSpacing * 3);
+            discountY = y;
+            const discountHeight = measureText(discountText, 10, { width: 200, align: 'right' });
+            y = discountY + Math.max(discountHeight, sectionSpacing * 3);
+
+            if (discountNoteText) {
+              y += 14;
+              discountNoteY = y;
+              y += measureText(discountNoteText, 8, { width: 500 });
+            }
+          }
+
+          y += (sectionSpacing * 3);
+          const rule2Y = y;
+          y += (sectionSpacing * 2);
+          const totalY = y;
+          const totalHeight = measureText(totalText, 12, {
+            font: 'Helvetica-Bold',
+            width: 200,
+            align: 'right'
+          });
+
+          return {
+            rule1Y,
+            subtotalY,
+            discountY,
+            discountNoteY,
+            rule2Y,
+            totalY,
+            height: totalY + totalHeight - top
+          };
+        };
+
+        ensureSpace(totalsLayout(yPos).height);
+        const totals = totalsLayout(yPos);
+
+        doc.moveTo(350, totals.rule1Y)
+          .lineTo(550, totals.rule1Y)
           .stroke();
 
-        // Subtotal
-        yPos += (sectionSpacing * 3);
-        ensureSpace(20);
         doc.fontSize(10)
           .font('Helvetica')
-          .text(`Subtotal: LKR ${subtotal.toFixed(2)}`, 350, yPos, { align: 'right', width: 200 });
+          .text(subtotalText, 350, totals.subtotalY, { align: 'right', width: 200 });
 
-        // Discount line (if any)
-        if (quotation.discountAmount > 0) {
-          yPos += (sectionSpacing * 3);
-          ensureSpace(20);
-          const discountLabel = quotation.discountType === 'percentage'
-            ? `Discount (${quotation.discountValue}%):`
-            : 'Discount:';
+        if (discountText) {
           doc.fontSize(10)
             .font('Helvetica')
             .fillColor('#cc0000')
-            .text(`${discountLabel} -LKR ${quotation.discountAmount.toFixed(2)}`, 350, yPos, { align: 'right', width: 200 });
+            .text(discountText, 350, totals.discountY, { align: 'right', width: 200 });
 
-          if (quotation.discountNote) {
-            yPos += 14;
+          if (discountNoteText) {
             doc.fontSize(8)
-              .text(`${quotation.discountNote}`, 50, yPos);
+              .font('Helvetica')
+              .text(discountNoteText, 50, totals.discountNoteY, { width: 500 });
           }
 
           doc.fillColor('#000000');
         }
 
-        // Final Total
-        yPos += (sectionSpacing * 3);
-        ensureSpace(24);
-        doc.moveTo(350, yPos)
-          .lineTo(550, yPos)
+        doc.moveTo(350, totals.rule2Y)
+          .lineTo(550, totals.rule2Y)
           .stroke();
-        yPos += (sectionSpacing * 2);
+
         doc.fontSize(12)
           .font('Helvetica-Bold')
-          .text(`Total Amount: LKR ${quotation.totalAmount.toFixed(2)}`, 350, yPos, { align: 'right', width: 200 });
+          .text(totalText, 350, totals.totalY, { align: 'right', width: 200 });
 
-        // Remarks with text wrapping
+        yPos += totals.height;
+
+        // Remarks: heading and body move together. The three gaps reproduce the
+        // production spacing (26pt after the total line, 6pt under the heading,
+        // 20pt of air before the closing group) but are applied below measured
+        // text bottoms, so a taller line can never make them overlap.
         if (quotation.remarks) {
-          const remarksLines = wrapText(quotation.remarks, 500, 10);
-          const remarksHeight = (sectionSpacing * 8)
-          + 16
-          + (sectionSpacing * 4)
-          + (remarksLines.length * 12)
-          + (sectionSpacing * 4);
-          ensureSpace(remarksHeight);
-          yPos += (sectionSpacing * 8);
+          const remarksLayout = (top: number) => {
+            const headingY = top + 26;
+            const headingHeight = measureText('Remarks:', 12, { font: 'Helvetica-Bold' });
+            const bodyY = headingY + headingHeight + 6;
+            const bodyHeight = measureText(quotation.remarks, 10, { width: 500 });
+            return { headingY, bodyY, height: bodyY + bodyHeight + 20 - top };
+          };
+
+          ensureSpace(remarksLayout(yPos).height);
+          const remarks = remarksLayout(yPos);
+
           doc.fontSize(12)
             .font('Helvetica-Bold')
-            .text('Remarks:', 50, yPos);
+            .text('Remarks:', 50, remarks.headingY);
 
-          yPos += (sectionSpacing * 4);
-          doc.fontSize(10).font('Helvetica');
-          remarksLines.forEach((line, index) => {
-            doc.text(line, 50, yPos + (index * 12));
-          });
-          yPos += remarksLines.length * 12 + (sectionSpacing * 4);
+          doc.fontSize(10)
+            .font('Helvetica')
+            .text(quotation.remarks, 50, remarks.bodyY, { width: 500 });
+
+          yPos += remarks.height;
         }
 
-        // Footer with consistent spacing
-        const footerHeight = (sectionSpacing * 12) + 36;
-        ensureSpace(footerHeight);
-        yPos += (sectionSpacing * 8);
+        // Closing group: thank-you lines, signature and stamp are one block,
+        // reserved against the space above the attribution strip rather than a
+        // guessed constant.
+        const closingLayout = (top: number) => {
+          const thankYouY = top + (sectionSpacing * 8);
+          const thankYouHeight = measureText('Thank you for your business!', 10, { width: 500 });
+          const computerY = thankYouY + (sectionSpacing * 3);
+          const computerHeight = measureText('This is a computer-generated document.', 10, { width: 500 });
+          const stampY = top + (sectionSpacing * 6);
+          const stampHeight = measureText('Company Stamp', 8, { width: 200 });
+          const bottom = Math.max(computerY + computerHeight, stampY + stampHeight);
+
+          return {
+            thankYouY,
+            computerY,
+            signatureY: top,
+            stampY,
+            height: bottom - top
+          };
+        };
+
+        ensureSpace(closingLayout(yPos).height);
+        const closing = closingLayout(yPos);
+
         doc.fontSize(10)
           .font('Helvetica')
-          .text('Thank you for your business!', 50, yPos)
-          .text('This is a computer-generated document.', 50, yPos + (sectionSpacing * 3));
+          .text('Thank you for your business!', 50, closing.thankYouY)
+          .text('This is a computer-generated document.', 50, closing.computerY);
 
         renderDocumentAttribution(doc, {
           left: 50,
-          width: 500
+          width: attributionWidth
         });
 
         // Company stamp area
         doc.fillColor('#000000')
           .fontSize(8)
-          .text('Authorized Signature: ___________________', 350, yPos)
-          .text('Company Stamp', 350, yPos + (sectionSpacing * 6));
+          .font('Helvetica')
+          .text('Authorized Signature: ___________________', 350, closing.signatureY)
+          .text('Company Stamp', 350, closing.stampY);
 
         // Finalize the PDF
         doc.end();
