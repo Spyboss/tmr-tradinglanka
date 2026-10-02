@@ -41,5 +41,14 @@
   },
   "devDependencies": {
     "concurrently": "^8.2.2"
+  },
+  "overrides": {
+    "tar": "7.5.22"
+  },
+  "allowScripts": {
+    "esbuild@0.27.7": true,
+    "esbuild@0.25.12": true,
+    "argon2@0.41.1": true,
+    "bcrypt@5.1.1": true
   }
 }
