@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { generateQuotationPDF } from '../services/quotationPdfService.js';
-import { countPages, textByPage, findRun } from '../test-utils/pdfProbe.js';
+import { countPages, extractRuns, textByPage, findRun } from '../test-utils/pdfProbe.js';
 
 vi.mock('../models/Branding.js', () => ({
   default: { findOne: vi.fn().mockReturnValue({ lean: () => Promise.resolve(null) }) }
@@ -132,5 +132,48 @@ describe('quotation/invoice PDF pagination', () => {
     expect(remarksBody, 'remarks body missing').toBeDefined();
     expect(remarks!.y).toBeLessThan(remarksBody!.y);
     expect(remarksBody!.y).toBeLessThan(closing!.y);
+  });
+
+  it('numbers every page of a multi-page document and leaves single pages alone', async () => {
+    const multi = await generateQuotationPDF(manyItemsInvoice(40));
+    const pages = textByPage(multi);
+    expect(pages.length, 'fixture should force a page break').toBeGreaterThan(1);
+
+    pages.forEach((runs, i) => {
+      const label = runs.find(run => run.text.startsWith('Page '));
+      expect(label, `page ${i + 1} is missing its page number`).toBeDefined();
+      expect(label!.text).toBe(`Page ${i + 1} of ${pages.length}`);
+      // The number sits in the same bottom band as the attribution.
+      expect(label!.y, 'page number not in the footer band').toBeGreaterThanOrEqual(805);
+      expect(label!.y, 'page number ran off the sheet').toBeLessThan(830);
+    });
+
+    const single = await generateQuotationPDF(realInvoice());
+    expect(
+      extractRuns(single).some(run => run.text.startsWith('Page ')),
+      'a one-page invoice must not carry a page number'
+    ).toBe(false);
+  });
+
+  it('puts a light continuation header on every page after the first', async () => {
+    const pdf = await generateQuotationPDF(manyItemsInvoice(40));
+    const pages = textByPage(pdf);
+    expect(pages.length, 'fixture should force a page break').toBeGreaterThan(1);
+
+    // Fallback brand partner used while the Branding model is mocked to null.
+    for (let i = 1; i < pages.length; i++) {
+      const header = pages[i].find(run => run.text.includes('TMR Trading Lanka (Pvt) Ltd'));
+      expect(header, `page ${i + 1} has no continuation header`).toBeDefined();
+      expect(header!.y, `continuation header too low on page ${i + 1}`).toBeLessThan(60);
+      const ref = pages[i].find(run => run.text.includes('BULK-40'));
+      expect(ref, `page ${i + 1} does not reference the document number`).toBeDefined();
+    }
+
+    // The first page keeps the full masthead, not the light one: brand partner
+    // appears at the 20pt title size there, never at the 11pt continuation size.
+    expect(
+      pages[0].some(run => run.text.includes('TMR Trading Lanka (Pvt) Ltd') && run.size === 20),
+      'first page must keep the full-sized masthead'
+    ).toBe(true);
   });
 });

@@ -66,7 +66,10 @@ export const generateQuotationPDF = async (quotation: IQuotation): Promise<Buffe
       // measured above (contentBottomY), not this number.
       const doc = new PDFDocument({
         size: 'A4',
-        margins: { top: 50, left: 50, right: 50, bottom: 18 }
+        margins: { top: 50, left: 50, right: 50, bottom: 18 },
+        // Pages stay buffered so "Page X of Y" can be written onto every page
+        // once the final page count is known.
+        bufferPages: true
       });
 
       // Set up streams to capture PDF data
@@ -205,10 +208,29 @@ export const generateQuotationPDF = async (quotation: IQuotation): Promise<Buffe
             .fontSize(size)
             .heightOfString(text, { width: opts.width, align: opts.align ?? 'left' });
 
+        // Continuation pages get a light header instead of the full first-page
+        // masthead: brand line plus document reference, so a reader flipping to
+        // page 3 still knows which document they are holding.
+        const drawContinuationHeader = (): void => {
+          doc.fontSize(11)
+            .font('Helvetica-Bold')
+            .fillColor(branding.primaryColor)
+            .text(branding.brandPartner, 50, 40);
+          doc.fontSize(9)
+            .font('Helvetica')
+            .fillColor('#000000')
+            .text(
+              `${title} No: ${quotation.quotationNumber}  |  Date: ${formatColomboDate(quotation.quotationDate)}`,
+              50,
+              56
+            );
+          yPos = 74;
+        };
+
         const ensureSpace = (spaceNeeded: number, onNewPage?: () => void): void => {
           if (yPos + spaceNeeded > contentBottomY()) {
             doc.addPage();
-            yPos = doc.page.margins.top;
+            drawContinuationHeader();
             if (onNewPage) onNewPage();
           }
         };
@@ -520,6 +542,22 @@ export const generateQuotationPDF = async (quotation: IQuotation): Promise<Buffe
           left: 50,
           width: attributionWidth
         });
+
+        // Page numbers, drawn right-aligned in the same footer band as the
+        // attribution. Only documents that actually span multiple pages get
+        // them — "Page 1 of 1" on a one-page invoice is noise. Written after
+        // the body so the total is known, onto each buffered page in turn.
+        const pageRange = doc.bufferedPageRange();
+        if (pageRange.count > 1) {
+          for (let i = 0; i < pageRange.count; i++) {
+            doc.switchToPage(pageRange.start + i);
+            const y = getDocumentAttributionTop(doc, attributionWidth);
+            doc.font('Helvetica').fontSize(7).fillColor('#9ca3af');
+            const label = `Page ${i + 1} of ${pageRange.count}`;
+            const x = 50 + Math.max(attributionWidth - doc.widthOfString(label), 0);
+            doc.text(label, x, y, { lineBreak: false });
+          }
+        }
 
         // Finalize the PDF
         doc.end();
