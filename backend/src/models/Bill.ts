@@ -1,5 +1,8 @@
 import mongoose, { Document, Schema } from 'mongoose';
 import encryptionPlugin from '../utils/encryption-plugin.js';
+import Branding from './Branding.js';
+import { issueSerial } from '../services/serialEngine.js';
+import { computeVat } from '../utils/vat.js';
 
 // Define interface for bill document
 export interface IBill extends Document {
@@ -49,6 +52,16 @@ export interface IBill extends Document {
 
   // Other details
   totalAmount: number;
+
+  // Tax invoice (IRD Gazette 2481/22, effective 1 Oct 2026)
+  invoiceSerialNumber?: string;
+  taxType?: 'tax' | 'commercial' | 'exempt';
+  purchaserTin?: string;
+  taxRate?: number;
+  taxableValue?: number;
+  vatAmount?: number;
+  invoiceDate?: Date;
+  dateOfSupply?: Date;
 
   // Optional per-bill proforma data
   proforma?: {
@@ -275,7 +288,32 @@ const BillSchema = new Schema({
   owner: {
     type: Schema.Types.ObjectId,
     ref: 'User'
-  }
+  },
+
+  // Tax invoice (IRD Gazette 2481/22, effective 1 Oct 2026)
+  invoiceSerialNumber: {
+    type: String,
+    trim: true,
+    unique: true,
+    sparse: true // legacy bills without a serial are unaffected
+  },
+  taxType: {
+    type: String,
+    enum: ['tax', 'commercial', 'exempt']
+  },
+  purchaserTin: {
+    type: String,
+    trim: true,
+    validate: {
+      validator: (v?: string) => !v || /^\d{9}$/.test(v),
+      message: 'Purchaser TIN must be exactly 9 digits'
+    }
+  },
+  taxRate: { type: Number },
+  taxableValue: { type: Number },
+  vatAmount: { type: Number },
+  invoiceDate: { type: Date },
+  dateOfSupply: { type: Date }
 }, {
   timestamps: true,
   toJSON: {
@@ -354,6 +392,46 @@ BillSchema.pre('save', function(this: any, next) {
   }
 
   next();
+});
+
+// Attach tax invoice serial + VAT breakdown when a tax profile (TIN) exists.
+// Skipped when no system Branding/TIN is configured: legacy behaviour, zero risk.
+BillSchema.pre('save', async function(this: any) {
+  if (mongoose.connection.readyState !== 1) return;
+
+  const profile = await Branding.findOne({ userId: null }).lean();
+  if (!profile || !profile.tin) return;
+
+  // Edit path: total changed on an already-serialised bill -> refresh VAT only.
+  if (!this.isNew) {
+    if (this.invoiceSerialNumber && this.isModified('totalAmount')) {
+      const breakdown = computeVat(this.totalAmount, profile.pricesIncludeVat !== false, profile.vatRate ?? 18);
+      this.taxRate = profile.vatRate ?? 18;
+      this.taxableValue = breakdown.taxableValue;
+      this.vatAmount = breakdown.vatAmount;
+    }
+    return;
+  }
+
+  if (this.invoiceSerialNumber) return;
+  if (this.status === 'cancelled') return;
+
+  const code = this.taxType === 'commercial'
+    ? (profile.commercialInvoiceCode || 'CM01')
+    : (profile.taxInvoiceCode || 'TX01');
+  const issuedOn = this.invoiceDate || this.billDate || new Date();
+
+  // Allocate the serial inside the caller's transaction when one is open,
+  // so a rolled-back bill does not burn a sequence number.
+  this.invoiceSerialNumber = await issueSerial(issuedOn, code, this.$session() ?? undefined);
+  if (!this.taxType) this.taxType = 'tax';
+  if (!this.invoiceDate) this.invoiceDate = issuedOn;
+  if (!this.dateOfSupply) this.dateOfSupply = issuedOn;
+
+  const breakdown = computeVat(this.totalAmount, profile.pricesIncludeVat !== false, profile.vatRate ?? 18);
+  this.taxRate = profile.vatRate ?? 18;
+  this.taxableValue = breakdown.taxableValue;
+  this.vatAmount = breakdown.vatAmount;
 });
 
 // Apply the encryption plugin to encrypt/decrypt sensitive fields

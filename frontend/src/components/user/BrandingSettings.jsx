@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Card, Form, Input, Button, Space, Typography, message } from 'antd';
+import { Card, Form, Input, InputNumber, Button, Space, Switch, Typography, message } from 'antd';
 import apiClient from '../../config/apiClient';
 
 const { Title, Text } = Typography;
@@ -28,6 +28,7 @@ const LogoPreview = ({ url }) => {
 
 export default function BrandingSettings() {
   const [form] = Form.useForm();
+  const [taxForm] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [previewUrl, setPreviewUrl] = useState('');
@@ -46,6 +47,14 @@ export default function BrandingSettings() {
           brandPartner: branding?.brandPartner ?? '',
           footerNote: branding?.footerNote ?? '',
         });
+        taxForm.setFieldsValue({
+          tin: branding?.tin ?? '',
+          vatNumber: branding?.vatNumber ?? '',
+          phone: branding?.phone ?? '',
+          pricesIncludeVat: branding?.pricesIncludeVat ?? true,
+          vatRate: branding?.vatRate ?? 18,
+          taxInvoiceCode: branding?.taxInvoiceCode ?? 'TX01',
+        });
       } catch (err) {
         message.warning('Unable to load branding; default values will be used.');
       } finally {
@@ -53,7 +62,7 @@ export default function BrandingSettings() {
       }
     };
     load();
-  }, [form]);
+  }, [form, taxForm]);
 
   const onSave = async (values) => {
     try {
@@ -63,6 +72,27 @@ export default function BrandingSettings() {
       message.success('Branding updated');
     } catch (err) {
       const msg = err?.response?.data?.error || err?.message || 'Failed to update branding';
+      message.error(msg);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const onTaxSave = async (values) => {
+    try {
+      setSaving(true);
+      const updated = await apiClient.put('/api/branding', values);
+      taxForm.setFieldsValue({
+        tin: updated?.tin ?? '',
+        vatNumber: updated?.vatNumber ?? '',
+        phone: updated?.phone ?? '',
+        pricesIncludeVat: updated?.pricesIncludeVat ?? true,
+        vatRate: updated?.vatRate ?? 18,
+        taxInvoiceCode: updated?.taxInvoiceCode ?? 'TX01',
+      });
+      message.success('Tax profile updated');
+    } catch (err) {
+      const msg = err?.response?.data?.error || err?.message || 'Failed to update tax profile';
       message.error(msg);
     } finally {
       setSaving(false);
@@ -169,6 +199,75 @@ export default function BrandingSettings() {
             </div>
           </div>
         </div>
+      </Card>
+
+      <Card className="shadow-sm">
+        <Title level={4} className="!mb-2">Tax Profile (IRD e-Invoice)</Title>
+        <Text type="secondary">
+          Once a TIN is saved, every new bill gets an invoice serial (YYMMM_QQQQ_XXXXX) and a
+          TAX INVOICE in the IRD Gazette 2481/22 format. Bills created before the TIN was set are
+          not renumbered.
+        </Text>
+        <Form
+          form={taxForm}
+          layout="vertical"
+          className="mt-4"
+          onFinish={onTaxSave}
+          disabled={loading}
+        >
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Form.Item
+              label="Supplier TIN (9 digits)"
+              name="tin"
+              rules={[
+                { pattern: /^\d{9}$/, message: 'TIN must be exactly 9 digits', validateTrigger: ['onBlur', 'onChange'] },
+              ]}
+              extra="Printed top-left on every tax invoice. Leave empty to keep legacy bills."
+            >
+              <Input placeholder="e.g., 123456789" maxLength={9} />
+            </Form.Item>
+
+            <Form.Item label="VAT Registration No." name="vatNumber">
+              <Input placeholder="If different from TIN" />
+            </Form.Item>
+
+            <Form.Item label="Telephone (printed on invoice)" name="phone">
+              <Input placeholder="0112345678" />
+            </Form.Item>
+
+            <Form.Item
+              label="Prices include VAT"
+              name="pricesIncludeVat"
+              valuePropName="checked"
+              extra="On: retail prices are gross, VAT is backed out. Off: VAT is added on top."
+            >
+              <Switch />
+            </Form.Item>
+
+            <Form.Item
+              label="VAT Rate (%)"
+              name="vatRate"
+              rules={[{ required: true, message: 'VAT rate is required' }]}
+            >
+              <InputNumber min={0} max={100} className="w-full" />
+            </Form.Item>
+
+            <Form.Item
+              label="Invoice classification code (QQQQ)"
+              name="taxInvoiceCode"
+              rules={[
+                { pattern: /^[A-Za-z0-9]{1,15}$/, message: '1-15 letters or digits, no spaces' },
+              ]}
+              extra="Appears in the serial, e.g. TX01"
+            >
+              <Input placeholder="TX01" maxLength={15} />
+            </Form.Item>
+          </div>
+
+          <Space className="mt-2">
+            <Button type="primary" htmlType="submit" loading={saving}>Save Tax Profile</Button>
+          </Space>
+        </Form>
       </Card>
 
       {previewUrl && (

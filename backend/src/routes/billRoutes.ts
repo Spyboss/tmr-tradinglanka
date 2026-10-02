@@ -7,6 +7,7 @@ import UserActivity, { ActivityType } from '../models/UserActivity.js';
 import { connectToDatabase } from '../config/database.js';
 import { generatePDF } from '../services/pdfService.js';
 import { generateProformaPDF } from '../services/proformaPdfService.js';
+import { generateTaxInvoicePDF } from '../services/taxInvoicePdfService.js';
 import { authenticate, requireAdmin, requireOwnership, AuthRequest } from '../auth/auth.middleware.js';
 import { createBill, updateBillStatus } from '../controllers/billController.js';
 
@@ -912,6 +913,42 @@ router.get('/:id/pdf', authenticate, async (req: AuthRequest, res: Response) => 
 
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename=TMR_Bill_${bill.billNumber || bill.bill_number || bill._id}.pdf`);
+    res.send(pdfBuffer);
+  } catch (error) {
+    res.status(500).json({ error: (error as Error).message });
+  }
+});
+
+// Tax invoice PDF (IRD Gazette 2481/22 Annexure I format)
+router.get('/:id/tax-invoice', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const bill = await Bill.findById(req.params.id);
+
+    if (!bill) {
+      return res.status(404).json({ error: 'Bill not found' });
+    }
+
+    const user = await req.app.locals.models?.User.findById(req.user?.id);
+    const isAdmin = user?.role === 'admin';
+    const isOwner = bill.owner && bill.owner.toString() === req.user?.id;
+
+    if (!isAdmin && !isOwner) {
+      return res.status(403).json({ error: 'You do not have permission to view this bill' });
+    }
+
+    if (!bill.invoiceSerialNumber) {
+      return res.status(409).json({
+        error: 'This bill has no tax invoice serial. Configure the tax profile (Settings > Branding, with a TIN) and create bills after that — existing bills are not renumbered.'
+      });
+    }
+
+    const pdfBuffer = await generateTaxInvoicePDF(bill);
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename=TAX_INVOICE_${bill.invoiceSerialNumber}.pdf`
+    );
     res.send(pdfBuffer);
   } catch (error) {
     res.status(500).json({ error: (error as Error).message });

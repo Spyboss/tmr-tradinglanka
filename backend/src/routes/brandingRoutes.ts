@@ -56,6 +56,14 @@ router.put('/', authenticate, async (req: AuthRequest, res: Response) => {
       addressLine2: req.body.addressLine2,
       brandPartner: req.body.brandPartner,
       footerNote: req.body.footerNote,
+      // Tax profile (system-wide concern; only admins manage it)
+      tin: isAdmin ? req.body.tin : undefined,
+      vatNumber: isAdmin ? req.body.vatNumber : undefined,
+      phone: isAdmin ? req.body.phone : undefined,
+      pricesIncludeVat: isAdmin ? req.body.pricesIncludeVat : undefined,
+      vatRate: isAdmin ? req.body.vatRate : undefined,
+      taxInvoiceCode: isAdmin ? req.body.taxInvoiceCode : undefined,
+      commercialInvoiceCode: isAdmin ? req.body.commercialInvoiceCode : undefined,
       // If admin, we target userId: null. If user, we target userId: req.user.id.
       userId: isAdmin ? null : userId
     };

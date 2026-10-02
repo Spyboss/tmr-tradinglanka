@@ -151,6 +151,35 @@ const BillView = () => {
     }
   };
 
+  const handleDownloadTaxInvoice = async () => {
+    try {
+      setLoading(true);
+      const blob = await apiClient.get(`/bills/${id}/tax-invoice`, {
+        responseType: 'blob'
+      });
+
+      if (!blob || !(blob instanceof Blob)) {
+        throw new Error('Invalid response from server');
+      }
+
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `tax-invoice-${bill.invoiceSerialNumber || id}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      setTimeout(() => URL.revokeObjectURL(url), 100);
+    } catch (error) {
+      console.error('Error downloading tax invoice:', error);
+      const serverMsg = error?.response?.data?.error;
+      toast.error(serverMsg || `Failed to download tax invoice: ${error.message || 'Server error'}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleStatusChange = async (newStatus) => {
     try {
       setLoading(true);
@@ -344,13 +373,21 @@ const BillView = () => {
           >
             Preview
           </Button>
-          <Button 
-            type="primary" 
-            icon={<DownloadOutlined />} 
+          <Button
+            type="primary"
+            icon={<DownloadOutlined />}
             onClick={handleDownloadPDF}
           >
             Download PDF
           </Button>
+          {bill.invoiceSerialNumber && (
+            <Button
+              icon={<FileDoneOutlined />}
+              onClick={handleDownloadTaxInvoice}
+            >
+              Tax Invoice ({bill.invoiceSerialNumber})
+            </Button>
+          )}
           <Button
             icon={<FileDoneOutlined />}
             onClick={openProformaModal}
