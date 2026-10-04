@@ -128,7 +128,7 @@ const referenceOf = (bill: IBill): string => {
   const parts: string[] = [];
   if (bill.chassisNumber) parts.push(`Chassis: ${bill.chassisNumber}`);
   if (bill.motorNumber) parts.push(`Motor: ${bill.motorNumber}`);
-  return parts.join(', ');
+  return parts.join('\n');
 };
 
 /**
@@ -222,21 +222,17 @@ export const generateTaxInvoicePDF = async (bill: IBill): Promise<Buffer> => {
         // Supplier block (left) + Purchaser block (right) — Annexure I 2, 3
         // ---------------------------------------------------------------
         y += 26;
-        const supplierLines = [
-          `Supplier's TIN: ${profile.tin || profile.vatNumber || ''}`,
-          `Supplier's Name: ${profile.brandPartner}`
-        ];
-        const purchaserLines = [
-          `Purchaser's TIN: ${bill.purchaserTin || ''}`,
-          `Purchaser's Name: ${bill.customerName || ''}`
-        ];
 
         doc.fontSize(9).font('Helvetica-Bold');
-        doc.text(supplierLines[0], leftX, y, { width: 250 });
-        doc.text(purchaserLines[0], rightX, y, { width: 230 });
+        if (profile.tin || profile.vatNumber) {
+          doc.text(`Supplier's TIN: ${profile.tin || profile.vatNumber}`, leftX, y, { width: 250 });
+        }
+        if (bill.purchaserTin) {
+          doc.text(`Purchaser's TIN: ${bill.purchaserTin}`, rightX, y, { width: 230 });
+        }
         doc.font('Helvetica');
-        doc.text(supplierLines[1], leftX, y + 14, { width: 250 });
-        doc.text(purchaserLines[1], rightX, y + 14, { width: 230 });
+        doc.text(`Supplier's Name: ${profile.brandPartner}`, leftX, y + 14, { width: 250 });
+        doc.text(`Purchaser's Name: ${bill.customerName || ''}`, rightX, y + 14, { width: 230 });
 
         const leftY = y + 28;
         let rightY = y + 28;
@@ -259,13 +255,16 @@ export const generateTaxInvoicePDF = async (bill: IBill): Promise<Buffer> => {
 
         // ---------------------------------------------------------------
         // Items table — Annexure I 4.1.e/f/g
+        // Content area is 50..545 (A4 595pt minus margins); every column
+        // and rule must stay inside it.
         // ---------------------------------------------------------------
+        const RIGHT_EDGE = leftX + 495;
         const cols = {
-          reference: { x: leftX, width: 120 },
-          description: { x: leftX + 125, width: 190 },
-          quantity: { x: leftX + 320, width: 40 },
-          unitPrice: { x: leftX + 365, width: 70 },
-          amountExclVat: { x: leftX + 440, width: 110 }
+          reference: { x: leftX, width: 110 },
+          description: { x: leftX + 115, width: 165 },
+          quantity: { x: leftX + 285, width: 45 },
+          unitPrice: { x: leftX + 335, width: 75 },
+          amountExclVat: { x: leftX + 415, width: 80 }
         };
 
         doc.fontSize(9).font('Helvetica-Bold');
@@ -273,10 +272,11 @@ export const generateTaxInvoicePDF = async (bill: IBill): Promise<Buffer> => {
         doc.text('Description of Goods or Services', cols.description.x, y, { width: cols.description.width });
         doc.text('Quantity', cols.quantity.x, y, { width: cols.quantity.width, align: 'center' });
         doc.text('Unit Price', cols.unitPrice.x, y, { width: cols.unitPrice.width, align: 'right' });
-        doc.text('Amount Excluding VAT (Rs.)', cols.amountExclVat.x, y, { width: cols.amountExclVat.width, align: 'right' });
+        const amountHeader = 'Amount Excluding VAT (Rs.)';
+        doc.text(amountHeader, cols.amountExclVat.x, y, { width: cols.amountExclVat.width, align: 'right' });
+        y += Math.max(doc.heightOfString(amountHeader, { width: cols.amountExclVat.width, align: 'right' }), 12) + 8;
 
-        y += 20;
-        doc.moveTo(leftX, y).lineTo(leftX + 550, y).stroke();
+        doc.moveTo(leftX, y).lineTo(RIGHT_EDGE, y).stroke();
         y += 8;
 
         doc.fontSize(9).font('Helvetica');
@@ -293,26 +293,34 @@ export const generateTaxInvoicePDF = async (bill: IBill): Promise<Buffer> => {
         doc.text(breakdown.taxableValue.toFixed(2), cols.amountExclVat.x, y, { width: cols.amountExclVat.width, align: 'right' });
         y += rowHeight + 6;
 
-        doc.moveTo(leftX, y).lineTo(leftX + 550, y).stroke();
+        doc.moveTo(leftX, y).lineTo(RIGHT_EDGE, y).stroke();
         y += 12;
 
         // ---------------------------------------------------------------
-        // Totals — Annexure I 4.1.g i/ii/iii
+        // Totals — Annexure I 4.1.g i/ii/iii. Each label is measured so a
+        // wrapping label ("VAT Amount (Total Value of Supply @ 18%)") can
+        // never overlap the row below it.
         // ---------------------------------------------------------------
-        const totalsX = 330;
-        doc.fontSize(10).font('Helvetica');
-        doc.text('Total Value of Supply:', totalsX, y, { width: 150 });
-        doc.text(breakdown.taxableValue.toFixed(2), totalsX + 150, y, { width: 70, align: 'right' });
-        y += 16;
-        doc.text(`VAT Amount (Total Value of Supply @ ${vatRate}%)`, totalsX, y, { width: 150 });
-        doc.text(breakdown.vatAmount.toFixed(2), totalsX + 150, y, { width: 70, align: 'right' });
-        y += 6;
-        doc.moveTo(totalsX, y).lineTo(leftX + 550, y).stroke();
+        const totalsX = 260;
+        const labelW = 170;
+        const numX = totalsX + labelW + 10;
+        const numW = 105;
+
+        const totalsRow = (label: string, value: string, opts: { bold?: boolean; size?: number } = {}): void => {
+          doc.font(opts.bold ? 'Helvetica-Bold' : 'Helvetica').fontSize(opts.size ?? 10);
+          const h = doc.heightOfString(label, { width: labelW });
+          doc.text(label, totalsX, y, { width: labelW });
+          doc.text(value, numX, y, { width: numW, align: 'right' });
+          y += Math.max(h, 14) + 6;
+        };
+
+        totalsRow('Total Value of Supply:', breakdown.taxableValue.toFixed(2));
+        totalsRow(`VAT Amount (Total Value of Supply @ ${vatRate}%)`, breakdown.vatAmount.toFixed(2));
+        y += 2;
+        doc.moveTo(totalsX, y).lineTo(numX + numW, y).stroke();
         y += 8;
-        doc.font('Helvetica-Bold').fontSize(11);
-        doc.text('Total Amount including VAT:', totalsX, y, { width: 150 });
-        doc.text(breakdown.total.toFixed(2), totalsX + 150, y, { width: 70, align: 'right' });
-        y += 24;
+        totalsRow('Total Amount including VAT:', breakdown.total.toFixed(2), { bold: true, size: 11 });
+        y += 8;
 
         // ---------------------------------------------------------------
         // Amount in words + mode of payment — Annexure I 4.1.g.iv / 4.1.h
@@ -333,10 +341,10 @@ export const generateTaxInvoicePDF = async (bill: IBill): Promise<Buffer> => {
         // Signature block + footer
         // ---------------------------------------------------------------
         if (y + 70 < contentBottomY()) {
-          doc.moveTo(350, y + 30).lineTo(550, y + 30).stroke();
+          doc.moveTo(345, y + 30).lineTo(545, y + 30).stroke();
           doc.fontSize(9).font('Helvetica');
-          doc.text('Authorized Signature:', 350, y + 36, { width: 200 });
-          doc.text('Company Stamp', 350, y + 52, { width: 200 });
+          doc.text('Authorized Signature:', 345, y + 36, { width: 200 });
+          doc.text('Company Stamp', 345, y + 52, { width: 200 });
 
           doc.text('This is a computer-generated document.', leftX, y + 36, { width: 250 });
           if (profile.footerNote) {
