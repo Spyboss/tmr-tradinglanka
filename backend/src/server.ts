@@ -116,6 +116,12 @@ import WarrantyClaim from './models/WarrantyClaim.js';
 const app = express();
 const port = process.env.PORT || 8080;
 
+// Trust the first proxy hop (Railway's edge proxy) so that req.ip reflects the
+// real client IP from X-Forwarded-For. Without this, req.ip is the proxy's own
+// private IP, which makes isPrivateIP() return true and silently disables all
+// IP-based rate limiting and anomaly tracking in production.
+app.set('trust proxy', 1);
+
 // CORS Configuration
 // Default hard-coded origins kept as safe fallback
 const defaultAllowedOrigins = [
