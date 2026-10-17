@@ -1,6 +1,6 @@
 /**
  * Script to create an admin user directly in the database
- * Run with: npm run ts-node src/scripts/createAdmin.ts
+ * Run with: npx tsx src/scripts/createAdmin.ts
  */
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';

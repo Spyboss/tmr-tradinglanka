@@ -1,6 +1,6 @@
 /**
  * Script to list all users in the database
- * Run with: npm run ts-node src/scripts/listUsers.ts
+ * Run with: npx tsx src/scripts/listUsers.ts
  */
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';

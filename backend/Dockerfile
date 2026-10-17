@@ -1015,9 +1015,9 @@ USER nodejs
 # Expose the port the app runs on
 EXPOSE 8080
 
-# Health check
+# Health check (bookworm-slim ships no curl, so probe with node's fetch instead)
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:8080/api/health || exit 1
+  CMD node -e "fetch('http://localhost:8080/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 
 # Start the application
 CMD ["node", "src/server.js"]
