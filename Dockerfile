@@ -2,7 +2,7 @@
 # release schedule. The previous node:18-alpine hit end-of-life 2025-04-30, so
 # production was running an unpatched runtime for 18 months.
 # See https://github.com/nodejs/Release/blob/main/schedule.json
-FROM node:24-alpine
+FROM node:26-alpine
 
 # Set environment variables
 ENV NODE_ENV=production
