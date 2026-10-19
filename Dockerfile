@@ -18,14 +18,15 @@ WORKDIR /app
 COPY backend/package*.json backend/.npmrc ./
 
 # Install dependencies with overrides and global tools.
-# DevDependencies are installed too (not --omit=dev) because build:prod runs
-# `tsc` and typescript is a devDependency. ts-node previously pulled typescript
-# in as an auto-installed peer from the prod side; removing ts-node (c8ea14e)
-# silently removed tsc, so every deploy after 5b638f9 built a dist/ with no
-# server.js -> MODULE_NOT_FOUND at boot -> healthcheck failure -> deploy FAILED.
+# `--include=dev` is required because ENV NODE_ENV=production above makes npm
+# omit devDependencies by default, and build:prod runs `tsc` - typescript is a
+# devDependency. ts-node used to pull typescript in as an auto-installed peer
+# from the prod side; removing ts-node (c8ea14e) silently removed tsc, so every
+# deploy after 5b638f9 built a dist/ with no server.js -> MODULE_NOT_FOUND at
+# boot -> healthcheck failure -> deploy FAILED.
 # devDeps remaining in the runtime image is a known tradeoff for now; a
 # multi-stage build to slim the image is deferred to the quality pass.
-RUN npm install && npm install -g cpx
+RUN npm install --include=dev && npm install -g cpx
 
 # Copy the rest of the application
 COPY backend ./
