@@ -1,5 +1,8 @@
-# Using Node.js 18 Alpine for compatibility with Railway
-FROM node:18-alpine
+# Node 24 Active LTS (Krypton) - supported to 2028-04-30 per the official Node
+# release schedule. The previous node:18-alpine hit end-of-life 2025-04-30, so
+# production was running an unpatched runtime for 18 months.
+# See https://github.com/nodejs/Release/blob/main/schedule.json
+FROM node:24-alpine
 
 # Set environment variables
 ENV NODE_ENV=production
