@@ -1,5 +1,38 @@
 version: 2
+
+# ─────────────────────────────────────────────────────────────────────────────
+# THE TWO-LOCK INVARIANT - read this before adding an entry below.
+#
+# The root package.json is an npm workspace (backend, frontend) and the repo
+# carries TWO package-lock.json files for the same code:
+#
+#   package-lock.json          local dev + CI. Owned by the "/" entry below.
+#   backend/package-lock.json  PRODUCTION. The Dockerfile does
+#                              `COPY backend/package*.json` and then
+#                              `npm install`, so this is the tree the Railway
+#                              image actually runs.
+#
+# Because dependabot can only write inside the directory of the entry that
+# opened the PR, the two streams each move one lock. Measured 2026-10-19:
+# 87 packages had drifted apart, production behind local on every one that
+# mattered (jose 6.0.10 vs 6.2.12, rate-limiter-flexible 7.0.0 vs 7.4.0,
+# ioredis 5.6.1 vs 5.11.1).
+#
+# MERGE ORDER IS THE FIX: merge the /backend PR first, then its root twin.
+# Once /backend has moved the range, the root twin's package.json hunks become
+# no-ops on rebase and it only lands the lock - so both locks end up in sync.
+# Merging the other way round leaves the production lock stale until next week.
+#
+# There is deliberately NO /frontend entry. frontend has no lock of its own
+# (its packages are recorded in the root lock), so a /frontend PR can only
+# edit frontend/package.json and ships with the lock still pointing at the old
+# version. Confirmed on #29/#32/#33/#40: all four touched package.json alone.
+# Everything frontend needs arrives through the "/" entry instead, lock
+# included - see #42 and #43, which did it correctly.
+# ─────────────────────────────────────────────────────────────────────────────
+
 updates:
+  # ── npm, workspace root: owns package-lock.json + every member's ranges ──
   - package-ecosystem: "npm"
     directory: "/"
     schedule:
@@ -17,27 +50,49 @@ updates:
         update-types:
           - "minor"
           - "patch"
+    # Majors are never grouped: they must arrive one at a time so each can be
+    # reverted on its own.
 
-  - package-ecosystem: "github-actions"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-
-  - package-ecosystem: "docker"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-
+  # ── npm, backend: owns backend/package-lock.json, i.e. the image ────────
   - package-ecosystem: "npm"
     directory: "/backend"
     schedule:
       interval: "weekly"
       day: "monday"
+    open-pull-requests-limit: 10
+    groups:
+      backend-prod:
+        dependency-type: "production"
+        update-types:
+          - "minor"
+          - "patch"
+      backend-dev:
+        dependency-type: "development"
+        update-types:
+          - "minor"
+          - "patch"
 
-  - package-ecosystem: "npm"
-    directory: "/frontend"
+  # ── docker, production image ────────────────────────────────────────────
+  - package-ecosystem: "docker"
+    directory: "/"
     schedule:
       interval: "weekly"
       day: "monday"
+    ignore:
+      # node:24-alpine is Active LTS and supported to 2028-04-30. v26 does not
+      # enter LTS until 2026-10-28, so node:26-alpine is still "current".
+      # Remove this ignore once 26 is LTS and the native prebuilds
+      # (bcrypt N-API v3, argon2 N-API v8) are confirmed against it.
+      - dependency-name: "node"
+        versions:
+          - ">=25.0.0"
+
+  # ── github actions ──────────────────────────────────────────────────────
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    # actions/checkout is currently pinned to the floating tag @v5. Dependabot
+    # can move the major but cannot pin to a commit SHA - that is a manual
+    # hardening step, recorded in the audit notes.
