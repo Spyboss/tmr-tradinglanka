@@ -53,8 +53,8 @@
     "mongoose": "^8.24.0",
     "morgan": "^1.10.1",
     "pdfkit": "^0.14.0",
-    "rate-limiter-flexible": "^7.0.0",
     "qs": "^6.15.2",
+    "rate-limiter-flexible": "^7.0.0",
     "resend": "^2.1.0",
     "rimraf": "^4.4.1",
     "winston": "^3.11.0"
@@ -69,10 +69,10 @@
     "@typescript-eslint/eslint-plugin": "^6.19.0",
     "@typescript-eslint/parser": "^6.19.0",
     "eslint": "^8.56.0",
+    "supertest": "^6.3.4",
     "tsx": "^4.19.3",
     "typescript": "^5.8.3",
-    "vitest": "^3.2.4",
-    "supertest": "^6.3.4"
+    "vitest": "^4.1.12"
   },
   "engines": {
     "node": ">=18.0.0"
