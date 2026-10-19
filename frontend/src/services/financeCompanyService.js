@@ -1,4 +1,4 @@
-import apiClient from './apiClient';
+import apiClient from '../config/apiClient';
 
 export const getAllFinanceCompanies = async () => {
   try {
