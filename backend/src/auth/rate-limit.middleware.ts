@@ -175,10 +175,9 @@ export const loginRateLimit = async (req: Request, res: Response, next: NextFunc
   logger.debug(`Login rate limiting check for IP: ${clientIp}`);
 
   try {
-    // Use normalized IP + email as identifier
     const email = (req.body.email || '').toLowerCase().trim();
 
-    // Normalize IPv6 addresses
+    // Normalize IPv6 addresses (only used as a fallback key below)
     let rateKey = clientIp;
     if (clientIp.includes(':')) {
       // For IPv6, just use the first 4 segments
@@ -187,7 +186,15 @@ export const loginRateLimit = async (req: Request, res: Response, next: NextFunc
       logger.debug(`Using normalized IPv6 key for login rate limiting: ${rateKey}`);
     }
 
-    const key = `${rateKey}:${email}`;
+    // Account-centric key. Keying login attempts by IP (or IP+email) is
+    // defeated by CGNAT IP rotation, which Sri Lankan mobile ISPs use: the
+    // public source IP changes on nearly every request (observed in prod:
+    // 152.233.15.120/.121/.123 and 152.233.68.98/.105 across a single burst),
+    // so an IP-keyed counter never reaches `points` and brute-force is
+    // unlimited. Keying by email caps attempts per target account regardless
+    // of how many IPs the attacker rotates through. Fall back to the IP key
+    // only for requests with no email (malformed bodies).
+    const key = email ? `account:${email}` : `ip:${rateKey}`;
 
     await loginLimiter.consume(key);
     next();
