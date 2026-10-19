@@ -33,6 +33,15 @@ export const detailedHealth = async (req: Request, res: Response): Promise<void>
       status: 'ok',
       timestamp: new Date(),
       uptime: process.uptime(),
+      // Diagnostic: how Express resolves the caller's IP behind the Railway proxy.
+      // trustProxy=1 means the fix is deployed; clientIp tells us whether req.ip
+      // is the real client (public) or still the proxy's private IP.
+      network: {
+        trustProxy: req.app.get('trust proxy'),
+        clientIp: req.ip,
+        ips: req.ips,
+        forwardedFor: req.headers['x-forwarded-for'] ?? null
+      },
       server: {
         environment: process.env.NODE_ENV,
         hostname: os.hostname(),
