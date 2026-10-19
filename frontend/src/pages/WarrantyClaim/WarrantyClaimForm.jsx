@@ -314,7 +314,7 @@ const WarrantyClaimForm = () => {
               </Col>
               <Col xs={24} md={8}>
                 <Form.Item name="customerPhone" label="Telephone">
-                  <Input placeholder="07XXXXXXXX" />
+                  <Input placeholder="07XXXXXXXX" type="tel" inputMode="tel" />
                 </Form.Item>
               </Col>
               <Col xs={24} md={8}>

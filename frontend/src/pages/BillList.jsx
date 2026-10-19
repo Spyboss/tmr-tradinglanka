@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import apiClient from '../config/apiClient'
 import { formatColomboDate } from '../utils/formatDate'
-import { Table, Tag, Button, Space, Popconfirm, message, Spin, Input, Badge, Select, Skeleton, Card, DatePicker, InputNumber, Modal } from 'antd'
+import { Table, Tag, Button, Space, Popconfirm, message, Spin, Input, Badge, Select, DatePicker, InputNumber, Modal } from 'antd'
 import { PlusOutlined, SearchOutlined, DownloadOutlined, EyeOutlined, EditOutlined, DeleteOutlined, FileExcelOutlined, PrinterOutlined } from '@ant-design/icons'
 
 const BillList = () => {
@@ -62,19 +62,15 @@ const BillList = () => {
 
       // Check for the actual response format we're getting
       if (response && response.bills && Array.isArray(response.bills)) {
-        console.log('Using bills directly from response')
         billsData = response.bills;
       } else if (response.data && response.data.bills) {
         // New format with pagination in data property
-        console.log('Using bills from response.data')
         billsData = response.data.bills;
       } else if (response.data && Array.isArray(response.data)) {
         // Old format (direct array)
-        console.log('Using response.data as array')
         billsData = response.data;
       } else if (Array.isArray(response)) {
         // Direct array response
-        console.log('Using response directly as array')
         billsData = response;
       } else {
         console.error('Invalid response format from API:', response)
@@ -482,35 +478,22 @@ const BillList = () => {
       </div>
 
       <div className="hidden md:block">
-        {loading ? (
-          <div className="flex justify-center p-12">
-            <Spin size="large" />
-          </div>
-        ) : (
-          <Table
-            rowKey="_id"
-            dataSource={bills}
-            columns={columns}
-            scroll={{ x: 'max-content' }}
-            pagination={{ current: pagination.current, pageSize: pagination.pageSize, total: pagination.total, onChange: handlePageChange }}
-            className="bg-white dark:bg-gray-800 rounded-lg shadow dark:border dark:border-gray-700"
-            onRow={(record) => ({
-              onClick: () => { pushHistory(record._id); navigate(`/bills/${record._id}`) },
-              style: { cursor: 'pointer' }
-            })}
-          />
-        )}
+        <Table
+          rowKey="_id"
+          dataSource={bills}
+          columns={columns}
+          scroll={{ x: 'max-content' }}
+          pagination={{ current: pagination.current, pageSize: pagination.pageSize, total: pagination.total, onChange: handlePageChange }}
+          className="bg-white dark:bg-gray-800 rounded-lg shadow dark:border dark:border-gray-700"
+          onRow={(record) => ({
+            onClick: () => { pushHistory(record._id); navigate(`/bills/${record._id}`) },
+            style: { cursor: 'pointer' }
+          })}
+        />
       </div>
 
       <div className="md:hidden space-y-3">
-        {loading ? (
-          Array.from({ length: 4 }).map((_, i) => (
-            <Card key={i} className="dark:bg-slate-800">
-              <Skeleton active paragraph={{ rows: 2 }} />
-            </Card>
-          ))
-        ) : (
-          bills.map((bill) => (
+        {bills.map((bill) => (
             <div key={bill._id} className="bg-white dark:bg-slate-800 rounded-lg shadow p-4">
               <div className="flex justify-between items-center">
                 <div>
@@ -538,8 +521,7 @@ const BillList = () => {
                 </Popconfirm>
               </div>
             </div>
-          ))
-        )}
+          ))}
       </div>
 
       <div className="mt-4">

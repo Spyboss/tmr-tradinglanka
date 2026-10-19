@@ -148,8 +148,6 @@ const QuotationEdit = () => {
         accidentDate: values.accidentDate ? values.accidentDate.toDate() : null
       };
 
-      console.log('Updating quotation data:', quotationData);
-
       await apiClient.put(`/quotations/${id}`, quotationData);
 
       toast.success('Quotation updated successfully');
@@ -375,7 +373,7 @@ const QuotationEdit = () => {
                 name="customerPhone"
                 label="Customer Phone (Optional)"
               >
-                <Input placeholder="Customer phone" />
+                <Input placeholder="Customer phone" type="tel" inputMode="tel" />
               </Form.Item>
 
               <Form.Item

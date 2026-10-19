@@ -10,7 +10,7 @@ const { Option } = Select;
 const WarrantyClaimList = () => {
   const navigate = useNavigate();
   const [claims, setClaims] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [pagination, setPagination] = useState({
     current: 1,
     pageSize: 20,

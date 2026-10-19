@@ -134,8 +134,6 @@ const QuotationGenerator = () => {
         accidentDate: values.accidentDate ? values.accidentDate.toDate() : null
       };
 
-      console.log('Submitting quotation data:', quotationData);
-
       const response = await apiClient.post('/quotations', quotationData);
 
       toast.success('Quotation generated successfully');
@@ -503,7 +501,7 @@ const QuotationGenerator = () => {
           <Button key="back" onClick={() => setPreviewVisible(false)}>
             Close
           </Button>,
-          <Button key="submit" type="primary" onClick={() => form.submit()}>
+          <Button key="submit" type="primary" loading={loading} onClick={() => form.submit()}>
             Generate Quotation
           </Button>,
         ]}

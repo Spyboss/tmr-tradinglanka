@@ -377,6 +377,22 @@ html.dark {
   .dark body {
     background-color: #0f172a !important; /* slate-900 */
   }
+
+  /* iOS Safari auto-zooms any input smaller than 16px. antd defaults to 14px,
+     so force 16px on phones. This is the correct fix — using
+     maximum-scale=1/user-scalable=no on the viewport would disable pinch-zoom
+     for everyone and break accessibility (WCAG 1.4.4). */
+  @media (max-width: 640px) {
+    .ant-input,
+    .ant-input-affix-wrapper,
+    .ant-select-selector,
+    .ant-picker,
+    .ant-input-number-input,
+    .ant-input-textarea textarea,
+    textarea.ant-input {
+      font-size: 16px !important;
+    }
+  }
 }
 
 @layer components {

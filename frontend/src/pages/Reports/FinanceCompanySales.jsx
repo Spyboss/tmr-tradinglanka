@@ -28,7 +28,9 @@ const FinanceCompanySales = () => {
   useEffect(() => {
     financeCompanyService.getAllFinanceCompanies().then(data => {
       setCompanies(Array.isArray(data) ? data : []);
-    }).catch(() => {});
+    }).catch(() => {
+      message.error('Could not load finance companies. Check your connection and try again.');
+    });
   }, []);
 
   const fetchData = async (page = 1) => {

@@ -169,11 +169,11 @@ const AddInventoryItem = () => {
           </Form.Item>
 
           <Form.Item>
-            <div className="flex justify-end space-x-4">
-              <Button onClick={() => navigate('/inventory')}>
+            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:gap-4">
+              <Button onClick={() => navigate('/inventory')} className="w-full sm:w-auto">
                 Cancel
               </Button>
-              <Button type="primary" htmlType="submit" loading={submitting}>
+              <Button type="primary" htmlType="submit" loading={submitting} className="w-full sm:w-auto">
                 Add to Inventory
               </Button>
             </div>

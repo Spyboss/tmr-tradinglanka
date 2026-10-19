@@ -32,15 +32,15 @@ const BillView = () => {
   useEffect(() => {
     apiClient.get('/finance-companies')
       .then(res => setFinanceCompanies(res || []))
-      .catch(() => {});
+      .catch(() => {
+        toast.error('Could not load finance companies. Check your connection and try again.');
+      });
   }, []);
 
   const fetchBill = async (billId) => {
     try {
       setLoading(true);
       const data = await apiClient.get(`/bills/${billId}`);
-      
-      console.log('Received bill data:', data);
       
       // Ensure the bill has an id property (MongoDB uses _id)
       if (data && data._id) {
@@ -88,8 +88,6 @@ const BillView = () => {
   const handlePreviewPDF = async () => {
     try {
       setPreviewLoading(true);
-      // Log the request for debugging
-      console.log(`Requesting PDF preview for bill: ${id}`);
       
       try {
         const blob = await apiClient.get(`/bills/${id}/pdf?preview=true`, {
@@ -121,8 +119,6 @@ const BillView = () => {
   const handleDownloadPDF = async () => {
     try {
       setLoading(true);
-      // Log the request for debugging
-      console.log(`Requesting PDF download for bill: ${id}`);
       
       const blob = await apiClient.get(`/bills/${id}/pdf`, {
         responseType: 'blob'
@@ -154,8 +150,6 @@ const BillView = () => {
   const handleStatusChange = async (newStatus) => {
     try {
       setLoading(true);
-      // Log the request for debugging
-      console.log(`Updating bill ${id} status to ${newStatus}`);
       
       // Use the specific status endpoint
       await apiClient.patch(`/bills/${id}/status`, { status: newStatus });

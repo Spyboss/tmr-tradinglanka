@@ -318,6 +318,7 @@ const UserActivity = () => {
           columns={columns}
           dataSource={activities}
           loading={loading}
+          scroll={{ x: 'max-content' }}
           pagination={{
             ...pagination,
             showSizeChanger: true,

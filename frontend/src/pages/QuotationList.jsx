@@ -11,7 +11,7 @@ const { Option } = Select;
 const QuotationList = () => {
   const navigate = useNavigate();
   const [quotations, setQuotations] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [pagination, setPagination] = useState({
     current: 1,
     pageSize: 20,

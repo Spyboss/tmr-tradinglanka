@@ -555,7 +555,7 @@ const BillGeneratorUnified = () => {
             <Button type="primary" onClick={() => navigate('/inventory/add')} className="mt-4">Add Bikes to Inventory</Button>
           </div>
         ) : (
-          <Table columns={inventoryColumns} dataSource={availableBikes} rowKey="_id" pagination={{ pageSize: 5 }} />
+          <Table columns={inventoryColumns} dataSource={availableBikes} rowKey="_id" scroll={{ x: 'max-content' }} pagination={{ pageSize: 5 }} />
         )}
       </Modal>
 
@@ -566,7 +566,7 @@ const BillGeneratorUnified = () => {
         width={800}
         footer={[
           <Button key="close" onClick={() => { setPreviewVisible(false); URL.revokeObjectURL(previewUrl); }}>Close</Button>,
-          <Button key="submit" type="primary" onClick={() => form.submit()}>Generate Bill</Button>,
+          <Button key="submit" type="primary" loading={loading} onClick={() => form.submit()}>Generate Bill</Button>,
         ]}
       >
         <div className="h-[700px]">

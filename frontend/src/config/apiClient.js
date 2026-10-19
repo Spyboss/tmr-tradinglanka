@@ -11,9 +11,6 @@ class ApiClient {
     // Store if the baseURL already includes /api
     this.baseURLHasApiPrefix = baseURL.endsWith('/api');
     
-    console.log('Using API URL:', baseURL);
-    console.log('Base URL has /api prefix:', this.baseURLHasApiPrefix);
-    
     this.baseURL = baseURL;
     
     this.axiosInstance = axios.create({
@@ -74,11 +71,8 @@ class ApiClient {
     
     // Special handling for PDF endpoints
     if (processedUrl.includes('/pdf')) {
-      console.log('PDF request detected:', processedUrl);
-      
       try {
         // Always use axios for PDF requests with blob responseType
-        console.log('Using axios for PDF with responseType: blob');
         
         // Get the current authorization token
         const token = localStorage.getItem('accessToken');

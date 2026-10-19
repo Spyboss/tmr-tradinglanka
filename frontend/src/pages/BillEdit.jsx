@@ -57,7 +57,6 @@ const BillEdit = () => {
       const modelName = bill.bikeModel;
       if (modelName) {
         const model = bikeModels.find(m => m.name === modelName);
-        console.log('Found matching model for bill:', model);
         setSelectedModel(model);
       }
     }
@@ -66,7 +65,6 @@ const BillEdit = () => {
   const fetchBill = async () => {
     try {
       setLoading(true);
-      console.log(`Fetching bill with ID: ${id}`);
       const data = await apiClient.get(`/bills/${id}`);
 
       if (!data) {
@@ -75,7 +73,6 @@ const BillEdit = () => {
         return;
       }
 
-      console.log('Bill data received:', data);
       setBill(data);
 
       // Set bill type and advance flag from API (camelCase)
@@ -103,7 +100,6 @@ const BillEdit = () => {
         colour: looksLikeColour(data.colour) ? data.colour.trim().toUpperCase() : '',
       };
 
-      console.log('Setting form values:', formValues);
       form.setFieldsValue(formValues);
     } catch (error) {
       console.error('Error fetching bill:', error);
@@ -117,7 +113,6 @@ const BillEdit = () => {
   const fetchBikeModels = async () => {
     try {
       const data = await apiClient.get('/bike-models');
-      console.log('Bike models received:', data);
       setBikeModels(data || []);
     } catch (error) {
       console.error('Error fetching bike models:', error);
@@ -192,7 +187,6 @@ const BillEdit = () => {
   const handleSubmit = async (values) => {
     try {
       setSubmitting(true);
-      console.log('Submitting bill update with values:', values);
 
       // Get the selected model's price if bike_price is missing
       const bikePrice = values.bikePrice || (selectedModel ? selectedModel.price : 0);
@@ -252,7 +246,6 @@ const BillEdit = () => {
         updateData.balanceAmount = updateData.totalAmount - downPayment;
       }
 
-      console.log('Sending update data:', updateData);
       const response = await apiClient.put(`/bills/${id}`, updateData);
 
       if (response) {

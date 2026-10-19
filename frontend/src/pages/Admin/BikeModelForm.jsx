@@ -22,13 +22,10 @@ const BikeModelForm = () => {
 
   useEffect(() => {
     if (isEditing) {
-      console.log('🔧 BikeModelForm: Starting edit mode for ID:', id);
       const fetchBikeModel = async () => {
         setLoading(true);
         try {
-          console.log('🔧 BikeModelForm: Calling getBikeModelById with ID:', id);
           const modelData = await bikeModelService.getBikeModelById(id);
-          console.log('🔧 BikeModelForm: Received model data:', modelData);
 
           // Validate that we received valid data
           if (!modelData || typeof modelData !== 'object') {
@@ -43,9 +40,7 @@ const BikeModelForm = () => {
             is_tricycle: Boolean(modelData.is_tricycle),
           };
 
-          console.log('🔧 BikeModelForm: Setting form data:', formDataToSet);
           setFormData(formDataToSet);
-          console.log('🔧 BikeModelForm: Form data set successfully');
         } catch (err) {
           console.error('🔧 BikeModelForm: Error fetching bike model:', err);
           const errorMessage = err.response?.data?.message || err.message || 'Failed to fetch bike model details';
@@ -56,8 +51,6 @@ const BikeModelForm = () => {
         }
       };
       fetchBikeModel();
-    } else {
-      console.log('🔧 BikeModelForm: Running in create mode');
     }
   }, [id, isEditing, navigate]);
 

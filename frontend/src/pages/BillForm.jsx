@@ -35,12 +35,6 @@ export default function BillForm() {
     let total = bikePrice;
     let rmvCharge = 0;
 
-    console.log('CALCULATE TOTAL DEBUG:');
-    console.log('- Bike price:', bikePrice);
-    console.log('- Current model:', currentModel ? JSON.stringify(currentModel) : 'null');
-    console.log('- Model name:', formData.bikeModel);
-    console.log('- Bill type:', formData.billType);
-
     // Add RMV charges based on bill type and bike type
     const modelNameUpper = (formData.bikeModel || '').toUpperCase();
     const isCola5 = modelNameUpper.includes('COLA5');
@@ -56,10 +50,6 @@ export default function BillForm() {
       }
       total += rmvCharge;
     }
-
-    console.log('- Is E-Bicycle:', isEBicycle);
-    console.log('- RMV Charge:', rmvCharge);
-    console.log('- Final total amount:', total);
 
     // Calculate balance for advancement bills
     let balance = 0;
@@ -87,7 +77,6 @@ const fetchBikeModels = async () => {
       : '/bike-models';
 
     const response = await apiClient.get(url)
-    console.log('bikeModels state:', response)
     setBikeModels(response || [])
   } catch (error) {
     toast.error('Failed to load bike models')
@@ -106,17 +95,10 @@ const fetchBikeModels = async () => {
     if (name === 'bikeModel') {
       const selectedModel = bikeModels.find(model => model.name === value);
       if (selectedModel) {
-        console.log('SELECTED MODEL DEBUG INFO:');
-        console.log('- Model name:', selectedModel.name);
-        console.log('- is_ebicycle flag value:', selectedModel.is_ebicycle);
-        console.log('- is_ebicycle type:', typeof selectedModel.is_ebicycle);
-        console.log('- Full model object:', JSON.stringify(selectedModel));
-
         setCurrentModel(selectedModel);
 
         // COLA5 DEBUG OVERRIDE - Force e-bicycle status for any COLA5 model
         if (selectedModel.name.toUpperCase().includes('COLA5') && !selectedModel.is_ebicycle) {
-          console.log('⚠️ CRITICAL: COLA5 model found with is_ebicycle=false, applying EMERGENCY OVERRIDE');
           const correctedModel = {...selectedModel, is_ebicycle: true};
           setCurrentModel(correctedModel);
         }
@@ -279,7 +261,6 @@ const fetchBikeModels = async () => {
       } catch (_) {}
 
       const response = await apiClient.post('/bills', submitData);
-      console.log('Bill created successfully:', response);
       toast.success('Bill created successfully');
 
       // Navigate to the bill view page
@@ -512,18 +493,18 @@ const fetchBikeModels = async () => {
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row justify-end gap-3 sm:gap-4">
+        <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end sm:gap-4">
           <button
             type="button"
             onClick={handlePreviewPDF}
-            className="btn"
+            className="btn w-full sm:w-auto"
           >
             Preview Bill
           </button>
           <button
             type="submit"
             disabled={submitting || loading}
-            className="btn btn-primary disabled:opacity-50"
+            className="btn btn-primary w-full sm:w-auto disabled:opacity-50"
           >
             {submitting ? 'Creating...' : 'Create Bill'}
           </button>

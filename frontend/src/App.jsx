@@ -12,6 +12,10 @@ import BillGeneratorWithInventory from './components/BillGeneratorWithInventory'
 import BillGeneratorUnified from './components/BillGeneratorUnified';
 import BillEdit from './pages/BillEdit';
 import Login from './pages/auth/Login';
+import ForgotPassword from './pages/auth/ForgotPassword';
+import Terms from './pages/Terms';
+import Privacy from './pages/Privacy';
+import NotFound from './pages/NotFound';
 import QuotationGenerator from './components/QuotationGenerator';
 import QuotationList from './pages/QuotationList';
 import QuotationView from './pages/QuotationView';
@@ -119,6 +123,9 @@ const AppContent = () => {
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/verify" element={<Verify />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/terms" element={<Terms />} />
+            <Route path="/privacy" element={<Privacy />} />
 
             {/* Protected routes */}
             <Route path="/" element={<ProtectedDashboard />} />
@@ -153,6 +160,9 @@ const AppContent = () => {
             {/* User Management routes */}
             <Route path="/profile" element={<ProtectedProfilePage />} />
             <Route path="/settings" element={<ProtectedProfilePage />} />
+
+            {/* Catch-all 404 — must stay last */}
+            <Route path="*" element={<NotFound />} />
           </Routes>
         </main>
         <footer className="bg-gray-100 dark:bg-gray-800 py-4 text-center text-gray-600 dark:text-gray-400 text-sm mt-auto border-t border-gray-200 dark:border-gray-700">

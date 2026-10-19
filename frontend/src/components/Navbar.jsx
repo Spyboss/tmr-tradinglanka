@@ -68,11 +68,16 @@ export default function Navbar() {
   };
 
   const isActive = (path) => {
-    return location.pathname === path;
+    const current = location.pathname;
+    if (current === path) return true;
+    // "Bills" should light up for /bills/42 and /bills/42/edit, but NOT for
+    // /bills/new — that has its own "Create Bill" link.
+    if (path === '/bills' && current.startsWith('/bills/new')) return false;
+    return current.startsWith(`${path}/`);
   };
 
   return (
-    <nav className="bg-white dark:bg-gray-800 shadow-md">
+    <nav className="relative z-50 bg-white dark:bg-gray-800 shadow-md">
       <div className="container mx-auto px-4">
         <div className="flex justify-between h-16">
           <div className="flex">
@@ -84,7 +89,7 @@ export default function Navbar() {
                   aria-controls="primary-navigation"
                   aria-expanded={menuOpen}
                   aria-label={menuOpen ? 'Close navigation' : 'Open navigation'}
-                  className="sm:hidden mr-2 p-2 rounded-md text-gray-700 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-300 dark:hover:text-white dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-gray-800"
+                  className="sm:hidden mr-2 p-2.5 rounded-md text-gray-700 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-300 dark:hover:text-white dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-gray-800"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
@@ -183,7 +188,7 @@ export default function Navbar() {
             {/* Theme Toggle Button */}
             <button
               onClick={toggleTheme}
-              className="mr-4 p-2 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700 focus:outline-none"
+              className="mr-4 p-2.5 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
               aria-label="Toggle theme"
             >
               {isDarkMode ? (
@@ -210,7 +215,7 @@ export default function Navbar() {
                     onClick={toggleUserMenu}
                   >
                     <span className="sr-only">Open user menu</span>
-                    <div className="h-8 w-8 rounded-full bg-blue-200 dark:bg-blue-600 flex items-center justify-center">
+                    <div className="h-10 w-10 rounded-full bg-blue-200 dark:bg-blue-600 flex items-center justify-center">
                       {user?.email ? (
                         <span className="text-blue-800 dark:text-blue-100 font-medium uppercase">
                           {user.email.charAt(0)}
@@ -319,7 +324,7 @@ export default function Navbar() {
             {/* Mobile Theme Toggle Button */}
             <button
              onClick={toggleTheme}
-             className="mr-2 p-2 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700 focus:outline-none"
+             className="mr-2 p-2.5 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
              aria-label="Toggle theme"
             >
               {isDarkMode ? (
@@ -342,7 +347,7 @@ export default function Navbar() {
                 aria-label={userMenuOpen ? 'Close user menu' : 'Open user menu'}
               >
                 <span className="sr-only">Open menu</span>
-                <div className="h-8 w-8 rounded-full bg-blue-200 dark:bg-blue-700 flex items-center justify-center">
+                <div className="h-10 w-10 rounded-full bg-blue-200 dark:bg-blue-700 flex items-center justify-center">
                   {user?.email ? (
                     <span className="text-blue-800 dark:text-blue-100 font-medium uppercase">
                       {user.email.charAt(0)}
@@ -366,12 +371,18 @@ export default function Navbar() {
                 </div>
               </button>
             ) : (
-              <div className="flex">
+              <div className="flex space-x-2">
                 <Link
                   to="/login"
                   className="px-3 py-2 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
                 >
                   Login
+                </Link>
+                <Link
+                  to="/register"
+                  className="px-3 py-2 rounded-md text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 dark:hover:bg-blue-500"
+                >
+                  Register
                 </Link>
               </div>
             )}
@@ -438,12 +449,21 @@ export default function Navbar() {
       )}
 
       {/* Mobile primary navigation */}
+      {/* Backdrop: dims the page behind the open mobile menu and closes it on tap */}
       {menuOpen && (
-        <div className="sm:hidden border-t border-gray-200 dark:border-gray-700 pt-2 pb-3 bg-white dark:bg-gray-800" id="primary-navigation">
+        <div
+          className="fixed inset-0 z-40 bg-black/50 sm:hidden"
+          onClick={() => setMenuOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
+      {menuOpen && (
+        <div className="relative z-50 sm:hidden border-t border-gray-200 dark:border-gray-700 pt-2 pb-3 bg-white dark:bg-gray-800" id="primary-navigation">
           <div className="px-4 space-y-1">
             <Link
               to="/"
-              className="block px-4 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-300 dark:hover:text-white dark:hover:bg-gray-700 focus:outline-none"
+              className="block px-4 py-2.5 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-300 dark:hover:text-white dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
               onClick={() => setMenuOpen(false)}
             >
               Dashboard
@@ -452,45 +472,66 @@ export default function Navbar() {
               <>
                 <Link
                   to="/bills"
-                  className="block px-4 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-300 dark:hover:text-white dark:hover:bg-gray-700 focus:outline-none"
+                  className="block px-4 py-2.5 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-300 dark:hover:text-white dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
                   onClick={() => setMenuOpen(false)}
                 >
                   Bills
                 </Link>
                 <Link
                   to="/bills/new"
-                  className="block px-4 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-300 dark:hover:text-white dark:hover:bg-gray-700 focus:outline-none"
+                  className="block px-4 py-2.5 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-300 dark:hover:text-white dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
                   onClick={() => setMenuOpen(false)}
                 >
                   Create Bill
                 </Link>
                 <Link
                   to="/inventory"
-                  className="block px-4 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-300 dark:hover:text-white dark:hover:bg-gray-700 focus:outline-none"
+                  className="block px-4 py-2.5 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-300 dark:hover:text-white dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
                   onClick={() => setMenuOpen(false)}
                 >
                   Inventory
                 </Link>
                 <Link
+                  to="/inventory/report"
+                  className="block px-4 py-2.5 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-300 dark:hover:text-white dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  Inventory Report
+                </Link>
+                <Link
                   to="/quotations"
-                  className="block px-4 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-300 dark:hover:text-white dark:hover:bg-gray-700 focus:outline-none"
+                  className="block px-4 py-2.5 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-300 dark:hover:text-white dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
                   onClick={() => setMenuOpen(false)}
                 >
                   Quotations
                 </Link>
                 <Link
                   to="/warranty-claims"
-                  className="block px-4 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-300 dark:hover:text-white dark:hover:bg-gray-700 focus:outline-none"
+                  className="block px-4 py-2.5 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-300 dark:hover:text-white dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
                   onClick={() => setMenuOpen(false)}
                 >
                   Warranty Claims
                 </Link>
                 <Link
+                  to="/reports/finance-company-sales"
+                  className="block px-4 py-2.5 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-300 dark:hover:text-white dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  Finance Company Sales
+                </Link>
+                <Link
                   to="/admin/bike-models"
-                  className="block px-4 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-300 dark:hover:text-white dark:hover:bg-gray-700 focus:outline-none"
+                  className="block px-4 py-2.5 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-300 dark:hover:text-white dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
                   onClick={() => setMenuOpen(false)}
                 >
                   Manage Models
+                </Link>
+                <Link
+                  to="/admin/finance-companies"
+                  className="block px-4 py-2.5 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-300 dark:hover:text-white dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  Finance Companies
                 </Link>
               </>
             )}

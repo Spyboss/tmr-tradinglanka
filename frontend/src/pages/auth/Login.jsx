@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { toast } from 'react-hot-toast';
+
+const REMEMBERED_EMAIL_KEY = 'rememberedEmail';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -10,10 +12,25 @@ const Login = () => {
   const [error, setError] = useState('');
   const { login, loading } = useAuth();
 
+  // Pre-fill the email if the user asked us to remember it last time.
+  // Only the email is stored — never the password, which would sit in
+  // localStorage as plain readable text.
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(REMEMBERED_EMAIL_KEY);
+      if (saved) {
+        setEmail(saved);
+        setRememberMe(true);
+      }
+    } catch (_) {
+      // localStorage unavailable (private mode) — just skip prefill
+    }
+  }, []);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    
+
     if (!email || !password) {
       setError('Please enter both email and password');
       toast.error('Please enter both email and password');
@@ -26,6 +43,16 @@ const Login = () => {
         setError('Failed to login. Please check your credentials.');
         toast.error('Failed to login. Please check your credentials.');
       } else {
+        // Remember the email only, so the user doesn't retype it next time.
+        try {
+          if (rememberMe) {
+            localStorage.setItem(REMEMBERED_EMAIL_KEY, email.trim());
+          } else {
+            localStorage.removeItem(REMEMBERED_EMAIL_KEY);
+          }
+        } catch (_) {
+          // Storage unavailable — the login itself already succeeded
+        }
       }
     } catch (err) {
       setError(err.message || 'An error occurred during login');

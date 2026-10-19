@@ -15,7 +15,6 @@ const BikeModelList = () => {
       try {
         setLoading(true);
         const data = await bikeModelService.getAllBikeModels();
-        console.log('BikeModelList - fetched data:', data);
 
         // Validate that we received an array
         if (Array.isArray(data)) {
@@ -78,9 +77,7 @@ const BikeModelList = () => {
         is_tricycle: Boolean(model.is_tricycle)
       };
 
-      console.log('Updating bike model with data:', updatedData);
       const result = await bikeModelService.updateBikeModel(modelId, updatedData);
-      console.log('Update result:', result);
 
       // Update the local state
       setBikeModels(bikeModels.map(model =>
@@ -200,7 +197,6 @@ const BikeModelList = () => {
                     <Link
                       to={`/admin/bike-models/edit/${model._id}`}
                       className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 mr-3"
-                      onClick={() => console.log('🔧 BikeModelList: Edit clicked for model:', model._id, model.name)}
                     >
                       Edit
                     </Link>
