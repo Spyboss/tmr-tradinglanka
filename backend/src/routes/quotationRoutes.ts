@@ -1,322 +1,138 @@
 import express, { Response } from 'express';
-import Quotation from '../models/Quotation.js';
-import Bill from '../models/Bill.js';
-import { generateQuotationPDF } from '../services/quotationPdfService.js';
 import { authenticate, AuthRequest } from '../auth/auth.middleware.js';
+import { resolveAbility } from '../permissions/index.js';
+import * as quotationService from '../services/quotation.service.js';
 
 const router = express.Router();
-const MAX_SEARCH_LENGTH = 64;
-const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-// Get all quotations with pagination and filtering - Protected route
+/**
+ * Thin routes: authenticate -> resolve ability once -> quotation service
+ * (owns model access + authorization via permissions source of truth).
+ * Response envelopes kept byte-compatible with the historic contract
+ * ({ error, details } shapes and original message strings).
+ */
+
+const sendError = (res: Response, error: unknown): void => {
+  const err = error as { statusCode?: number; message?: string; details?: string };
+  const body: Record<string, string> = { error: err.message ?? 'Unexpected error' };
+  if (err.details) body.details = err.details;
+  res.status(err.statusCode ?? 500).json(body);
+};
+
+// Get all quotations with pagination and filtering
 router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
   try {
-    const { page = 1, limit = 20, status, search, type, bikeRegNo } = req.query;
-    const pageNum = parseInt(page as string) || 1;
-    const limitNum = parseInt(limit as string) || 20;
-    const skip = (pageNum - 1) * limitNum;
-
-    // Build filter query
-    const filter: any = {};
-
-    // Filter by owner if not admin
-    const user = await req.app.locals.models?.User.findById(req.user?.id);
-    const isAdmin = user?.role === 'admin';
-
-    if (!isAdmin && req.user?.id) {
-      // Regular users can only see their own quotations
-      filter.owner = req.user.id;
-    }
-
-    // Add status filter
-    if (status) {
-      filter.status = status;
-    }
-
-    // Add type filter
-    if (type) {
-      filter.type = type;
-    }
-
-    // Add search filter (searches quotationNumber, customerName, claimNumber, bikeRegNo)
-    if (search) {
-      const normalizedSearch = String(search).trim().slice(0, MAX_SEARCH_LENGTH);
-      const safeSearchRegex = new RegExp(escapeRegExp(normalizedSearch), 'i');
-      filter.$or = [
-        { quotationNumber: { $regex: safeSearchRegex } },
-        { customerName: { $regex: safeSearchRegex } },
-        { claimNumber: { $regex: safeSearchRegex } },
-        { bikeRegNo: { $regex: safeSearchRegex } }
-      ];
-    }
-
-    // Add dedicated bikeRegNo filter (exact match, case-insensitive)
-    if (bikeRegNo) {
-      const normalizedBikeReg = String(bikeRegNo).trim().toUpperCase();
-      filter.bikeRegNo = { $regex: new RegExp(`^${escapeRegExp(normalizedBikeReg)}$`, 'i') };
-    }
-
-    const quotations = await Quotation.find(filter)
-      .populate('referenceBillId', 'billNumber customerName')
-      .sort({ quotationDate: -1 })
-      .skip(skip)
-      .limit(limitNum);
-
-    const total = await Quotation.countDocuments(filter);
-
-    res.status(200).json({
-      quotations,
-      pagination: {
-        page: pageNum,
-        limit: limitNum,
-        total,
-        pages: Math.ceil(total / limitNum)
-      }
-    });
+    const ability = await resolveAbility(req);
+    const result = await quotationService.listQuotations(ability, req.query);
+    res.status(200).json(result);
   } catch (error) {
-    res.status(500).json({ error: (error as Error).message });
+    sendError(res, error);
   }
 });
 
-// Get quotation by ID - Protected route with ownership check
+// Get quotation by ID (ownership-scoped)
 router.get('/:id', authenticate, async (req: AuthRequest, res: Response) => {
   try {
-    const quotation = await Quotation.findById(req.params.id)
-      .populate('referenceBillId', 'billNumber customerName customerNIC customerAddress');
-
-    if (!quotation) {
-      return res.status(404).json({ error: 'Quotation not found' });
-    }
-
-    // Check ownership or admin status
-    const user = await req.app.locals.models?.User.findById(req.user?.id);
-    const isAdmin = user?.role === 'admin';
-    const isOwner = quotation.owner && quotation.owner.toString() === req.user?.id;
-
-    if (!isAdmin && !isOwner) {
-      return res.status(403).json({ error: 'You do not have permission to view this quotation' });
-    }
-
+    const ability = await resolveAbility(req);
+    const quotation = await quotationService.getQuotation(ability, req.params.id);
     res.status(200).json(quotation);
   } catch (error) {
-    res.status(500).json({ error: (error as Error).message });
+    sendError(res, error);
   }
 });
 
-// Create new quotation - Protected route
+// Create new quotation
 router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
   try {
-    const quotationData = req.body;
-    
-    // Set the owner as the current authenticated user
-    quotationData.owner = req.user?.id;
-
-    // If referenceBillId is provided, populate customer data from the bill
-    if (quotationData.referenceBillId) {
-      const referenceBill = await Bill.findById(quotationData.referenceBillId);
-      if (referenceBill) {
-        quotationData.customerName = quotationData.customerName || referenceBill.customerName;
-        quotationData.customerNIC = quotationData.customerNIC || referenceBill.customerNIC;
-        quotationData.customerAddress = quotationData.customerAddress || referenceBill.customerAddress;
-        quotationData.customerPhone = quotationData.customerPhone || referenceBill.customerPhone;
-      }
-    }
-
-    // Validate required fields
-    if (!quotationData.customerName || !quotationData.customerAddress || !quotationData.items || !quotationData.items.length) {
-      return res.status(400).json({ 
-        error: 'Missing required fields',
-        details: 'Customer name, address, and at least one item are required'
-      });
-    }
-
-    // Validate items
-    for (const item of quotationData.items) {
-      if (!item.description || !item.quantity || !item.rate) {
-        return res.status(400).json({
-          error: 'Invalid item data',
-          details: 'Each item must have a description, quantity, and rate'
-        });
-      }
-    }
-
-    const quotation = new Quotation(quotationData);
-    await quotation.save();
-
+    const ability = await resolveAbility(req);
+    const quotation = await quotationService.createQuotation(
+      ability,
+      req.user?.id ?? '',
+      req.body
+    );
     res.status(201).json(quotation);
   } catch (error) {
-    res.status(500).json({ error: (error as Error).message });
+    sendError(res, error);
   }
 });
 
-// Update quotation - Protected route with ownership check
+// Update quotation (ownership-scoped; owner reassignment = admin only)
 router.put('/:id', authenticate, async (req: AuthRequest, res: Response) => {
   try {
-    const quotation = await Quotation.findById(req.params.id);
-
-    if (!quotation) {
-      return res.status(404).json({ error: 'Quotation not found' });
-    }
-
-    const user = await req.app.locals.models?.User.findById(req.user?.id);
-    const isAdmin = user?.role === 'admin';
-    const isOwner = quotation.owner && quotation.owner.toString() === req.user?.id;
-
-    if (!isAdmin && !isOwner) {
-      return res.status(403).json({ error: 'You do not have permission to update this quotation' });
-    }
-
-    if (req.body.owner && !isAdmin) {
-      delete req.body.owner;
-    }
-
-    Object.assign(quotation, req.body);
-    await quotation.save();
-
-    const updated = await Quotation.findById(quotation._id)
-      .populate('referenceBillId', 'billNumber customerName');
-
+    const ability = await resolveAbility(req);
+    const updated = await quotationService.updateQuotation(
+      ability,
+      req.params.id,
+      req.body
+    );
     res.status(200).json(updated);
   } catch (error) {
-    res.status(500).json({ error: (error as Error).message });
+    sendError(res, error);
   }
 });
 
-// Delete quotation - Protected route with ownership check
+// Delete quotation (ownership-scoped)
 router.delete('/:id', authenticate, async (req: AuthRequest, res: Response) => {
   try {
-    const quotation = await Quotation.findById(req.params.id);
-
-    if (!quotation) {
-      return res.status(404).json({ error: 'Quotation not found' });
-    }
-
-    // Check ownership or admin status
-    const user = await req.app.locals.models?.User.findById(req.user?.id);
-    const isAdmin = user?.role === 'admin';
-    const isOwner = quotation.owner && quotation.owner.toString() === req.user?.id;
-
-    if (!isAdmin && !isOwner) {
-      return res.status(403).json({ error: 'You do not have permission to delete this quotation' });
-    }
-
-    await Quotation.findByIdAndDelete(req.params.id);
+    const ability = await resolveAbility(req);
+    await quotationService.deleteQuotation(ability, req.params.id);
     res.status(200).json({ message: 'Quotation deleted successfully' });
   } catch (error) {
-    res.status(500).json({ error: (error as Error).message });
+    sendError(res, error);
   }
 });
 
-// Generate PDF for a quotation - Protected route with ownership check
+// Generate PDF for a quotation (ownership-scoped)
 router.get('/:id/pdf', authenticate, async (req: AuthRequest, res: Response) => {
   try {
-    const quotation = await Quotation.findById(req.params.id)
-      .populate('referenceBillId', 'billNumber customerName');
-
-    if (!quotation) {
-      return res.status(404).json({ error: 'Quotation not found' });
-    }
-
-    // Check ownership or admin status
-    const user = await req.app.locals.models?.User.findById(req.user?.id);
-    const isAdmin = user?.role === 'admin';
-    const isOwner = quotation.owner && quotation.owner.toString() === req.user?.id;
-
-    if (!isAdmin && !isOwner) {
-      return res.status(403).json({ error: 'You do not have permission to view this quotation' });
-    }
-
-    const pdfBuffer = await generateQuotationPDF(quotation);
-
+    const ability = await resolveAbility(req);
+    const { buffer, filename } = await quotationService.getQuotationPdf(
+      ability,
+      req.params.id
+    );
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename=GM_${quotation.type}_${quotation.quotationNumber}.pdf`);
-    res.send(pdfBuffer);
+    res.setHeader('Content-Disposition', `attachment; filename=${filename}`);
+    res.send(buffer);
   } catch (error) {
-    res.status(500).json({ error: (error as Error).message });
+    sendError(res, error);
   }
 });
 
-// Convert quotation to invoice - Protected route with ownership check
-router.post('/:id/convert-to-invoice', authenticate, async (req: AuthRequest, res: Response) => {
-  try {
-    const quotation = await Quotation.findById(req.params.id);
-
-    if (!quotation) {
-      return res.status(404).json({ error: 'Quotation not found' });
+// Convert quotation to invoice (ownership-scoped)
+router.post(
+  '/:id/convert-to-invoice',
+  authenticate,
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const ability = await resolveAbility(req);
+      const invoice = await quotationService.convertToInvoice(
+        ability,
+        req.user?.id ?? '',
+        req.params.id
+      );
+      res.status(201).json(invoice);
+    } catch (error) {
+      sendError(res, error);
     }
-
-    // Check ownership or admin status
-    const user = await req.app.locals.models?.User.findById(req.user?.id);
-    const isAdmin = user?.role === 'admin';
-    const isOwner = quotation.owner && quotation.owner.toString() === req.user?.id;
-
-    if (!isAdmin && !isOwner) {
-      return res.status(403).json({ error: 'You do not have permission to convert this quotation' });
-    }
-
-    if (quotation.type === 'invoice') {
-      return res.status(400).json({ error: 'This is already an invoice' });
-    }
-
-    // Create new invoice from quotation
-    const invoiceData = {
-      ...quotation.toObject(),
-      _id: undefined,
-      quotationNumber: undefined, // Will be auto-generated with INV prefix
-      type: 'invoice',
-      status: 'sent',
-      remarks: quotation.remarks
-        ? `${quotation.remarks}\n\nPayment should be made within 7 days of invoice date.`
-        : 'Payment should be made within 7 days of invoice date.',
-      owner: req.user?.id
-    };
-
-    const invoice = new Quotation(invoiceData);
-    await invoice.save();
-
-    // Update original quotation status
-    quotation.status = 'converted';
-    await quotation.save();
-
-    res.status(201).json(invoice);
-  } catch (error) {
-    res.status(500).json({ error: (error as Error).message });
   }
-});
+);
 
-// Get customer suggestions from existing bills
-router.get('/customers/suggestions', authenticate, async (req: AuthRequest, res: Response) => {
-  try {
-    const { search } = req.query;
-    
-    const filter: any = {};
-    
-    // Filter by owner if not admin
-    const user = await req.app.locals.models?.User.findById(req.user?.id);
-    const isAdmin = user?.role === 'admin';
-
-    if (!isAdmin && req.user?.id) {
-      filter.owner = req.user.id;
+// Get customer suggestions from existing bills (bill-readability scoped)
+router.get(
+  '/customers/suggestions',
+  authenticate,
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const ability = await resolveAbility(req);
+      const customers = await quotationService.suggestCustomers(
+        ability,
+        req.query.search
+      );
+      res.status(200).json(customers);
+    } catch (error) {
+      sendError(res, error);
     }
-
-    if (search) {
-      const normalizedSearch = String(search).trim().slice(0, MAX_SEARCH_LENGTH);
-      const safeSearchRegex = new RegExp(escapeRegExp(normalizedSearch), 'i');
-      filter.$or = [
-        { customerName: { $regex: safeSearchRegex } },
-        { customerNIC: { $regex: safeSearchRegex } }
-      ];
-    }
-
-    const customers = await Bill.find(filter)
-      .select('_id billNumber customerName customerNIC customerAddress customerPhone')
-      .limit(10)
-      .sort({ createdAt: -1 });
-
-    res.status(200).json(customers);
-  } catch (error) {
-    res.status(500).json({ error: (error as Error).message });
   }
-});
+);
 
 export default router;
