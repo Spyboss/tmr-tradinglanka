@@ -1,284 +1,130 @@
 import { Response, NextFunction } from 'express';
-import mongoose from 'mongoose';
-import WarrantyClaim from '../models/WarrantyClaim.js';
-import Bill from '../models/Bill.js';
-import BikeInventory from '../models/BikeInventory.js';
 import { AuthRequest } from '../auth/auth.middleware.js';
 import { AppError } from '../middleware/errorHandler.js';
-import { generateWarrantyPDF } from '../services/warrantyPdfService.js';
+import { resolveAbility } from '../permissions/index.js';
+import * as warrantyClaimService from '../services/warrantyClaim.service.js';
+
+/**
+ * Thin controller: parse the request, resolve the caller's ability once,
+ * delegate to the warranty claim service (which owns model access AND
+ * authorization), respond. All scoping/permissions live in the service +
+ * the permissions single source of truth.
+ */
+
+/** Preserves statusCode-bearing errors (AppError, CASL ForbiddenError=403);
+ * wraps anything unexpected as 500 with the operation-specific message. */
+const toAppError = (error: unknown, fallback: string): AppError =>
+  error instanceof AppError || (error as { statusCode?: number })?.statusCode
+    ? (error as AppError)
+    : new AppError(`${fallback}: ${(error as Error).message}`, 500);
 
 export const getAllWarrantyClaims = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { page = 1, limit = 20, status, search } = req.query as any;
-    const pageNum = parseInt(page) || 1;
-    const limitNum = parseInt(limit) || 20;
-    const skip = (pageNum - 1) * limitNum;
-
-    const filter: any = {};
-
-    const user = await req.app.locals.models?.User.findById(req.user?.id);
-    const isAdmin = user?.role === 'admin';
-    if (!isAdmin && req.user?.id) {
-      filter.owner = req.user.id;
-    }
-
-    if (status) filter.status = status;
-
-    if (search) {
-      const regex = new RegExp(String(search).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
-      filter.$or = [
-        { warrantyNumber: regex },
-        { customerName: regex },
-        { chassisNumber: regex },
-        { motorNumber: regex }
-      ];
-    }
-
-    const claims = await WarrantyClaim.find(filter)
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limitNum);
-
-    const total = await WarrantyClaim.countDocuments(filter);
-
-    res.status(200).json({
-      claims,
-      totalPages: Math.ceil(total / limitNum),
-      currentPage: pageNum,
-      total
-    });
+    const ability = await resolveAbility(req);
+    const result = await warrantyClaimService.listClaims(ability, req.query);
+    res.status(200).json(result);
   } catch (error) {
-    next(new AppError(`Failed to fetch warranty claims: ${(error as Error).message}`, 500));
+    next(toAppError(error, 'Failed to fetch warranty claims'));
   }
 };
 
 export const getWarrantyClaimById = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const claim = await WarrantyClaim.findById(req.params.id);
-    if (!claim) {
-      return next(new AppError('Warranty claim not found', 404));
-    }
-
-    const user = await req.app.locals.models?.User.findById(req.user?.id);
-    const isAdmin = user?.role === 'admin';
-    const isOwner = claim.owner && claim.owner.toString() === req.user?.id;
-
-    if (!isAdmin && !isOwner) {
-      return next(new AppError('You do not have permission to view this warranty claim', 403));
-    }
-
+    const ability = await resolveAbility(req);
+    const claim = await warrantyClaimService.getClaim(ability, req.params.id);
     res.status(200).json(claim);
   } catch (error) {
-    next(new AppError(`Failed to fetch warranty claim: ${(error as Error).message}`, 500));
+    next(toAppError(error, 'Failed to fetch warranty claim'));
   }
 };
 
 export const getPrefillData = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { billId, chassisNumber } = req.query as any;
-
-    let bill: any = null;
-
-    if (billId && mongoose.Types.ObjectId.isValid(billId)) {
-      bill = await Bill.findById(billId);
-    } else if (chassisNumber) {
-      bill = await Bill.findOne({ chassisNumber: String(chassisNumber).trim() });
-    }
-
-    if (!bill) {
-      res.status(200).json({ prefill: null });
-      return;
-    }
-
-    let color = bill.proforma?.color || '';
-    if (!color && bill.inventoryItemId) {
-      const inventory = await BikeInventory.findById(bill.inventoryItemId);
-      if (inventory?.notes) {
-        color = inventory.notes;
-      }
-    }
-
-    res.status(200).json({
-      prefill: {
-        customerName: bill.customerName || '',
-        customerPhone: bill.customerPhone || '',
-        customerAddress: bill.customerAddress || '',
-        chassisNumber: bill.chassisNumber || '',
-        motorNumber: bill.motorNumber || '',
-        bikeModel: bill.bikeModel || '',
-        color,
-        dateOfSale: bill.billDate || null,
-        billId: bill._id
-      }
-    });
+    const ability = await resolveAbility(req);
+    const result = await warrantyClaimService.getPrefillData(ability, req.query);
+    res.status(200).json(result);
   } catch (error) {
-    next(new AppError(`Failed to get prefill data: ${(error as Error).message}`, 500));
+    next(toAppError(error, 'Failed to get prefill data'));
   }
 };
 
 export const searchBills = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { q = '' } = req.query as any;
-
-    const user = await req.app.locals.models?.User.findById(req.user?.id);
-    const isAdmin = user?.role === 'admin';
-    const ownerFilter: any = {};
-    if (!isAdmin && req.user?.id) ownerFilter.owner = req.user.id;
-
-    const regex = new RegExp(String(q).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
-
-    const bills = await Bill.find({
-      ...ownerFilter,
-      $or: [
-        { billNumber: regex },
-        { customerName: regex },
-        { chassisNumber: regex },
-        { motorNumber: regex }
-      ]
-    })
-      .select('billNumber customerName customerPhone chassisNumber motorNumber bikeModel billDate')
-      .limit(10)
-      .sort({ createdAt: -1 });
-
+    const ability = await resolveAbility(req);
+    const bills = await warrantyClaimService.searchBillsForClaim(ability, req.query.q);
     res.status(200).json({ bills });
   } catch (error) {
-    next(new AppError(`Failed to search bills: ${(error as Error).message}`, 500));
+    next(toAppError(error, 'Failed to search bills'));
   }
 };
 
 export const checkFormNumber = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { number, excludeId } = req.query as any;
-    if (!number || !String(number).trim()) {
-      res.status(200).json({ available: true });
-      return;
-    }
-
-    const filter: any = { formNumber: String(number).trim() };
-    if (excludeId && mongoose.Types.ObjectId.isValid(String(excludeId))) {
-      filter._id = { $ne: new mongoose.Types.ObjectId(String(excludeId)) };
-    }
-
-    const existing = await WarrantyClaim.findOne(filter).select('_id');
-    res.status(200).json({ available: !existing });
+    const result = await warrantyClaimService.checkFormNumberAvailable(
+      req.query.number,
+      req.query.excludeId
+    );
+    res.status(200).json(result);
   } catch (error) {
-    next(new AppError(`Failed to check form number: ${(error as Error).message}`, 500));
+    next(toAppError(error, 'Failed to check form number'));
   }
 };
 
 export const suggestNextFormNumber = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const result = await WarrantyClaim.findOne({ formNumber: { $ne: '' } })
-      .sort({ formNumber: -1 })
-      .select('formNumber');
-
-    const maxNum = result ? parseInt(result.formNumber, 10) : 0;
-    const nextNum = isNaN(maxNum) ? 1 : maxNum + 1;
-    res.status(200).json({ formNumber: String(nextNum).padStart(4, '0') });
+    const result = await warrantyClaimService.suggestNextFormNumber();
+    res.status(200).json(result);
   } catch (error) {
-    next(new AppError(`Failed to suggest form number: ${(error as Error).message}`, 500));
+    next(toAppError(error, 'Failed to suggest form number'));
   }
 };
 
 export const createWarrantyClaim = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  const formNumber = req.body?.formNumber as string | undefined;
   try {
-    const claimData = req.body;
-    claimData.owner = req.user?.id;
-
-    const newClaim = new WarrantyClaim(claimData);
-    const savedClaim = await newClaim.save();
-
+    const ability = await resolveAbility(req);
+    const savedClaim = await warrantyClaimService.createClaim(
+      ability,
+      req.user?.id ?? '',
+      req.body
+    );
     res.status(201).json(savedClaim);
-  } catch (error: any) {
-    if (error instanceof mongoose.Error.ValidationError) {
-      const messages = Object.values(error.errors).map(err => err.message);
-      return next(new AppError(`Validation error: ${messages.join(', ')}`, 400));
-    }
-    if (error.code === 11000 && error.keyPattern?.formNumber) {
-      return next(new AppError(`Form number "${formNumber}" is already in use. Please check the physical warranty book and use the next available number.`, 409));
-    }
-    next(new AppError(`Failed to create warranty claim: ${(error as Error).message}`, 500));
+  } catch (error) {
+    next(toAppError(error, 'Failed to create warranty claim'));
   }
 };
 
 export const updateWarrantyClaim = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
-  const newFormNumber = req.body?.formNumber as string | undefined;
   try {
-    const claim = await WarrantyClaim.findById(req.params.id);
-    if (!claim) {
-      return next(new AppError('Warranty claim not found', 404));
-    }
-
-    const user = await req.app.locals.models?.User.findById(req.user?.id);
-    const isAdmin = user?.role === 'admin';
-    const isOwner = claim.owner && claim.owner.toString() === req.user?.id;
-
-    if (!isAdmin && !isOwner) {
-      return next(new AppError('You do not have permission to update this warranty claim', 403));
-    }
-
-    if (req.body.owner && !isAdmin) {
-      delete req.body.owner;
-    }
-
-    Object.entries(req.body).forEach(([key, value]) => {
-      (claim as any).set(key, value);
-    });
-    const updatedClaim = await claim.save();
-
+    const ability = await resolveAbility(req);
+    const updatedClaim = await warrantyClaimService.updateClaim(
+      ability,
+      req.params.id,
+      req.body
+    );
     res.status(200).json(updatedClaim);
-  } catch (error: any) {
-    if (error.code === 11000 && error.keyPattern?.formNumber) {
-      return next(new AppError(`Form number "${newFormNumber}" is already in use by another claim. Please use a different number.`, 409));
-    }
-    next(new AppError(`Failed to update warranty claim: ${(error as Error).message}`, 500));
+  } catch (error) {
+    next(toAppError(error, 'Failed to update warranty claim'));
   }
 };
 
 export const deleteWarrantyClaim = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const claim = await WarrantyClaim.findById(req.params.id);
-    if (!claim) {
-      return next(new AppError('Warranty claim not found', 404));
-    }
-
-    const user = await req.app.locals.models?.User.findById(req.user?.id);
-    const isAdmin = user?.role === 'admin';
-    const isOwner = claim.owner && claim.owner.toString() === req.user?.id;
-
-    if (!isAdmin && !isOwner) {
-      return next(new AppError('You do not have permission to delete this warranty claim', 403));
-    }
-
-    await WarrantyClaim.findByIdAndDelete(req.params.id);
+    const ability = await resolveAbility(req);
+    await warrantyClaimService.deleteClaim(ability, req.params.id);
     res.status(200).json({ message: 'Warranty claim deleted successfully' });
   } catch (error) {
-    next(new AppError(`Failed to delete warranty claim: ${(error as Error).message}`, 500));
+    next(toAppError(error, 'Failed to delete warranty claim'));
   }
 };
 
 export const generateWarrantyClaimPDF = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const claim = await WarrantyClaim.findById(req.params.id);
-    if (!claim) {
-      return next(new AppError('Warranty claim not found', 404));
-    }
-
-    const user = await req.app.locals.models?.User.findById(req.user?.id);
-    const isAdmin = user?.role === 'admin';
-    const isOwner = claim.owner && claim.owner.toString() === req.user?.id;
-
-    if (!isAdmin && !isOwner) {
-      return next(new AppError('You do not have permission to view this warranty claim', 403));
-    }
-
-    const pdfBuffer = await generateWarrantyPDF(claim);
-
+    const ability = await resolveAbility(req);
+    const { buffer, warrantyNumber } = await warrantyClaimService.getClaimPdf(ability, req.params.id);
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename=TMR_Warranty_${claim.warrantyNumber}.pdf`);
-    res.send(pdfBuffer);
+    res.setHeader('Content-Disposition', `attachment; filename=TMR_Warranty_${warrantyNumber}.pdf`);
+    res.send(buffer);
   } catch (error) {
-    next(new AppError(`Failed to generate PDF: ${(error as Error).message}`, 500));
+    next(toAppError(error, 'Failed to generate PDF'));
   }
 };
