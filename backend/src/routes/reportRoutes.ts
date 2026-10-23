@@ -6,6 +6,7 @@ import Branding from '../models/Branding.js';
 import https from 'https';
 import http from 'http';
 import { formatColomboDateShort } from '../utils/dateFormat.js';
+import { mergeReadableFilter, readableWhere, resolveAbility } from '../permissions/index.js';
 
 const router = Router();
 
@@ -28,8 +29,7 @@ const formatDate = (d: any) => formatColomboDateShort(d);
 
 router.get('/finance-company-sales', authenticate, async (req: AuthRequest, res: Response) => {
   try {
-    const user = await req.app.locals.models?.User.findById(req.user?.id);
-    const isAdmin = user?.role === 'admin';
+    const ability = await resolveAbility(req);
 
     const { financeCompany, fromDate, toDate, search, page = '1', limit = '50' } = req.query as Record<string, string>;
 
@@ -49,9 +49,11 @@ router.get('/finance-company-sales', authenticate, async (req: AuthRequest, res:
       }
     }
 
-    if (!isAdmin && req.user?.id) {
-      query.owner = req.user.id;
+    const readable = readableWhere(ability, 'Bill');
+    if (!readable) {
+      return res.status(403).json({ error: 'You do not have permission to view reports' });
     }
+    mergeReadableFilter(query, readable);
 
     if (search) {
       const searchRegex = { $regex: search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' };
@@ -92,8 +94,7 @@ router.get('/finance-company-sales', authenticate, async (req: AuthRequest, res:
 
 router.get('/finance-company-sales/pdf', authenticate, async (req: AuthRequest, res: Response) => {
   try {
-    const user = await req.app.locals.models?.User.findById(req.user?.id);
-    const isAdmin = user?.role === 'admin';
+    const ability = await resolveAbility(req);
 
     const { financeCompany, fromDate, toDate } = req.query as Record<string, string>;
     if (!financeCompany) {
@@ -115,9 +116,11 @@ router.get('/finance-company-sales/pdf', authenticate, async (req: AuthRequest, 
       }
     }
 
-    if (!isAdmin && req.user?.id) {
-      query.owner = req.user.id;
+    const readable = readableWhere(ability, 'Bill');
+    if (!readable) {
+      return res.status(403).json({ error: 'You do not have permission to view reports' });
     }
+    mergeReadableFilter(query, readable);
 
     const bills = await Bill.find(query).sort({ billDate: 1 });
 

@@ -34,3 +34,41 @@ export function readableWhere(
   if ('$expr' in where) return null;
   return where as ReadableWhere;
 }
+
+/**
+ * Merge a readableWhere() result into a route/service's own filter object.
+ *
+ * accessibleBy() wraps conditioned rules as { $or: [ ... ] }. For the
+ * common single-condition scope (owner/addedBy/userId) this flattens it so
+ * it composes with the caller's top-level filters — in particular a search
+ * `$or`, which would otherwise OVERWRITE a $or-shaped owner scope and
+ * silently widen the query. Complex rule shapes go under `$and`, where they
+ * always AND safely.
+ *
+ *   const filter: any = {};
+ *   mergeReadableFilter(filter, readableWhere(ability, 'Bill') ?? {});
+ *   if (search) filter.$or = [...];   // never clobbers the scope
+ */
+export function mergeReadableFilter(
+  filter: Record<string, unknown>,
+  readable: ReadableWhere | Record<string, unknown>
+): void {
+  const shape = readable as Record<string, unknown>;
+  const keys = Object.keys(shape);
+  if (keys.length === 0) return;
+
+  const inner =
+    keys.length === 1 && keys[0] === '$or' && Array.isArray(shape.$or)
+      ? (shape.$or as Record<string, unknown>[])
+      : null;
+  if (
+    inner &&
+    inner.length === 1 &&
+    !Object.keys(inner[0] ?? {}).some((key) => key.startsWith('$'))
+  ) {
+    Object.assign(filter, inner[0]);
+    return;
+  }
+
+  filter.$and = [...((filter.$and as unknown[]) ?? []), shape];
+}

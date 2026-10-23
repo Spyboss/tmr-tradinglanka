@@ -9,7 +9,7 @@ import { generatePDF } from '../services/pdfService.js';
 import { generateProformaPDF } from '../services/proformaPdfService.js';
 import { authenticate, AuthRequest } from '../auth/auth.middleware.js';
 import { createBill, updateBillStatus } from '../controllers/billController.js';
-import { can, readableWhere, resolveAbility } from '../permissions/index.js';
+import { can, mergeReadableFilter, readableWhere, resolveAbility } from '../permissions/index.js';
 
 const router = express.Router();
 const SRI_LANKA_MOBILE_REGEX = /^07\d{8}$/;
@@ -51,29 +51,6 @@ const parseIssueDate = (value: unknown): Date | null => {
 
   const parsed = new Date(String(value));
   return Number.isNaN(parsed.getTime()) ? null : parsed;
-};
-
-/**
- * accessibleBy() wraps conditioned read rules as { $or: [...] }. For the
- * common single-condition scope (owner/addedBy) flatten it so it composes
- * with each route's own top-level filters — in particular the search $or,
- * which would otherwise OVERWRITE a $or-shaped owner scope. Complex rule
- * shapes go under $and where they always AND safely.
- */
-const mergeReadableFilter = (filter: any, readable: any): void => {
-  const keys = Object.keys(readable);
-  if (keys.length === 0) return;
-
-  const inner =
-    keys.length === 1 && keys[0] === '$or' && Array.isArray(readable.$or)
-      ? readable.$or
-      : null;
-  if (inner && inner.length === 1 && !Object.keys(inner[0] ?? {}).some((k) => k.startsWith('$'))) {
-    Object.assign(filter, inner[0]);
-    return;
-  }
-
-  filter.$and = [...(filter.$and ?? []), readable];
 };
 
 const ensureBillAccess = async (req: AuthRequest, res: Response, id: string) => {
