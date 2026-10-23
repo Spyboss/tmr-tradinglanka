@@ -224,11 +224,6 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Check if user has admin role
-  const isAdmin = () => {
-    return user?.role === 'admin';
-  };
-
   // Permission ability built from the shared rules module (ABAC):
   // rules combine role + resource attributes (owner, addedBy, userId, ...).
   const ability = useMemo(
@@ -240,10 +235,17 @@ export const AuthProvider = ({ children }) => {
   );
 
   // Type-level or attribute-level check, e.g. can('update', 'Bill', bill).
-  // UI hiding only — the API re-checks every request server-side.
+  // UI hiding only - the API re-checks every request server-side.
   const can = useCallback(
     (action, subject, resource) =>
       canWithAbility(ability, action, subject, resource),
+    [ability]
+  );
+
+  // Admin check asks the SAME rules module (single source of truth) instead
+  // of reading role directly: the admin wildcard rule is `manage`/`all`.
+  const isAdmin = useCallback(
+    () => canWithAbility(ability, 'manage', 'all'),
     [ability]
   );
 

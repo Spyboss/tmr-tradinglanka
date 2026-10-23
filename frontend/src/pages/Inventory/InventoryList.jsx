@@ -17,7 +17,7 @@ const statusColors = {
 
 const InventoryList = () => {
   const navigate = useNavigate();
-  const { isAdmin } = useAuth();
+  const { can } = useAuth();
   const [inventory, setInventory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [pagination, setPagination] = useState({
@@ -174,7 +174,7 @@ const InventoryList = () => {
               onClick={() => navigate(`/inventory/edit/${record._id}`)}
             />
           </Tooltip>
-          {isAdmin() && (
+          {can('delete', 'Inventory', record) && (
             <Tooltip title="Delete">
               <Button 
                 icon={<DeleteOutlined />} 
@@ -283,7 +283,7 @@ const InventoryList = () => {
                 </div>
                 <div className="mt-3 grid grid-cols-2 gap-2">
                   <Button onClick={() => navigate(`/inventory/edit/${item._id}`)}>Edit</Button>
-                  {isAdmin() && (
+                  {can('delete', 'Inventory', item) && (
                     <Button danger onClick={() => showDeleteModal(item)}>Delete</Button>
                   )}
                 </div>
