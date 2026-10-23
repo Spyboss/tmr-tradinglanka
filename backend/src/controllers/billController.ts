@@ -7,6 +7,7 @@ import { AuthRequest } from '../auth/auth.middleware.js';
 import { AppError } from '../middleware/errorHandler.js';
 import logger from '../utils/logger.js';
 import { sendReviewRequest } from '../services/whatsappBotService.js';
+import { can, resolveAbility } from '../permissions/index.js';
 
 const escapeRegExp = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const SRI_LANKA_MOBILE_REGEX = /^07\d{8}$/;
@@ -284,12 +285,9 @@ export const updateBillStatus = async (req: AuthRequest, res: Response, next: Ne
       return next(new AppError('Bill not found', 404));
     }
     
-    // Check ownership or admin status
-    const user = await req.app.locals.models?.User.findById(req.user?.id);
-    const isAdmin = user?.role === 'admin';
-    const isOwner = bill.owner && bill.owner.toString() === req.user?.id;
-    
-    if (!isAdmin && !isOwner) {
+    // Authorization via the permissions source of truth
+    const ability = await resolveAbility(req);
+    if (!can(ability, 'update', 'Bill', bill)) {
       return next(new AppError('You do not have permission to update this bill', 403));
     }
     

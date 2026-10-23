@@ -9,6 +9,7 @@ import { generatePDF } from '../services/pdfService.js';
 import { generateProformaPDF } from '../services/proformaPdfService.js';
 import { authenticate, AuthRequest } from '../auth/auth.middleware.js';
 import { createBill, updateBillStatus } from '../controllers/billController.js';
+import { can, readableWhere, resolveAbility } from '../permissions/index.js';
 
 const router = express.Router();
 const SRI_LANKA_MOBILE_REGEX = /^07\d{8}$/;
@@ -52,6 +53,29 @@ const parseIssueDate = (value: unknown): Date | null => {
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 };
 
+/**
+ * accessibleBy() wraps conditioned read rules as { $or: [...] }. For the
+ * common single-condition scope (owner/addedBy) flatten it so it composes
+ * with each route's own top-level filters — in particular the search $or,
+ * which would otherwise OVERWRITE a $or-shaped owner scope. Complex rule
+ * shapes go under $and where they always AND safely.
+ */
+const mergeReadableFilter = (filter: any, readable: any): void => {
+  const keys = Object.keys(readable);
+  if (keys.length === 0) return;
+
+  const inner =
+    keys.length === 1 && keys[0] === '$or' && Array.isArray(readable.$or)
+      ? readable.$or
+      : null;
+  if (inner && inner.length === 1 && !Object.keys(inner[0] ?? {}).some((k) => k.startsWith('$'))) {
+    Object.assign(filter, inner[0]);
+    return;
+  }
+
+  filter.$and = [...(filter.$and ?? []), readable];
+};
+
 const ensureBillAccess = async (req: AuthRequest, res: Response, id: string) => {
   const bill = await Bill.findById(id);
   if (!bill) {
@@ -59,11 +83,8 @@ const ensureBillAccess = async (req: AuthRequest, res: Response, id: string) => 
     return null;
   }
 
-  const user = await req.app.locals.models?.User.findById(req.user?.id);
-  const isAdmin = user?.role === 'admin';
-  const isOwner = bill.owner && bill.owner.toString() === req.user?.id;
-
-  if (!isAdmin && !isOwner) {
+  const ability = await resolveAbility(req);
+  if (!can(ability, 'read', 'Bill', bill)) {
     res.status(403).json({ error: 'You do not have permission to view this bill' });
     return null;
   }
@@ -169,17 +190,15 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
     const limitNum = parseInt(limit as string) || 20;
     const skip = (pageNum - 1) * limitNum;
 
-    // Build filter query
+    // Build filter query — owner scoping compiled from the permissions
+    // source of truth (readableWhere; empty for admins)
     const filter: any = {};
-
-    // Filter by owner if not admin
-    const user = await req.app.locals.models?.User.findById(req.user?.id);
-    const isAdmin = user?.role === 'admin';
-
-    if (!isAdmin && req.user?.id) {
-      // Regular users can only see their own bills
-      filter.owner = req.user.id;
+    const ability = await resolveAbility(req);
+    const readable = readableWhere(ability, 'Bill');
+    if (!readable) {
+      return res.status(403).json({ error: 'You do not have permission to view bills' });
     }
+    mergeReadableFilter(filter, readable);
 
     if (status) filter.status = status;
     if (billType === 'advance') {
@@ -243,10 +262,20 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
 router.get('/suggestions', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const { q = '' } = req.query as any;
-    const user = await req.app.locals.models?.User.findById(req.user?.id);
-    const isAdmin = user?.role === 'admin';
+    const ability = await resolveAbility(req);
+    const readable = readableWhere(ability, 'Bill');
+    if (!readable) {
+      return res.status(403).json({ error: 'You do not have permission to view bills' });
+    }
     const ownerFilter: any = {};
-    if (!isAdmin && req.user?.id) ownerFilter.owner = req.user.id;
+    mergeReadableFilter(ownerFilter, readable);
+    // $match needs real ObjectIds — aggregation doesn't cast strings (the
+    // old string owner filter could never match real ObjectId owners)
+    for (const [key, value] of Object.entries(ownerFilter)) {
+      if (typeof value === 'string' && mongoose.Types.ObjectId.isValid(value)) {
+        ownerFilter[key] = new mongoose.Types.ObjectId(value);
+      }
+    }
     const regex = new RegExp(String(q).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
 
     const customers = await Bill.aggregate([
@@ -278,12 +307,12 @@ router.get('/suggestions', authenticate, async (req: AuthRequest, res: Response)
 // Get bill by ID - Protected route with ownership check
 router.get('/:id', authenticate, async (req: AuthRequest, res: Response) => {
   try {
-    // Check ownership or admin status first
-    const user = await req.app.locals.models?.User.findById(req.user?.id);
-    const isAdmin = user?.role === 'admin';
+    // Authorization via the permissions source of truth
+    const ability = await resolveAbility(req);
 
-    // Only populate owner details for admin users
-    const bill = isAdmin
+    // Only populate owner details for admin users ('manage' is an
+    // admin-only unconditioned capability on Bill)
+    const bill = can(ability, 'manage', 'Bill')
       ? await Bill.findById(req.params.id).populate('owner', 'name email')
       : await Bill.findById(req.params.id);
 
@@ -291,9 +320,7 @@ router.get('/:id', authenticate, async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ error: 'Bill not found' });
     }
 
-    const isOwner = bill.owner && bill.owner.toString() === req.user?.id;
-
-    if (!isAdmin && !isOwner) {
+    if (!can(ability, 'read', 'Bill', bill)) {
       return res.status(403).json({ error: 'You do not have permission to view this bill' });
     }
 
@@ -339,18 +366,17 @@ router.put('/:id', authenticate, async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ error: 'Bill not found' });
     }
 
-    // Check ownership or admin status
-    const user = await req.app.locals.models?.User.findById(req.user?.id);
-    const isAdmin = user?.role === 'admin';
-    const isOwner = bill.owner && bill.owner.toString() === req.user?.id;
+    // Authorization via the permissions source of truth
+    const ability = await resolveAbility(req);
+    const isAdmin = can(ability, 'manage', 'Bill');
 
-    if (!isAdmin && !isOwner) {
+    if (!can(ability, 'update', 'Bill', bill)) {
       await session.abortTransaction();
       session.endSession();
       return res.status(403).json({ error: 'You do not have permission to update this bill' });
     }
 
-    // Don't allow changing the owner
+    // Don't allow changing the owner (admin only)
     if (req.body.owner && !isAdmin) {
       delete req.body.owner;
     }
@@ -602,11 +628,9 @@ router.post('/:id/close-sale', authenticate, async (req: AuthRequest, res: Respo
       return res.status(404).json({ error: 'Bill not found' });
     }
 
-    const user = await req.app.locals.models?.User.findById(req.user?.id);
-    const isAdmin = user?.role === 'admin';
-    const isOwner = bill.owner && bill.owner.toString() === req.user?.id;
+    const ability = await resolveAbility(req);
 
-    if (!isAdmin && !isOwner) {
+    if (!can(ability, 'update', 'Bill', bill)) {
       await session.abortTransaction();
       session.endSession();
       return res.status(403).json({ error: 'You do not have permission to close this sale' });
@@ -723,17 +747,25 @@ router.delete('/:id', authenticate, async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ error: 'Bill not found' });
     }
 
-    // Check ownership or admin status
-    const user = await req.app.locals.models?.User.findById(req.user?.id);
-    const isAdmin = user?.role === 'admin';
-    const isOwner = bill.owner && bill.owner.toString() === req.user?.id;
+    // Authorization via the permissions source of truth. The CASL delete
+    // rule carries owner + cancelled-state together, so evaluate it as if
+    // the bill were already cancelled: owners pass the WHO gate, strangers
+    // don't — the state failure below then reports as a 400 business error.
+    const ability = await resolveAbility(req);
+    const isAdmin = can(ability, 'manage', 'Bill');
 
-    if (!isAdmin && !isOwner) {
+    const mayDelete = can(ability, 'delete', 'Bill', {
+      owner: bill.owner,
+      status: 'cancelled'
+    });
+
+    if (!mayDelete) {
       await session.abortTransaction();
       session.endSession();
       return res.status(403).json({ error: 'You do not have permission to delete this bill' });
     }
 
+    // Business rule: non-admins can only delete cancelled bills
     if (!isAdmin && (bill.status || '').toLowerCase() !== 'cancelled') {
       await session.abortTransaction();
       session.endSession();
@@ -899,12 +931,9 @@ router.get('/:id/pdf', authenticate, async (req: AuthRequest, res: Response) => 
       return res.status(404).json({ error: 'Bill not found' });
     }
 
-    // Check ownership or admin status
-    const user = await req.app.locals.models?.User.findById(req.user?.id);
-    const isAdmin = user?.role === 'admin';
-    const isOwner = bill.owner && bill.owner.toString() === req.user?.id;
-
-    if (!isAdmin && !isOwner) {
+    // Authorization via the permissions source of truth
+    const ability = await resolveAbility(req);
+    if (!can(ability, 'read', 'Bill', bill)) {
       return res.status(403).json({ error: 'You do not have permission to view this bill' });
     }
 
