@@ -289,7 +289,7 @@ router.get('/:id', authenticate, async (req: AuthRequest, res: Response) => {
 
     // Only populate owner details for admin users ('manage' is an
     // admin-only unconditioned capability on Bill)
-    const bill = can(ability, 'manage', 'Bill')
+    const bill = can(ability, 'manage', 'all')
       ? await Bill.findById(req.params.id).populate('owner', 'name email')
       : await Bill.findById(req.params.id);
 
@@ -345,7 +345,7 @@ router.put('/:id', authenticate, async (req: AuthRequest, res: Response) => {
 
     // Authorization via the permissions source of truth
     const ability = await resolveAbility(req);
-    const isAdmin = can(ability, 'manage', 'Bill');
+    const isAdmin = can(ability, 'manage', 'all');
 
     if (!can(ability, 'update', 'Bill', bill)) {
       await session.abortTransaction();
@@ -729,7 +729,7 @@ router.delete('/:id', authenticate, async (req: AuthRequest, res: Response) => {
     // the bill were already cancelled: owners pass the WHO gate, strangers
     // don't — the state failure below then reports as a 400 business error.
     const ability = await resolveAbility(req);
-    const isAdmin = can(ability, 'manage', 'Bill');
+    const isAdmin = can(ability, 'manage', 'all');
 
     const mayDelete = can(ability, 'delete', 'Bill', {
       owner: bill.owner,

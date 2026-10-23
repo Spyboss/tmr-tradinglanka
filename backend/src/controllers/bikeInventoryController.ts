@@ -42,7 +42,7 @@ const getOwnershipContext = async (req: AuthRequest) => {
   const ability = await resolveAbility(req);
   return {
     // 'delete' is an admin-only capability (users hold no delete rule)
-    isAdmin: can(ability, 'delete', 'Inventory'),
+    isAdmin: can(ability, 'manage', 'all'),
     inventoryMatch: inventoryService.inventoryScope(ability),
     billMatch: inventoryService.billScope(ability)
   };

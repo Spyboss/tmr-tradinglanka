@@ -4,7 +4,7 @@ import Bill from '../models/Bill.js';
 import BikeInventory from '../models/BikeInventory.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { generateWarrantyPDF } from './warrantyPdfService.js';
-import { assertCan, readableWhere } from '../permissions/index.js';
+import { assertCan, can, readableWhere } from '../permissions/index.js';
 import type { AppAbility } from '../permissions/index.js';
 
 /**
@@ -102,10 +102,10 @@ export async function updateClaim(
   assertCan(ability, 'update', 'WarrantyClaim', claim);
 
   const payload = { ...data };
-  // owner reassignment is a type-level admin capability (users only hold
-  // conditioned update rules, so ability.can('update','WarrantyClaim') is
-  // false for them -> their owner override is stripped)
-  if (payload.owner !== undefined && !ability.can('update', 'WarrantyClaim')) {
+  // owner reassignment is admin-only — detect that via the unconditioned
+  // `manage`/`all` wildcard (type-level can() IGNORES conditions, so an
+  // update check would be true for the conditioned owner rule too)
+  if (payload.owner !== undefined && !can(ability, 'manage', 'all')) {
     delete payload.owner;
   }
 

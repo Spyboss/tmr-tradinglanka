@@ -41,23 +41,29 @@ export function asPlainResource(resource: unknown): unknown {
   return out;
 }
 
+/** The admin wildcard rule (rules.ts: can('manage','all')) is a valid target. */
+export type AnySubject = Subject | 'all';
+
 /** Type-level (no resource) or attribute-level (with resource) check. */
 export function can(
   ability: AppAbility,
   action: Action,
-  subject: Subject,
+  subject: AnySubject,
   resource?: unknown
 ): boolean {
-  if (resource === undefined) return ability.can(action, subject);
+  // 'all' is accepted by CASL at runtime (the admin wildcard rule uses it);
+  // narrow internally to the app's subject union for the typed API.
+  const target = subject as Subject;
+  if (resource === undefined) return ability.can(action, target);
 
   const plain = asPlainResource(resource);
   if (plain === null || typeof plain !== 'object') {
-    return ability.can(action, subject);
+    return ability.can(action, target);
   }
 
   return ability.can(action, {
     ...(plain as Record<string, unknown>),
-    __caslSubjectType__: subject,
+    __caslSubjectType__: target,
   } as never);
 }
 

@@ -177,9 +177,10 @@ export async function updateQuotation(
   });
 
   const payload = { ...body };
-  // owner reassignment is a type-level admin capability (users hold only
-  // conditioned update rules -> their owner override is stripped)
-  if (payload.owner !== undefined && !can(ability, 'update', 'Quotation')) {
+  // owner reassignment is admin-only — detect that via the unconditioned
+  // `manage`/`all` wildcard (type-level can() IGNORES conditions, so an
+  // update check would be true for the conditioned owner rule too)
+  if (payload.owner !== undefined && !can(ability, 'manage', 'all')) {
     delete payload.owner;
   }
 

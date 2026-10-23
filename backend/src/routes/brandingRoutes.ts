@@ -1,27 +1,29 @@
 import express, { Response } from 'express';
 import { authenticate, AuthRequest } from '../auth/auth.middleware.js';
 import Branding from '../models/Branding.js';
-import User, { UserRole } from '../models/User.js';
+import { can, resolveAbility } from '../permissions/index.js';
 
 const router = express.Router();
 
 // Get branding config
 // Non-admins get their personal branding if it exists, otherwise the system default.
 // Admins always see the system default (where userId is null).
+// `manage` on Branding is an UNCONDITIONED (admin) capability; the user
+// rule is conditioned to { userId: self } — so the type-level check is
+// exactly the old role check, sourced from the permissions matrix.
 router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
   try {
-    const userId = req.user?.id;
-    const user = await User.findById(userId);
-    const isAdmin = user?.role === UserRole.ADMIN;
+    const ability = await resolveAbility(req);
+    const managesSystemBranding = can(ability, 'manage', 'all');
 
     let branding;
 
-    if (isAdmin) {
+    if (managesSystemBranding) {
       // Admins only see/manage the system-wide branding
       branding = await Branding.findOne({ userId: null });
     } else {
       // Regular users: check for personal branding first
-      branding = await Branding.findOne({ userId });
+      branding = await Branding.findOne({ userId: req.user?.id });
       // Fallback to system-wide branding if no personal branding exists
       if (!branding) {
         branding = await Branding.findOne({ userId: null });
@@ -44,9 +46,16 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
 // Admins update the system-wide branding (where userId is null).
 router.put('/', authenticate, async (req: AuthRequest, res: Response) => {
   try {
-    const userId = req.user?.id;
-    const user = await User.findById(userId);
-    const isAdmin = user?.role === UserRole.ADMIN;
+    const ability = await resolveAbility(req);
+    const targetsSystem = can(ability, 'manage', 'all');
+    const targetUserId = targetsSystem ? null : req.user?.id;
+
+    // explicit gate from the same rules: system row = admin capability,
+    // personal row = own { userId } condition
+    if (!can(ability, 'manage', 'Branding', { userId: targetUserId ?? req.user?.id })) {
+      res.status(403).json({ error: 'You do not have permission to update branding' });
+      return;
+    }
 
     const update = {
       dealerName: req.body.dealerName,
@@ -57,10 +66,10 @@ router.put('/', authenticate, async (req: AuthRequest, res: Response) => {
       brandPartner: req.body.brandPartner,
       footerNote: req.body.footerNote,
       // If admin, we target userId: null. If user, we target userId: req.user.id.
-      userId: isAdmin ? null : userId
+      userId: targetUserId
     };
 
-    const filter = isAdmin ? { userId: null } : { userId };
+    const filter = { userId: targetUserId };
 
     let branding = await Branding.findOneAndUpdate(
       filter,
