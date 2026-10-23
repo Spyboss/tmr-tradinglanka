@@ -9,6 +9,7 @@ import { generatePDF } from '../services/pdfService.js';
 import { generateProformaPDF } from '../services/proformaPdfService.js';
 import { authenticate, requireAdmin, requireOwnership, AuthRequest } from '../auth/auth.middleware.js';
 import { createBill, updateBillStatus } from '../controllers/billController.js';
+import logger from '../utils/logger.js';
 
 const router = express.Router();
 const SRI_LANKA_MOBILE_REGEX = /^07\d{8}$/;
@@ -709,9 +710,10 @@ router.post('/:id/close-sale', authenticate, async (req: AuthRequest, res: Respo
 
 // Delete bill - Protected route with ownership check
 router.delete('/:id', authenticate, async (req: AuthRequest, res: Response) => {
-  const session = await mongoose.startSession();
+  let session: mongoose.ClientSession | null = null;
 
   try {
+    session = await mongoose.startSession();
     session.startTransaction();
 
     // First check ownership
@@ -719,7 +721,6 @@ router.delete('/:id', authenticate, async (req: AuthRequest, res: Response) => {
 
     if (!bill) {
       await session.abortTransaction();
-      session.endSession();
       return res.status(404).json({ error: 'Bill not found' });
     }
 
@@ -730,13 +731,11 @@ router.delete('/:id', authenticate, async (req: AuthRequest, res: Response) => {
 
     if (!isAdmin && !isOwner) {
       await session.abortTransaction();
-      session.endSession();
       return res.status(403).json({ error: 'You do not have permission to delete this bill' });
     }
 
     if (!isAdmin && (bill.status || '').toLowerCase() !== 'cancelled') {
       await session.abortTransaction();
-      session.endSession();
       return res.status(400).json({ error: 'Cancel this bill before deleting it' });
     }
 
@@ -792,7 +791,6 @@ router.delete('/:id', authenticate, async (req: AuthRequest, res: Response) => {
     await Bill.findByIdAndDelete(req.params.id, { session });
 
     await session.commitTransaction();
-    session.endSession();
 
     res.locals.activityLogged = true;
     res.status(200).json({
@@ -801,9 +799,23 @@ router.delete('/:id', authenticate, async (req: AuthRequest, res: Response) => {
       releasedInventoryItemId: releasedInventoryItem?._id || null
     });
   } catch (error) {
-    await session.abortTransaction();
-    session.endSession();
+    logger.error(`Bill delete failed for ${req.params.id}: ${(error as Error).message}`);
+
+    // abortTransaction() itself throws on some deployments, so it must never
+    // be allowed to prevent the client from getting a response.
+    if (session) {
+      try {
+        await session.abortTransaction();
+      } catch (abortError) {
+        logger.error(`Bill delete abort failed for ${req.params.id}: ${(abortError as Error).message}`);
+      }
+    }
+
     res.status(500).json({ error: (error as Error).message });
+  } finally {
+    if (session) {
+      session.endSession();
+    }
   }
 });
 
