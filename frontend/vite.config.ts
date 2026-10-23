@@ -28,6 +28,8 @@ export default defineConfig({
   },
   server: {
     port: 5173,
+    // the shared permission source of truth lives in ../backend/src/permissions
+    fs: { allow: ['..'] },
     proxy: {
       '/api': {
         target: 'http://localhost:8080',

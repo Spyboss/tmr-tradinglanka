@@ -1,7 +1,10 @@
-import React, { createContext, useState, useEffect, useContext } from 'react';
+import React, { createContext, useState, useEffect, useContext, useMemo, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import apiClient from '../config/apiClient';
 import { toast } from 'react-hot-toast';
+// Single source of truth for permissions: the browser evaluates the EXACT
+// same rules the API enforces (backend/src/permissions/shared.ts).
+import { defineAbilitiesFor, can as canWithAbility } from '../permissions';
 
 // Create the auth context
 const AuthContext = createContext(null);
@@ -226,6 +229,24 @@ export const AuthProvider = ({ children }) => {
     return user?.role === 'admin';
   };
 
+  // Permission ability built from the shared rules module (ABAC):
+  // rules combine role + resource attributes (owner, addedBy, userId, ...).
+  const ability = useMemo(
+    () =>
+      defineAbilitiesFor(
+        user ? { id: user.id ?? user._id, role: user.role } : null
+      ),
+    [user]
+  );
+
+  // Type-level or attribute-level check, e.g. can('update', 'Bill', bill).
+  // UI hiding only — the API re-checks every request server-side.
+  const can = useCallback(
+    (action, subject, resource) =>
+      canWithAbility(ability, action, subject, resource),
+    [ability]
+  );
+
   return (
     <AuthContext.Provider
       value={{
@@ -234,6 +255,8 @@ export const AuthProvider = ({ children }) => {
         loading,
         isAuthenticated,
         isAdmin,
+        can,
+        ability,
         login: handleLogin,
         register: handleRegister,
         logout: handleLogout

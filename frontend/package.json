@@ -23,6 +23,7 @@
     "lint": "echo \"No linting configured\""
   },
   "dependencies": {
+    "@casl/ability": "^7.0.2",
     "@headlessui/react": "^1.7.18",
     "@heroicons/react": "^2.1.1",
     "antd": "^5.15.1",
