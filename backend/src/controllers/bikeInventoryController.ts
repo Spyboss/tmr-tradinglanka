@@ -7,6 +7,22 @@ import logger from '../utils/logger.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { AuthRequest } from '../auth/auth.middleware.js';
 import { generateInventoryPDF } from '../services/inventoryPdfService.js';
+import { can, resolveAbility } from '../permissions/index.js';
+import * as inventoryService from '../services/inventory.service.js';
+
+/** Forward statusCode-carrying errors (AppError) as-is; wrap the rest. */
+const toAppError = (error: unknown, fallback: string): AppError => {
+  if (error instanceof AppError) return error;
+  if (
+    error &&
+    typeof error === 'object' &&
+    'statusCode' in error &&
+    typeof (error as { statusCode: unknown }).statusCode === 'number'
+  ) {
+    return error as AppError;
+  }
+  return new AppError(`${fallback}: ${(error as Error).message}`, 500);
+};
 
 const MAX_SEARCH_LENGTH = 64;
 const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -23,17 +39,12 @@ const getMonthKey = (date: Date) => {
 };
 
 const getOwnershipContext = async (req: AuthRequest) => {
-  const user = await req.app.locals.models?.User.findById(req.user?.id);
-  const isAdmin = user?.role === 'admin';
-
+  const ability = await resolveAbility(req);
   return {
-    isAdmin,
-    inventoryMatch: !isAdmin && req.user?.id
-      ? { addedBy: new mongoose.Types.ObjectId(req.user.id) }
-      : {},
-    billMatch: !isAdmin && req.user?.id
-      ? { owner: new mongoose.Types.ObjectId(req.user.id) }
-      : {}
+    // 'delete' is an admin-only capability (users hold no delete rule)
+    isAdmin: can(ability, 'delete', 'Inventory'),
+    inventoryMatch: inventoryService.inventoryScope(ability),
+    billMatch: inventoryService.billScope(ability)
   };
 };
 
@@ -56,79 +67,11 @@ const getPaceStatus = (paceGap: number) => {
  */
 export const getAllInventory = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const {
-      page = 1,
-      limit = 20,
-      status,
-      modelId,
-      search,
-      sort = 'dateAdded',
-      order = 'desc'
-    } = req.query;
-
-    const pageNum = parseInt(page as string) || 1;
-    const limitNum = parseInt(limit as string) || 20;
-    const skip = (pageNum - 1) * limitNum;
-
-    // Build filter query
-    const filter: any = { isDeleted: { $ne: true } };
-
-    // Filter by owner if not admin
-    const user = await req.app.locals.models?.User.findById(req.user?.id);
-    const isAdmin = user?.role === 'admin';
-
-    if (!isAdmin && req.user?.id) {
-      // Regular users can only see inventory items they added
-      filter.addedBy = req.user.id;
-    }
-
-    // Filter by status if provided
-    if (status) {
-      filter.status = status;
-    }
-
-    // Filter by model if provided
-    if (modelId) {
-      filter.bikeModelId = modelId;
-    }
-
-    // Search by motor or chassis number
-    if (search) {
-      const normalizedSearch = String(search).trim().slice(0, MAX_SEARCH_LENGTH);
-      const safeSearchRegex = new RegExp(escapeRegExp(normalizedSearch), 'i');
-      filter.$or = [
-        { motorNumber: { $regex: safeSearchRegex } },
-        { chassisNumber: { $regex: safeSearchRegex } }
-      ];
-    }
-
-    // Determine sort order
-    const sortOptions: any = {};
-    sortOptions[sort as string] = order === 'asc' ? 1 : -1;
-
-    // Get total count for pagination
-    const total = await BikeInventory.countDocuments(filter);
-
-    // Get inventory items with pagination
-    const inventory = await BikeInventory.find(filter)
-      .sort(sortOptions)
-      .skip(skip)
-      .limit(limitNum)
-      .populate('bikeModelId', 'name price is_ebicycle is_tricycle')
-      .populate('addedBy', 'name email');
-
-    res.status(200).json({
-      items: inventory,
-      pagination: {
-        total,
-        page: pageNum,
-        limit: limitNum,
-        pages: Math.ceil(total / limitNum)
-      }
-    });
+    const ability = await resolveAbility(req);
+    const result = await inventoryService.listInventory(ability, req.query);
+    res.status(200).json(result);
   } catch (error) {
-    logger.error(`Error getting inventory: ${(error as Error).message}`);
-    next(new AppError(`Failed to fetch inventory: ${(error as Error).message}`, 500));
+    next(toAppError(error, 'Failed to fetch inventory'));
   }
 };
 
@@ -137,27 +80,13 @@ export const getAllInventory = async (req: AuthRequest, res: Response, next: Nex
  * @route GET /api/inventory/:id
  * @access Private
  */
-export const getInventoryById = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const getInventoryById = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { id } = req.params;
-
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return next(new AppError('Invalid inventory ID', 400));
-    }
-
-    const inventoryItem = await BikeInventory.findById(id)
-      .populate('bikeModelId', 'name price is_ebicycle is_tricycle')
-      .populate('addedBy', 'name email')
-      .populate('billId', 'billNumber customerName');
-
-    if (!inventoryItem) {
-      return next(new AppError('Inventory item not found', 404));
-    }
-
-    res.status(200).json(inventoryItem);
+    const ability = await resolveAbility(req);
+    const item = await inventoryService.getInventoryItem(ability, req.params.id);
+    res.status(200).json(item);
   } catch (error) {
-    logger.error(`Error getting inventory item: ${(error as Error).message}`);
-    next(new AppError(`Failed to fetch inventory item: ${(error as Error).message}`, 500));
+    next(toAppError(error, 'Failed to fetch inventory item'));
   }
 };
 
@@ -168,44 +97,15 @@ export const getInventoryById = async (req: Request, res: Response, next: NextFu
  */
 export const addToInventory = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const inventoryData = req.body;
-
-    // Set the added by field to the current user
-    inventoryData.addedBy = req.user?.id;
-
-    // Validate bike model exists
-    if (!mongoose.Types.ObjectId.isValid(inventoryData.bikeModelId)) {
-      return next(new AppError('Invalid bike model ID', 400));
-    }
-
-    const bikeModel = await BikeModel.findById(inventoryData.bikeModelId);
-    if (!bikeModel) {
-      return next(new AppError('Bike model not found', 404));
-    }
-
-    // Create the inventory item
-    const inventoryItem = await BikeInventory.create(inventoryData);
-
-    // Populate references for response
-    const populatedItem = await BikeInventory.findById(inventoryItem._id)
-      .populate('bikeModelId', 'name price is_ebicycle is_tricycle')
-      .populate('addedBy', 'name email');
-
-    res.status(201).json(populatedItem);
+    const ability = await resolveAbility(req);
+    const item = await inventoryService.createInventory(
+      ability,
+      req.user?.id ?? '',
+      req.body
+    );
+    res.status(201).json(item);
   } catch (error) {
-    // Check for validation errors
-    if (error instanceof mongoose.Error.ValidationError) {
-      const messages = Object.values(error.errors).map(err => err.message);
-      return next(new AppError(`Validation error: ${messages.join(', ')}`, 400));
-    }
-
-    // Check for duplicate key error
-    if ((error as any).code === 11000) {
-      return next(new AppError('A bike with this motor number or chassis number already exists in inventory', 400));
-    }
-
-    logger.error(`Error adding to inventory: ${(error as Error).message}`);
-    next(new AppError(`Failed to add to inventory: ${(error as Error).message}`, 500));
+    next(toAppError(error, 'Failed to add to inventory'));
   }
 };
 
@@ -216,46 +116,12 @@ export const addToInventory = async (req: AuthRequest, res: Response, next: Next
  */
 export const batchAddToInventory = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { items } = req.body;
-
-    if (!Array.isArray(items) || items.length === 0) {
-      return next(new AppError('No inventory items provided', 400));
-    }
-
-    // Set the added by field for all items
-    const itemsWithUser = items.map(item => ({
-      ...item,
-      addedBy: req.user?.id
-    }));
-
-    // Validate all bike models exist
-    const modelIds = [...new Set(itemsWithUser.map(item => item.bikeModelId))];
-
-    for (const modelId of modelIds) {
-      if (!mongoose.Types.ObjectId.isValid(modelId)) {
-        return next(new AppError(`Invalid bike model ID: ${modelId}`, 400));
-      }
-
-      const bikeModel = await BikeModel.findById(modelId);
-      if (!bikeModel) {
-        return next(new AppError(`Bike model not found: ${modelId}`, 404));
-      }
-    }
-
-    // Create all inventory items
-    const result = await BikeInventory.insertMany(itemsWithUser, { ordered: false })
-      .catch(error => {
-        // Handle duplicate key errors
-        if (error.code === 11000) {
-          const duplicates = error.writeErrors.map((err: any) => {
-            const item = err.err.op;
-            return `Motor: ${item.motorNumber}, Chassis: ${item.chassisNumber}`;
-          });
-
-          throw new AppError(`Duplicate entries found: ${duplicates.join('; ')}`, 400);
-        }
-        throw error;
-      });
+    const ability = await resolveAbility(req);
+    const result = await inventoryService.batchCreateInventory(
+      ability,
+      req.user?.id ?? '',
+      req.body.items
+    );
 
     res.status(201).json({
       message: `Successfully added ${result.length} bikes to inventory`,
@@ -263,14 +129,7 @@ export const batchAddToInventory = async (req: AuthRequest, res: Response, next:
       items: result
     });
   } catch (error) {
-    logger.error(`Error batch adding to inventory: ${(error as Error).message}`);
-
-    // If it's already an AppError, pass it through
-    if (error instanceof AppError) {
-      return next(error);
-    }
-
-    next(new AppError(`Failed to add bikes to inventory: ${(error as Error).message}`, 500));
+    next(toAppError(error, 'Failed to add bikes to inventory'));
   }
 };
 
@@ -279,57 +138,17 @@ export const batchAddToInventory = async (req: AuthRequest, res: Response, next:
  * @route PUT /api/inventory/:id
  * @access Private
  */
-export const updateInventory = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const updateInventory = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { id } = req.params;
-    const updateData = req.body;
-
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return next(new AppError('Invalid inventory ID', 400));
-    }
-
-    // Don't allow changing the addedBy field
-    if (updateData.addedBy) {
-      delete updateData.addedBy;
-    }
-
-    // If changing status to sold, set the dateSold
-    if (updateData.status === BikeStatus.SOLD && !updateData.dateSold) {
-      updateData.dateSold = new Date();
-    }
-
-    // If changing status from sold, clear the dateSold
-    if (updateData.status && updateData.status !== BikeStatus.SOLD) {
-      updateData.dateSold = null;
-    }
-
-    const updatedItem = await BikeInventory.findByIdAndUpdate(
-      id,
-      updateData,
-      { new: true, runValidators: true }
-    )
-      .populate('bikeModelId', 'name price is_ebicycle is_tricycle')
-      .populate('addedBy', 'name email');
-
-    if (!updatedItem) {
-      return next(new AppError('Inventory item not found', 404));
-    }
-
+    const ability = await resolveAbility(req);
+    const updatedItem = await inventoryService.updateInventoryItem(
+      ability,
+      req.params.id,
+      req.body
+    );
     res.status(200).json(updatedItem);
   } catch (error) {
-    // Check for validation errors
-    if (error instanceof mongoose.Error.ValidationError) {
-      const messages = Object.values(error.errors).map(err => err.message);
-      return next(new AppError(`Validation error: ${messages.join(', ')}`, 400));
-    }
-
-    // Check for duplicate key error
-    if ((error as any).code === 11000) {
-      return next(new AppError('A bike with this motor number or chassis number already exists in inventory', 400));
-    }
-
-    logger.error(`Error updating inventory: ${(error as Error).message}`);
-    next(new AppError(`Failed to update inventory: ${(error as Error).message}`, 500));
+    next(toAppError(error, 'Failed to update inventory'));
   }
 };
 
@@ -338,7 +157,7 @@ export const updateInventory = async (req: Request, res: Response, next: NextFun
  * @route DELETE /api/inventory/:id
  * @access Private
  */
-export const deleteInventory = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const deleteInventory = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const isProd = process.env.NODE_ENV === 'production';
     if (isProd) {
@@ -377,33 +196,19 @@ export const deleteInventory = async (req: Request, res: Response, next: NextFun
       return next(new AppError('Invalid inventory ID', 400));
     }
 
-    const inventoryItem = await BikeInventory.findById(id);
-
-    if (!inventoryItem) {
-      return next(new AppError('Inventory item not found', 404));
-    }
-
-            
-
     const deleteReasonHeader = (req.headers['x-delete-reason'] as string | undefined) || undefined;
-    const reasonBody = (req as any).body?.reason as string | undefined;
+    const reasonBody = req.body?.reason as string | undefined;
     const reason = reasonBody ?? deleteReasonHeader ?? null;
 
-    await BikeInventory.findByIdAndUpdate(
-      id,
-      {
-        isDeleted: true,
-        deletedAt: new Date(),
-        deletedBy: (req as any).user?.id ? new mongoose.Types.ObjectId((req as any).user.id) : null,
-        deleteReason: reason
-      },
-      { new: true }
-    );
+    const ability = await resolveAbility(req);
+    const result = await inventoryService.softDeleteInventoryItem(ability, id, {
+      deletedBy: (req as AuthRequest).user?.id,
+      reason
+    });
 
-    res.status(200).json({ message: 'Inventory item deleted successfully', softDeleted: true });
+    res.status(200).json(result);
   } catch (error) {
-    logger.error(`Error deleting inventory: ${(error as Error).message}`);
-    next(new AppError(`Failed to delete inventory: ${(error as Error).message}`, 500));
+    next(toAppError(error, 'Failed to delete inventory'));
   }
 };
 
@@ -414,16 +219,12 @@ export const deleteInventory = async (req: Request, res: Response, next: NextFun
  */
 export const getInventorySummary = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
-    // Build filter for ownership
-    const matchStage: any = { isDeleted: { $ne: true } };
-    
-    // Filter by owner if not admin
-    const user = await req.app.locals.models?.User.findById(req.user?.id);
-    const isAdmin = user?.role === 'admin';
-
-    if (!isAdmin && req.user?.id) {
-      matchStage.addedBy = new mongoose.Types.ObjectId(req.user.id);
-    }
+    // Scope through the permissions source of truth
+    const ability = await resolveAbility(req);
+    const matchStage: any = {
+      isDeleted: { $ne: true },
+      ...inventoryService.inventoryScope(ability)
+    };
 
     // Build aggregation pipeline
     const pipeline: any[] = [];
@@ -563,16 +364,12 @@ export const getInventoryAnalytics = async (req: AuthRequest, res: Response, nex
     const thirtyDaysAgo = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000));
     const ninetyDaysAgo = new Date(now.getTime() - (90 * 24 * 60 * 60 * 1000));
 
-    // Build filter for ownership
-    const matchStage: any = { isDeleted: { $ne: true } };
-    
-    // Filter by owner if not admin
-    const user = await req.app.locals.models?.User.findById(req.user?.id);
-    const isAdmin = user?.role === 'admin';
-
-    if (!isAdmin && req.user?.id) {
-      matchStage.addedBy = new mongoose.Types.ObjectId(req.user.id);
-    }
+    // Scope through the permissions source of truth
+    const ability = await resolveAbility(req);
+    const matchStage: any = {
+      isDeleted: { $ne: true },
+      ...inventoryService.inventoryScope(ability)
+    };
 
     // Build aggregation pipeline for model performance
     const modelPipeline: any[] = [];
@@ -1398,13 +1195,9 @@ export const getAvailableBikesByModel = async (req: AuthRequest, res: Response, 
       isDeleted: { $ne: true }
     };
 
-    // Filter by owner if not admin
-    const user = await req.app.locals.models?.User.findById(req.user?.id);
-    const isAdmin = user?.role === 'admin';
-
-    if (!isAdmin && req.user?.id) {
-      filter.addedBy = req.user.id;
-    }
+    // Scope through the permissions source of truth
+    const ability = await resolveAbility(req);
+    Object.assign(filter, inventoryService.inventoryScope(ability));
 
     const availableBikes = await BikeInventory.find(filter)
       .sort({ dateAdded: 1 })
@@ -1424,7 +1217,14 @@ export const getAvailableBikesByModel = async (req: AuthRequest, res: Response, 
  */
 export const getInventoryColours = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const items = await BikeInventory.find({ notes: { $exists: true, $ne: '' }, isDeleted: { $ne: true } })
+    // Scope through the permissions source of truth (was unscoped: scanned
+    // every user's notes)
+    const ability = await resolveAbility(req);
+    const items = await BikeInventory.find({
+      notes: { $exists: true, $ne: '' },
+      isDeleted: { $ne: true },
+      ...inventoryService.inventoryScope(ability)
+    })
       .select('notes')
       .lean();
 
@@ -1467,13 +1267,9 @@ export const generateInventoryReportPDF = async (req: AuthRequest, res: Response
     // Build filter query
     const filter: any = { isDeleted: { $ne: true } };
 
-    // Filter by owner if not admin
-    const user = await req.app.locals.models?.User.findById(req.user?.id);
-    const isAdmin = user?.role === 'admin';
-
-    if (!isAdmin && req.user?.id) {
-      filter.addedBy = req.user.id;
-    }
+    // Scope through the permissions source of truth
+    const ability = await resolveAbility(req);
+    Object.assign(filter, inventoryService.inventoryScope(ability));
 
     // Get all inventory items with bike model details
     const inventoryItems = await BikeInventory.find(filter)
