@@ -1,5 +1,6 @@
 import express, { Response } from 'express';
-import { authenticate, requireAdmin, AuthRequest } from '../auth/auth.middleware.js';
+import { authenticate, AuthRequest } from '../auth/auth.middleware.js';
+import { requirePermission } from '../permissions/index.js';
 import FinanceCompany from '../models/FinanceCompany.js';
 
 const router = express.Router();
@@ -13,7 +14,7 @@ router.get('/', authenticate, async (_req: AuthRequest, res: Response) => {
   }
 });
 
-router.post('/', authenticate, requireAdmin, async (req: AuthRequest, res: Response) => {
+router.post('/', authenticate, requirePermission('manage', 'FinanceCompany'), async (req: AuthRequest, res: Response) => {
   try {
     const { name, address, contact } = req.body;
     if (!name || !address || !contact) {
@@ -31,7 +32,7 @@ router.post('/', authenticate, requireAdmin, async (req: AuthRequest, res: Respo
   }
 });
 
-router.put('/:id', authenticate, requireAdmin, async (req: AuthRequest, res: Response) => {
+router.put('/:id', authenticate, requirePermission('manage', 'FinanceCompany'), async (req: AuthRequest, res: Response) => {
   try {
     const { name, address, contact } = req.body;
     if (!name || !address || !contact) {
@@ -57,7 +58,7 @@ router.put('/:id', authenticate, requireAdmin, async (req: AuthRequest, res: Res
   }
 });
 
-router.delete('/:id', authenticate, requireAdmin, async (req: AuthRequest, res: Response) => {
+router.delete('/:id', authenticate, requirePermission('manage', 'FinanceCompany'), async (req: AuthRequest, res: Response) => {
   try {
     const company = await FinanceCompany.findByIdAndDelete(req.params.id);
     if (!company) {

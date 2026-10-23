@@ -13,7 +13,8 @@ import {
   getInventoryColours,
   generateInventoryReportPDF
 } from '../controllers/bikeInventoryController.js';
-import { authenticate, requireAdmin } from '../auth/auth.middleware.js';
+import { authenticate } from '../auth/auth.middleware.js';
+import { requirePermission } from '../permissions/index.js';
 
 const router = Router();
 
@@ -102,6 +103,6 @@ router.put('/:id', updateInventory);
  * @desc    Delete an inventory item
  * @access  Private (Admin only)
  */
-router.delete('/:id', requireAdmin, deleteInventory);
+router.delete('/:id', requirePermission('manage', 'Inventory'), deleteInventory);
 
 export default router;

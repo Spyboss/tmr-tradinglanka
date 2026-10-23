@@ -7,7 +7,7 @@ import UserActivity, { ActivityType } from '../models/UserActivity.js';
 import { connectToDatabase } from '../config/database.js';
 import { generatePDF } from '../services/pdfService.js';
 import { generateProformaPDF } from '../services/proformaPdfService.js';
-import { authenticate, requireAdmin, requireOwnership, AuthRequest } from '../auth/auth.middleware.js';
+import { authenticate, AuthRequest } from '../auth/auth.middleware.js';
 import { createBill, updateBillStatus } from '../controllers/billController.js';
 
 const router = express.Router();
