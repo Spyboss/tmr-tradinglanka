@@ -11,8 +11,8 @@ The platform is delivered as a TypeScript monorepo with a React SPA (`frontend/`
 └──────────────▲───────────────────────────────────┘
                │ HTTPS (browser)
 ┌──────────────┴──────────────┐
-│   Railway (Express API)     │◄────┐ BullMQ-style workers
-│   Autoscaled containers     │     │ share Redis client
+│   Railway (Express API)     │◄────┐ PDFs render inline
+│   Stateless containers      │     │ no background queue
 └──────────────▲──────────────┘     │
                │                    │
                │ HTTPS (private)    │
@@ -24,7 +24,7 @@ The platform is delivered as a TypeScript monorepo with a React SPA (`frontend/`
 
 ### Why This Design
 
-- **Managed services** keep the operational footprint lean for a small dealership team. Railway handles container restarts and autoscaling; Cloudflare Pages provides TLS and caching without bespoke infra.
+- **Managed services** keep the operational footprint lean for a small dealership team. Railway handles container restarts and deploys; Cloudflare Pages provides TLS and caching without bespoke infra.
 - **Stateless API containers** with Redis-backed tokens make horizontal scaling trivial and keep refresh-token revocation cheap.
 - **MongoDB document model** matches the bill/quotation domain—each record captures a full business transaction without joins. Encryption plugins protect NIC and address data.
 - **Single source of branding truth** (MongoDB collection) guarantees consistent dealer identity across all outputs.

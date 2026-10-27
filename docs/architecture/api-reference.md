@@ -281,9 +281,8 @@ Used by the proforma invoice form to populate a searchable dropdown with auto-fi
 
 | Method | Path | Auth | Description |
 | --- | --- | --- | --- |
-| GET | `/api/health` | Public | Liveness probe returning MongoDB and Redis status. |
-| GET | `/api/health/details` | Public (dev) / Authenticated (prod) | Detailed health with build info, environment, and system metrics. |
-| GET | `/api/health/metrics` | Authenticated (optional) | Prometheus-style metrics when enabled. |
+| GET | `/api/health` | Public | Liveness probe. Returns 200 with `{"status":"ok"}`. |
+| GET | `/api/health/details` | Public | Uptime, server and memory info, database state, and resolved client IP. |
 
 ## Error Handling
 

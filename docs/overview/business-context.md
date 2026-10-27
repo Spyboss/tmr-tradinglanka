@@ -34,7 +34,7 @@ The TMR Trading Lanka Business Management System is an internal DMS (Dealership 
 ## Current Operating Environment
 
 - **Frontend** – React + Vite SPA hosted on Cloudflare Pages behind Zero Trust for preview environments.
-- **Backend** – Node.js (Express + TypeScript) API on Railway with autoscaling containers and Redis-backed rate limiting.
+- **Backend** – Node.js (Express + TypeScript) API on Railway with stateless containers and Redis-backed rate limiting.
 - **Data Stores** – MongoDB Atlas (application data) and Redis Cloud (sessions, rate limits, verification tokens).
 - **File Outputs** – PDFKit renders bills, quotations, and inventory reports; assets are consumed directly by clients.
 

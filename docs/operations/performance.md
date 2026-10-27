@@ -4,15 +4,15 @@ This guide summarises the current performance characteristics and tuning levers.
 
 ## Backend Throughput
 
-- Typical bill creation completes within **<1.2s** (95th percentile) when MongoDB and Redis are co-located in the same region.
-- Inventory analytics endpoints aggregate using MongoDB pipeline with indexes on `bikeModelId` and `status`. Expect ~200ms for datasets under 10k records.
-- PDF generation leverages PDFKit; most requests finish in under 700ms. For large batch exports prefer asynchronous workers.
+- Bill creation is bounded by the MongoDB write and the Redis token write. Target under **1.2s** at the 95th percentile with MongoDB and Redis in the same region; no benchmark results are checked into this repo.
+- Inventory analytics aggregate in MongoDB with indexes on `bikeModelId` and `status`. A few hundred milliseconds is the target for datasets under 10k records.
+- PDF generation uses PDFKit and runs inline. Single-document requests usually finish in under a second; large batch exports should move to a worker.
 
 ## Scaling Strategy
 
-- Railway autoscaling adds containers when CPU >70% for 3 minutes. Ensure Redis plan supports expected concurrency.
+- Railway adds containers when CPU stays high, if autoscaling is enabled on the service. Redis must support the extra concurrency.
 - API containers are stateless. Session data (refresh tokens, verification tokens, rate limits) live in Redis, so additional instances require no warm-up.
-- Enable Horizontal Pod Auto Scaling equivalent if migrating to Kubernetes; metrics already available via Prometheus.
+- If this ever moves to Kubernetes, the stateless container model carries over unchanged. The API exposes no metrics endpoint, so scaling would key off container CPU and memory.
 
 ## Frontend Performance
 
@@ -37,6 +37,6 @@ This guide summarises the current performance characteristics and tuning levers.
 
 ## Future Optimisations
 
-- Introduce job queue workers for heavy PDF workloads (BullMQ integration hooks already exist in services layer).
+- Introduce a job queue for heavy PDF workloads. PDFs render inline in the request that asked for them, so a large export holds that request open until it finishes.
 - Cache bike model lookups in Redis to reduce repeated reads on bill creation forms.
 - Add dataloader/resolver caching in frontend for repeated dropdown data.

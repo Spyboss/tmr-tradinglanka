@@ -28,8 +28,8 @@ Deployments run through each platform's native Git integration; see the sections
    - `CORS_ORIGINS=https://tmr-tradinglanka.pages.dev`
    - `ALLOW_NO_ORIGIN=true` (keeps Railway health check working)
 5. **Health checks**: ensure Railway probes `GET /api/health`.
-6. **Autoscaling**: enable auto-start and auto-stop. Each container is stateless; Redis covers refresh token revocation.
-7. **Logs & Metrics**: connect Railway log drains to Better Stack or similar; `/api/health/metrics` can be scraped when secured.
+6. **Availability**: enable auto-start and auto-stop. Each container is stateless; Redis covers refresh token revocation.
+7. **Logs**: connect Railway log drains to Better Stack or similar. The API exposes `/api/health` and `/api/health/details`, but no metrics endpoint.
 
 ### Manual Deploy
 

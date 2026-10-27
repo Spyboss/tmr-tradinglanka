@@ -25,6 +25,8 @@ All notable changes to this project are documented in this file. The format foll
 - Finance Company Sales PDF: shows `unitPrice` instead of `amountToBeLeased` in the amount column for consistency with proforma invoices.
 - Finance Company Sales PDF: replaced "Bill No" column with "NIC" to show customer identity instead of internal bill references.
 - Finance Company Sales PDF: reordered columns to `# | Date | Customer | NIC | Chassis No | Motor No | Model | Unit Price` and re-encrypts NIC fields with the current Railway `ENCRYPTION_KEY`.
+- Bill delete now ends the session in a `finally` block and always returns a response, even when `abortTransaction()` throws. The reported hang is still unconfirmed.
+- Production image build fails fast when the compiled entry point is missing, instead of starting a container that cannot serve traffic.
 
 ### Added
 - FinanceCompany model with name, address, and contact for master list of finance partners.
@@ -52,6 +54,8 @@ All notable changes to this project are documented in this file. The format foll
 - **Warranty claim form number uniqueness enforcement** — partial unique index on `formNumber` (non-empty values only). `GET /api/warranty-claims/check-form-number?number=X` for real-time availability. `GET /api/warranty-claims/suggest-next-number` to auto-fill the next sequential book number. Client-side validation shows green checkmark (available) or red warning (taken) with pre-submit guard.
 - **Form number display** in warranty claim list table (new "Form No" column) and detail view page (Office Use Only section), so users can see the physical book number without downloading the PDF.
 - Inventory selection and auto-create in bill edit form — users can change the linked inventory item or auto-create a new one when editing a bill.
+- Privacy (`/privacy`) and Terms (`/terms`) pages, plus a real 404 route.
+- Login form "remember me" stores the email address only and prefills it on the next visit.
 
 ### Changed
 - Dashboard cards restructured: Bills + New Bill merged into one card, Warranty Claims pulled out of Reports into its own card. Reports card reserved for future reporting entry points.
@@ -68,6 +72,17 @@ All notable changes to this project are documented in this file. The format foll
 - Finance Company Sales Report PDF: layout switched to landscape A4 (842×595) with wider columns for readable content. Dynamic row heights calculated per row using `heightOfString` to eliminate text overflow from wrapped customer names, chassis, and motor numbers. Column widths tuned: #=22, Bill No=100, Date=70, Customer=148, Chassis=122, Motor=116, Model=60, Amount=65. Cell padding increased to 5px for horizontal breathing room. Footer text updated to "Software solution by UHADEV". Branding loaded by userId first with system-wide fallback, matching the pattern used by pdfService.
 - Proforma PDF `drawFieldRow` box heights are now dynamic — fields grow to fit their content instead of clipping wrapped text at a fixed 28px customer name box.
 - Warranty claim payload replaced `batterySerialNumbers` (flat string array) with `warrantyParts` (array of `{ partType, customLabel?, serialNumbers[] }`) for structured part tracking.
+- Production build runs `tsc` again and installs dev dependencies with `--include=dev`, so the type check survives `NODE_ENV=production`.
+- Production Dockerfile moved from EOL Node 18 to Node 24 Active LTS.
+- react-router-dom 6.30.6 → 7.18.4, clearing CVE-2026-53669.
+- Frontend routes are code split per route; dead signature components and their two UI dependencies removed.
+- Dependabot now has exactly one owner per package-lock.
+- Unused backend dependencies dropped. `vitest` 4.1.12 and `typescript-eslint` 8.71.2 bring the backend audit to zero.
+- Health details report the resolved `req.ip`, `req.ips`, and `x-forwarded-for` to diagnose rate-limit behaviour.
+
+### Security
+- Express trusts one proxy hop (`app.set('trust proxy', 1)`). `/api/health/details` exposes `trustProxy`, `req.ip`, `req.ips`, and `x-forwarded-for`, so the resolved value can be checked from outside.
+- Account-key login rate limiting no longer resets when a CGNAT client rotates public IPs.
 
 ## [2.0.0] - 2024-11-01
 ### Added

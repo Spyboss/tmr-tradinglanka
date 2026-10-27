@@ -5,7 +5,7 @@ Dealership Management System (DMS) for Sri Lankan motorcycle dealerships. The pl
 
 ![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
-![Node](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg)
+![Node](https://img.shields.io/badge/node-%3E%3D24.0.0-brightgreen.svg)
 ![React](https://img.shields.io/badge/react-18.2.0-blue.svg)
 
 </div>
@@ -56,8 +56,8 @@ Further business context lives in [`docs/overview/business-context.md`](./docs/o
 
 | Layer | Technology |
 | --- | --- |
-| Frontend | React 18, Vite, Ant Design, TailwindCSS |
-| Backend | Node.js 18, Express, TypeScript, Mongoose |
+| Frontend | React 18, Vite 7, React Router 7, Ant Design, TailwindCSS |
+| Backend | Node.js 24, Express, TypeScript, Mongoose |
 | Data | MongoDB Atlas, Redis Cloud |
 | Infrastructure | Cloudflare Pages, Railway |
 | PDFs | PDFKit templates with dynamic branding |
@@ -84,8 +84,8 @@ Further business context lives in [`docs/overview/business-context.md`](./docs/o
 └──────────────▲───────────────────────────────────┘
                │ HTTPS (browser)
 ┌──────────────┴──────────────┐
-│   Railway (Express API)     │◄─────┐ BullMQ-ready workers share Redis
-│   Autoscaled containers     │      │
+│   Railway (Express API)     │◄─────┐ PDFs render inline on the API
+│   Stateless containers      │      │
 └──────────────▲──────────────┘      │
                │                     │
                │ HTTPS (private)     │
