@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Form, Input, Select, Button, DatePicker, InputNumber, Switch, message, Spin, Card, Modal, Table, Tag, AutoComplete } from 'antd';
 import moment from 'moment';
@@ -25,7 +25,19 @@ const BillEdit = () => {
   const [loadingInventory, setLoadingInventory] = useState(false);
   const [selectedInventoryItem, setSelectedInventoryItem] = useState(null);
   const [inventoryTouched, setInventoryTouched] = useState(false);
+  const [inventorySearch, setInventorySearch] = useState('');
   const [colourOptions, setColourOptions] = useState([]);
+
+  // Client-side filter so users can type part of a chassis/motor number
+  // (e.g. the last few characters) instead of paging through the stock list.
+  const filteredBikes = useMemo(() => {
+    const query = inventorySearch.trim().toLowerCase();
+    if (!query) return availableBikes;
+    return availableBikes.filter((bike) =>
+      (bike.motorNumber || '').toLowerCase().includes(query) ||
+      (bike.chassisNumber || '').toLowerCase().includes(query)
+    );
+  }, [availableBikes, inventorySearch]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -142,6 +154,7 @@ const BillEdit = () => {
     }
     try {
       setLoadingInventory(true);
+      setInventorySearch('');
       const response = await getAvailableBikesByModel(selectedModel._id || selectedModel.id);
       setAvailableBikes(response || []);
       setInventoryModalVisible(true);
@@ -497,7 +510,23 @@ const BillEdit = () => {
             <p>No available bikes found for this model.</p>
           </div>
         ) : (
-          <Table columns={inventoryColumns} dataSource={availableBikes} rowKey="_id" pagination={{ pageSize: 5 }} scroll={{ x: 'max-content' }} />
+          <>
+            <Input.Search
+              placeholder="Type chassis or motor number (last few characters OK)"
+              allowClear
+              autoFocus
+              value={inventorySearch}
+              onChange={(e) => setInventorySearch(e.target.value)}
+              className="mb-3"
+            />
+            {filteredBikes.length === 0 ? (
+              <div className="text-center py-8 dark:text-gray-300">
+                <p>No bikes match "{inventorySearch.trim()}".</p>
+              </div>
+            ) : (
+              <Table columns={inventoryColumns} dataSource={filteredBikes} rowKey="_id" pagination={{ pageSize: 5 }} scroll={{ x: 'max-content' }} />
+            )}
+          </>
         )}
       </Modal>
       </Card>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Form, Input, Select, Button, DatePicker, InputNumber, Switch, message, Modal, Table, Spin, Tag, AutoComplete } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import apiClient from '../config/apiClient';
@@ -24,6 +24,18 @@ const BillGeneratorUnified = () => {
   const [availableBikes, setAvailableBikes] = useState([]);
   const [loadingInventory, setLoadingInventory] = useState(false);
   const [selectedInventoryItem, setSelectedInventoryItem] = useState(null);
+  const [inventorySearch, setInventorySearch] = useState('');
+
+  // Client-side filter so users can type part of a chassis/motor number
+  // (e.g. the last few characters) instead of paging through the stock list.
+  const filteredBikes = useMemo(() => {
+    const query = inventorySearch.trim().toLowerCase();
+    if (!query) return availableBikes;
+    return availableBikes.filter((bike) =>
+      (bike.motorNumber || '').toLowerCase().includes(query) ||
+      (bike.chassisNumber || '').toLowerCase().includes(query)
+    );
+  }, [availableBikes, inventorySearch]);
 
   // Colour suggestions from existing inventory (manual entry still allowed)
   const [colourOptions, setColourOptions] = useState([]);
@@ -86,6 +98,7 @@ const BillGeneratorUnified = () => {
     }
     try {
       setLoadingInventory(true);
+      setInventorySearch('');
       const response = await getAvailableBikesByModel(selectedModel._id);
       setAvailableBikes(response || []);
       setInventoryModalVisible(true);
@@ -555,7 +568,23 @@ const BillGeneratorUnified = () => {
             <Button type="primary" onClick={() => navigate('/inventory/add')} className="mt-4">Add Bikes to Inventory</Button>
           </div>
         ) : (
-          <Table columns={inventoryColumns} dataSource={availableBikes} rowKey="_id" scroll={{ x: 'max-content' }} pagination={{ pageSize: 5 }} />
+          <>
+            <Input.Search
+              placeholder="Type chassis or motor number (last few characters OK)"
+              allowClear
+              autoFocus
+              value={inventorySearch}
+              onChange={(e) => setInventorySearch(e.target.value)}
+              className="mb-3"
+            />
+            {filteredBikes.length === 0 ? (
+              <div className="text-center py-8 dark:text-gray-300">
+                <p>No bikes match "{inventorySearch.trim()}".</p>
+              </div>
+            ) : (
+              <Table columns={inventoryColumns} dataSource={filteredBikes} rowKey="_id" scroll={{ x: 'max-content' }} pagination={{ pageSize: 5 }} />
+            )}
+          </>
         )}
       </Modal>
 
