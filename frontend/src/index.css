@@ -971,3 +971,19 @@ html.dark {
     background: #f8f9fa !important;
   }
 }
+
+/* Keyboard-driven navigation: visible focus ring on table rows.
+   Rows get tabIndex=0 on list pages so Arrow/Enter shortcuts work. */
+.ant-table-tbody > tr[tabindex]:focus {
+  outline: 2px solid #1677ff;
+  outline-offset: -2px;
+}
+
+.ant-table-tbody > tr[tabindex]:focus:not(:focus-visible) {
+  outline: none; /* mouse click shouldn't ring, keyboard focus should */
+}
+
+.ant-table-tbody > tr[tabindex]:focus-visible {
+  outline: 2px solid #1677ff;
+  outline-offset: -2px;
+}

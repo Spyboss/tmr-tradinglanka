@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import apiClient from '../config/apiClient';
 import toast from 'react-hot-toast';
 import moment from 'moment';
+import useHotkeys, { focusPageSearch, focusFirstRow } from '../hooks/useHotkeys';
 
 const { Option } = Select;
 
@@ -23,6 +24,19 @@ const QuotationList = () => {
     type: '',
     bikeRegNo: ''
   });
+
+  // Keyboard-driven usage: page-level shortcuts. Row keys (arrows, Enter,
+  // e, p) live on the row itself via handleRowKeyDown.
+  useHotkeys([
+    { key: '/', description: 'Focus search', handler: () => focusPageSearch() },
+    { key: 'n', description: 'New quotation', handler: () => navigate('/quotations/new') },
+    { key: '↑ ↓', description: 'Move between rows', handler: null },
+    { key: 'Enter', description: 'Open focused row', handler: null },
+    { key: 'e', description: 'Edit focused row', handler: null },
+    { key: 'p', description: 'Download PDF of focused row', handler: null },
+    { key: 'Esc', description: 'Leave search box', handler: null },
+    { key: '?', description: 'Show keyboard shortcuts', handler: null },
+  ]);
 
   useEffect(() => {
     fetchQuotations();
@@ -130,6 +144,47 @@ const QuotationList = () => {
     } catch (error) {
       console.error('Error converting to invoice:', error);
       toast.error('Failed to convert to invoice');
+    }
+  };
+
+  // Move focus between table rows with ArrowUp/ArrowDown.
+  const moveRowFocus = (row, delta) => {
+    const rows = Array.from(row.closest('tbody')?.querySelectorAll('tr[tabindex]') || []);
+    const index = rows.indexOf(row);
+    const next = rows[index + delta];
+    if (next) next.focus();
+  };
+
+  // Keyboard shortcuts on a focused row. Only fire when the row itself is
+  // the event target, so buttons inside the row keep native Enter/Space.
+  const handleRowKeyDown = (e, record) => {
+    if (e.target !== e.currentTarget) return;
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    switch (e.key) {
+      case 'Enter':
+        e.preventDefault();
+        navigate(`/quotations/${record._id}`);
+        break;
+      case 'ArrowDown':
+        e.preventDefault();
+        moveRowFocus(e.currentTarget, 1);
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        moveRowFocus(e.currentTarget, -1);
+        break;
+      case 'e':
+      case 'E':
+        e.preventDefault();
+        navigate(`/quotations/${record._id}/edit`);
+        break;
+      case 'p':
+      case 'P':
+        e.preventDefault();
+        handleDownloadPDF(record._id, record.quotationNumber);
+        break;
+      default:
+        break;
     }
   };
 
@@ -287,8 +342,10 @@ const QuotationList = () => {
           placeholder="Search quotations..."
           value={filters.search}
           onChange={(e) => handleFilterChange('search', e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'ArrowDown') { e.preventDefault(); focusFirstRow(); } }}
           prefix={<SearchOutlined />}
           allowClear
+          data-page-search
         />
         <Input
           placeholder="Bike Reg No..."
@@ -338,6 +395,18 @@ const QuotationList = () => {
           onChange={handleTableChange}
           rowKey="_id"
           scroll={{ x: 1200 }}
+          onRow={(record) => ({
+            onClick: (e) => {
+              // Ignore clicks on the row's own controls (buttons, links,
+              // selects) so action clicks don't double-navigate.
+              if (e.target.closest('button, a, input, .ant-select')) return;
+              navigate(`/quotations/${record._id}`);
+            },
+            onKeyDown: (e) => handleRowKeyDown(e, record),
+            tabIndex: 0,
+            'aria-label': `Quotation ${record.quotationNumber || record._id.substring(0, 8)}`,
+            style: { cursor: 'pointer' }
+          })}
         />
       </div>
 

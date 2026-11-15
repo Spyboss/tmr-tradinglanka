@@ -8,6 +8,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext'; // Import ThemeProvider and useTheme
 import ProtectedRoute from './components/ProtectedRoute';
 import PwaInstallPrompt from './components/PwaInstallPrompt';
+import ShortcutHelp from './components/ShortcutHelp';
 
 // Public entry pages stay eager: they are the first thing a logged-out
 // visitor touches, so they must not wait on a chunk fetch.
@@ -181,6 +182,7 @@ const AppContent = () => {
         </footer>
         <Toaster position="top-right" />
         <PwaInstallPrompt />
+        <ShortcutHelp />
       </div>
     </ConfigProvider>
   );

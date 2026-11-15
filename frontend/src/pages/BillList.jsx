@@ -5,6 +5,7 @@ import apiClient from '../config/apiClient'
 import { formatColomboDate } from '../utils/formatDate'
 import { Table, Tag, Button, Space, Popconfirm, message, Spin, Input, Badge, Select, DatePicker, InputNumber, Modal } from 'antd'
 import { PlusOutlined, SearchOutlined, DownloadOutlined, EyeOutlined, EditOutlined, DeleteOutlined, FileExcelOutlined, PrinterOutlined } from '@ant-design/icons'
+import useHotkeys, { focusPageSearch, focusFirstRow } from '../hooks/useHotkeys'
 
 const BillList = () => {
   const navigate = useNavigate()
@@ -20,6 +21,23 @@ const BillList = () => {
   const [history, setHistory] = useState(() => {
     try { return JSON.parse(localStorage.getItem('bill_view_history') || '[]') } catch { return [] }
   })
+  // True until the first fetch finishes: only then show the full-page
+  // spinner. Later refetches (search/filter/pagination) keep the page
+  // mounted so focus survives, e.g. staying in the search box.
+  const [initialized, setInitialized] = useState(false)
+
+  // Keyboard-driven usage: page-level shortcuts. Row keys (arrows, Enter,
+  // e, p) live on the row itself via handleRowKeyDown.
+  useHotkeys([
+    { key: '/', description: 'Focus search', handler: () => focusPageSearch() },
+    { key: 'n', description: 'Create new bill', handler: () => navigate('/bills/new') },
+    { key: '↑ ↓', description: 'Move between rows', handler: null },
+    { key: 'Enter', description: 'Open focused row', handler: null },
+    { key: 'e', description: 'Edit focused row', handler: null },
+    { key: 'p', description: 'Download PDF of focused row', handler: null },
+    { key: 'Esc', description: 'Leave search box', handler: null },
+    { key: '?', description: 'Show keyboard shortcuts', handler: null },
+  ])
 
   const debounceSearch = useCallback((value) => {
     const timer = setTimeout(() => setDebouncedSearch(value), 500)
@@ -97,6 +115,7 @@ const BillList = () => {
       setBills([])
     } finally {
       setLoading(false)
+      setInitialized(true)
     }
   }
 
@@ -204,6 +223,48 @@ const BillList = () => {
     } catch (error) {
       console.error('Error updating bill status:', error);
       toast.error('Failed to update bill status');
+    }
+  }
+
+  // Move focus between table rows with ArrowUp/ArrowDown.
+  const moveRowFocus = (row, delta) => {
+    const rows = Array.from(row.closest('tbody')?.querySelectorAll('tr[tabindex]') || []);
+    const index = rows.indexOf(row);
+    const next = rows[index + delta];
+    if (next) next.focus();
+  }
+
+  // Keyboard shortcuts on a focused row. Only fire when the row itself is
+  // the event target, so buttons inside the row keep native Enter/Space.
+  const handleRowKeyDown = (e, record) => {
+    if (e.target !== e.currentTarget) return;
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    switch (e.key) {
+      case 'Enter':
+        e.preventDefault();
+        pushHistory(record._id);
+        navigate(`/bills/${record._id}`);
+        break;
+      case 'ArrowDown':
+        e.preventDefault();
+        moveRowFocus(e.currentTarget, 1);
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        moveRowFocus(e.currentTarget, -1);
+        break;
+      case 'e':
+      case 'E':
+        e.preventDefault();
+        navigate(`/bills/${record._id}/edit`);
+        break;
+      case 'p':
+      case 'P':
+        e.preventDefault();
+        handleDownloadPDF(record._id);
+        break;
+      default:
+        break;
     }
   }
 
@@ -403,7 +464,10 @@ const BillList = () => {
     },
   ];
 
-  if (loading) {
+  // Full-page spinner only on first load: refetches (search, filters,
+  // pagination) keep the page mounted so focus survives, e.g. staying in
+  // the search box after pressing Enter.
+  if (loading && !initialized) {
     return (
       <div className="flex justify-center items-center h-screen dark:bg-slate-900">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
@@ -421,9 +485,11 @@ const BillList = () => {
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
             onSearch={(value) => setDebouncedSearch(value)}
+            onKeyDown={(e) => { if (e.key === 'ArrowDown') { e.preventDefault(); focusFirstRow(); } }}
             className="w-full sm:w-80"
             allowClear
             enterButton
+            data-page-search
           />
           <DatePicker.RangePicker
             className="w-full sm:w-auto"
@@ -482,11 +548,15 @@ const BillList = () => {
           rowKey="_id"
           dataSource={bills}
           columns={columns}
+          loading={loading}
           scroll={{ x: 'max-content' }}
           pagination={{ current: pagination.current, pageSize: pagination.pageSize, total: pagination.total, onChange: handlePageChange }}
           className="bg-white dark:bg-gray-800 rounded-lg shadow dark:border dark:border-gray-700"
           onRow={(record) => ({
             onClick: () => { pushHistory(record._id); navigate(`/bills/${record._id}`) },
+            onKeyDown: (e) => handleRowKeyDown(e, record),
+            tabIndex: 0,
+            'aria-label': `Bill ${record.billNumber || record._id.substring(0, 8)}`,
             style: { cursor: 'pointer' }
           })}
         />
