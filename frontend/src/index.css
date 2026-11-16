@@ -972,18 +972,17 @@ html.dark {
   }
 }
 
-/* Keyboard-driven navigation: visible focus ring on table rows.
-   Rows get tabIndex=0 on list pages so Arrow/Enter shortcuts work. */
-.ant-table-tbody > tr[tabindex]:focus {
-  outline: 2px solid #1677ff;
-  outline-offset: -2px;
+/* Keyboard-driven list navigation: the selected row highlight.
+   Selection is React state (not DOM focus), so this class is applied by
+   the shared useListCursor hook via the table's rowClassName. Mouse hover
+   and keyboard arrows move the same selection, so the highlight always
+   matches what Enter/e/p will act on. */
+.ant-table-tbody > tr.row-active > td {
+  background-color: #e6f4ff !important;
+  box-shadow: inset 3px 0 0 #1677ff;
 }
 
-.ant-table-tbody > tr[tabindex]:focus:not(:focus-visible) {
-  outline: none; /* mouse click shouldn't ring, keyboard focus should */
-}
-
-.ant-table-tbody > tr[tabindex]:focus-visible {
-  outline: 2px solid #1677ff;
-  outline-offset: -2px;
+.dark .ant-table-tbody > tr.row-active > td {
+  background-color: #0b2f52 !important;
+  box-shadow: inset 3px 0 0 #4096ff;
 }

@@ -1,19 +1,42 @@
 import React, { useEffect, useState } from 'react';
 import { Modal } from 'antd';
-import useHotkeys, { getRegisteredShortcuts } from '../hooks/useHotkeys';
+import { useHotkeys } from 'react-hotkeys-hook';
+import { getPageShortcuts } from '../hooks/useListCursor';
 
-// "?" opens a shortcut cheat sheet built live from the registry, so it
-// always lists exactly the shortcuts active on the current page.
+// "?" opens a shortcut cheat sheet built live from the current page's
+// manifest, so it always lists exactly the shortcuts active on that page.
 const ShortcutHelp = () => {
   const [open, setOpen] = useState(false);
   const [shortcuts, setShortcuts] = useState([]);
 
-  useHotkeys([
-    { key: '?', description: 'Show keyboard shortcuts', handler: () => setOpen((prev) => !prev) },
-  ]);
+  useHotkeys('?', (e) => {
+    e.preventDefault();
+    setOpen((prev) => !prev);
+  }, {
+    enabled: (e) => !e.target.closest('input, textarea, select, [contenteditable]'),
+    useKey: true,
+    ignoreModifiers: true,
+  });
+
+  // Base shortcuts are available on every page; page lists append their own
+  // via useListCursor's getPageShortcuts() so the overlay is never empty.
+  const baseShortcuts = [
+    { key: '/', description: 'Focus search' },
+    { key: '?', description: 'Show keyboard shortcuts' },
+  ];
 
   useEffect(() => {
-    if (open) setShortcuts(getRegisteredShortcuts());
+    if (!open) return;
+    const page = getPageShortcuts() || [];
+    const seen = new Set();
+    const merged = [];
+    for (const s of [...baseShortcuts, ...page]) {
+      const sig = `${s.key}|${s.description}`;
+      if (seen.has(sig)) continue;
+      seen.add(sig);
+      merged.push(s);
+    }
+    setShortcuts(merged);
   }, [open]);
 
   return (
