@@ -23,7 +23,7 @@
     "lint": "echo \"No linting configured\""
   },
   "dependencies": {
-    "antd": "^5.15.1",
+    "antd": "^6.6.7",
     "axios": "^1.11.0",
     "date-fns": "^4.1.0",
     "moment": "^2.30.1",
