@@ -7,18 +7,6 @@ import toast from 'react-hot-toast';
 import moment from 'moment';
 import useListCursor from '../hooks/useListCursor'
 
-// Page-specific keyboard shortcuts for the Quotations list.
-const quotationShortcuts = [
-  { key: '/', description: 'Focus search' },
-  { key: '?', description: 'Show keyboard shortcuts' },
-  { key: 'j', description: 'Move to next quotation' },
-  { key: 'k', description: 'Move to previous quotation' },
-  { key: 'Enter', description: 'Open selected quotation' },
-  { key: 'e', description: 'Edit selected quotation' },
-  { key: 'p', description: 'Download PDF of selected quotation' },
-  { key: 'Esc', description: 'Deselect' },
-];
-
 const { Option } = Select;
 
 const QuotationList = () => {
@@ -37,17 +25,17 @@ const QuotationList = () => {
     bikeRegNo: ''
   });
 
-  // Keyboard-driven usage: shared list cursor. Handles j/k/arrows,
-  // Enter, e, p, n, /, Esc globally on the page, and highlights the
-  // selected row via rowClassName. Selection is React state, not DOM focus.
+  // Keyboard-driven usage: one selected row, driven by j/k and the arrows.
+  // Enter/e/p act on it, n starts a new quotation, / jumps to the search box.
+  // Selection is React state keyed by the record id — never DOM focus.
   const cursor = useListCursor({
     items: quotations,
+    noun: 'quotation',
+    pageLabel: 'Quotations & invoices',
     onOpen: (record) => { navigate(`/quotations/${record._id}`) },
     onEdit: (record) => { navigate(`/quotations/${record._id}/edit`) },
     onDownload: (record) => { handleDownloadPDF(record._id, record.quotationNumber) },
     onCreate: () => { navigate('/quotations/new') },
-    shortcuts: quotationShortcuts,
-    resetKey: `${pagination.current}-${pagination.pageSize}-${filters.status}-${filters.type}-${filters.bikeRegNo}-${filters.search}`,
   })
 
   useEffect(() => {
@@ -312,7 +300,7 @@ const QuotationList = () => {
           placeholder="Search quotations..."
           value={filters.search}
           onChange={(e) => handleFilterChange('search', e.target.value)}
-          onKeyDown={(e) => { if (e.key === 'ArrowDown') { e.preventDefault(); cursor.moveFromSearch(e, true); } }}
+          onKeyDown={cursor.searchKeyDown}
           prefix={<SearchOutlined />}
           allowClear
           data-page-search
@@ -366,14 +354,13 @@ const QuotationList = () => {
           rowKey="_id"
           scroll={{ x: 1200 }}
           rowClassName={cursor.rowClassName}
-          onRow={(record, index) => ({
+          onRow={(record) => ({
             onClick: (e) => {
               // Ignore clicks on the row's own controls (buttons, links,
               // selects) so action clicks don't double-navigate.
               if (e.target.closest('button, a, input, .ant-select')) return;
               navigate(`/quotations/${record._id}`);
             },
-            onMouseEnter: () => cursor.setSelected(index),
             'aria-label': `Quotation ${record.quotationNumber || record._id.substring(0, 8)}`,
             style: { cursor: 'pointer' }
           })}

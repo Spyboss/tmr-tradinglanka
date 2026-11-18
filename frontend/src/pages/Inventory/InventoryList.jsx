@@ -5,6 +5,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { getInventory, deleteInventory } from '../../services/inventoryService';
 import { format } from 'date-fns';
+import useListCursor from '../../hooks/useListCursor';
 
 const { Option } = Select;
 
@@ -34,6 +35,18 @@ const InventoryList = () => {
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
   const [deleteReason, setDeleteReason] = useState('');
+  const [searchText, setSearchText] = useState('');
+
+  // Keyboard-driven usage, same model as Bills and Quotations: j/k move the
+  // selection, Enter opens that bike for editing, n adds one, / finds search.
+  const cursor = useListCursor({
+    items: inventory,
+    noun: 'bike',
+    pageLabel: 'Bike inventory',
+    onOpen: (item) => { navigate(`/inventory/edit/${item._id}`) },
+    onCreate: () => { navigate('/inventory/add') },
+    onCommitSearch: () => handleSearch(searchText),
+  });
 
   useEffect(() => {
     fetchInventory();
@@ -220,9 +233,13 @@ const InventoryList = () => {
         <div className="flex flex-wrap gap-3 sm:gap-4 mb-4">
           <Input.Search
             placeholder="Search motor or chassis number"
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
             onSearch={handleSearch}
+            onKeyDown={cursor.searchKeyDown}
             className="w-full sm:w-72"
             allowClear
+            data-page-search
           />
           <Select
             placeholder="Filter by status"
@@ -257,6 +274,7 @@ const InventoryList = () => {
             }}
             loading={loading}
             onChange={handleTableChange}
+            rowClassName={cursor.rowClassName}
           />
         </div>
 

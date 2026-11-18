@@ -9,6 +9,8 @@ import { ThemeProvider, useTheme } from './contexts/ThemeContext'; // Import The
 import ProtectedRoute from './components/ProtectedRoute';
 import PwaInstallPrompt from './components/PwaInstallPrompt';
 import ShortcutHelp from './components/ShortcutHelp';
+import GlobalShortcuts from './components/GlobalShortcuts';
+import { ShortcutHelpProvider } from './contexts/ShortcutHelpContext';
 
 // Public entry pages stay eager: they are the first thing a logged-out
 // visitor touches, so they must not wait on a chunk fetch.
@@ -182,6 +184,7 @@ const AppContent = () => {
         </footer>
         <Toaster position="top-right" />
         <PwaInstallPrompt />
+        <GlobalShortcuts />
         <ShortcutHelp />
       </div>
     </ConfigProvider>
@@ -193,7 +196,9 @@ const App = () => {
     <Router>
       <AuthProvider>
         <ThemeProvider>
-          <AppContent />
+          <ShortcutHelpProvider>
+            <AppContent />
+          </ShortcutHelpProvider>
         </ThemeProvider>
       </AuthProvider>
     </Router>

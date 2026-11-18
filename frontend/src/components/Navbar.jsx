@@ -5,11 +5,13 @@ import { useTheme } from '../contexts/ThemeContext'; // Import useTheme
 import VerificationBadge from './VerificationBadge';
 import { getVerificationStatus } from '../services/verification';
 import apiClient from '../config/apiClient';
+import { useShortcutHelp } from '../contexts/ShortcutHelpContext';
 
 export default function Navbar() {
   const location = useLocation();
   const { user, isAuthenticated, logout, loading } = useAuth();
   const { isDarkMode, toggleTheme } = useTheme(); // Use theme context
+  const { toggleHelp } = useShortcutHelp();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [dealerName, setDealerName] = useState('TMR Trading Lanka (Pvt) Ltd');
@@ -185,6 +187,23 @@ export default function Navbar() {
           </div>
 
           <div className="hidden sm:ml-6 sm:flex sm:items-center">
+            {/* Keyboard cheat sheet: the visible half of the "?" shortcut */}
+            <button
+              type="button"
+              onClick={toggleHelp}
+              aria-label="Keyboard shortcuts"
+              title="Keyboard shortcuts (?)"
+              className="mr-2 inline-flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M3 7a2 2 0 012-2h14a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M7 9h.01M11 9h.01M15 9h.01M7 12h.01M11 12h.01M15 12h.01M7 15h6M16 15h1" />
+              </svg>
+              <kbd className="rounded border border-gray-300 bg-gray-50 px-1.5 py-0.5 font-mono text-xs font-semibold dark:border-gray-600 dark:bg-gray-700">
+                ?
+              </kbd>
+            </button>
+
             {/* Theme Toggle Button */}
             <button
               onClick={toggleTheme}

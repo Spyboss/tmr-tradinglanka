@@ -972,17 +972,30 @@ html.dark {
   }
 }
 
-/* Keyboard-driven list navigation: the selected row highlight.
-   Selection is React state (not DOM focus), so this class is applied by
-   the shared useListCursor hook via the table's rowClassName. Mouse hover
-   and keyboard arrows move the same selection, so the highlight always
-   matches what Enter/e/p will act on. */
+/* Keyboard-driven list navigation: the selected row (useListCursor).
+   Selection is React state keyed by record id, so it survives a refetch and
+   never depends on DOM focus. One accent on the leading edge of the row reads
+   as a single bar; applying it to every cell drew a divider between columns. */
 .ant-table-tbody > tr.row-active > td {
   background-color: #e6f4ff !important;
+}
+
+.ant-table-tbody > tr.row-active > td:first-child {
   box-shadow: inset 3px 0 0 #1677ff;
+}
+
+.ant-table-tbody > tr.row-active:hover > td {
+  background-color: #d6e9ff !important;
 }
 
 .dark .ant-table-tbody > tr.row-active > td {
   background-color: #0b2f52 !important;
+}
+
+.dark .ant-table-tbody > tr.row-active > td:first-child {
   box-shadow: inset 3px 0 0 #4096ff;
+}
+
+.dark .ant-table-tbody > tr.row-active:hover > td {
+  background-color: #113a63 !important;
 }

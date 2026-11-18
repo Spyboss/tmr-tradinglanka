@@ -7,20 +7,6 @@ import { Table, Tag, Button, Space, Popconfirm, message, Spin, Input, Badge, Sel
 import { PlusOutlined, SearchOutlined, DownloadOutlined, EyeOutlined, EditOutlined, DeleteOutlined, FileExcelOutlined, PrinterOutlined } from '@ant-design/icons'
 import useListCursor from '../hooks/useListCursor'
 
-// Page-specific keyboard shortcuts for the Bills list, fed to the shared
-// cursor hook (which registers the action keys) and to the '?' help overlay
-// (which reads the same manifest back via getPageShortcuts).
-const billShortcuts = [
-  { key: '/', description: 'Focus search' },
-  { key: '?', description: 'Show keyboard shortcuts' },
-  { key: 'j', description: 'Move to next bill' },
-  { key: 'k', description: 'Move to previous bill' },
-  { key: 'Enter', description: 'Open selected bill' },
-  { key: 'e', description: 'Edit selected bill' },
-  { key: 'p', description: 'Download PDF of selected bill' },
-  { key: 'Esc', description: 'Deselect' },
-]
-
 const BillList = () => {
   const navigate = useNavigate()
   const [bills, setBills] = useState([])
@@ -40,17 +26,20 @@ const BillList = () => {
   // mounted so focus survives, e.g. staying in the search box.
   const [initialized, setInitialized] = useState(false)
 
-  // Keyboard-driven usage: shared list cursor. Handles j/k/arrows,
-  // Enter, e, p, n, /, Esc globally on the page, and highlights the
-  // selected row via rowClassName. Selection is React state, not DOM focus.
+  // Keyboard-driven usage: one selected row, driven by j/k and the arrows.
+  // Enter/e/p act on it, n starts a new bill, / jumps to the search box.
+  // Selection is React state keyed by the bill id — never DOM focus.
   const cursor = useListCursor({
     items: bills,
+    noun: 'bill',
+    pageLabel: 'Bills',
     onOpen: (bill) => { pushHistory(bill._id); navigate(`/bills/${bill._id}`) },
     onEdit: (bill) => { navigate(`/bills/${bill._id}/edit`) },
     onDownload: (bill) => { handleDownloadPDF(bill._id) },
     onCreate: () => { navigate('/bills/new') },
-    shortcuts: billShortcuts,
-    resetKey: `${pagination.current}-${pagination.pageSize}-${filters.status}-${filters.billType}-${debouncedSearch}-${filters.dateRange?.[0]?.toISOString?.() ?? ''}-${filters.dateRange?.[1]?.toISOString?.() ?? ''}-${filters.minAmount ?? ''}-${filters.maxAmount ?? ''}`,
+    // Committed on the way out of the search box, so pressing ↓ does not act
+    // on results that are still half a second behind the typed query.
+    onCommitSearch: () => setDebouncedSearch(searchText),
   })
 
   const debounceSearch = useCallback((value) => {
@@ -457,7 +446,7 @@ const BillList = () => {
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
             onSearch={(value) => setDebouncedSearch(value)}
-            onKeyDown={(e) => { if (e.key === 'ArrowDown') { e.preventDefault(); cursor.moveFromSearch(e, true); } }}
+            onKeyDown={cursor.searchKeyDown}
             className="w-full sm:w-80"
             allowClear
             enterButton
@@ -525,9 +514,8 @@ const BillList = () => {
           pagination={{ current: pagination.current, pageSize: pagination.pageSize, total: pagination.total, onChange: handlePageChange }}
           className="bg-white dark:bg-gray-800 rounded-lg shadow dark:border dark:border-gray-700"
           rowClassName={cursor.rowClassName}
-          onRow={(record, index) => ({
+          onRow={(record) => ({
             onClick: () => { pushHistory(record._id); navigate(`/bills/${record._id}`) },
-            onMouseEnter: () => cursor.setSelected(index),
             'aria-label': `Bill ${record.billNumber || record._id.substring(0, 8)}`,
             style: { cursor: 'pointer' }
           })}

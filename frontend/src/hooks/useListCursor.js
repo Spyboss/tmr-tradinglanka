@@ -1,191 +1,246 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useHotkeys } from 'react-hotkeys-hook';
+import { shortcutsAllowed, shortcutsAllowedExceptOnControls } from '../utils/keyboard';
+import { listShortcutGroups, setPageShortcuts } from '../utils/shortcuts';
 
-// Keyboard-driven list navigation, shared by the list pages (BillList,
-// QuotationList, and later Inventory etc.).
+// Keyboard navigation for a list page: one table, one selected row.
 //
-// Model: ONE selected row (React state, not DOM focus) drives the action
-// keys, so they behave identically no matter where focus is — the failure
-// mode of v1, where keys worked only while a row happened to have DOM
-// focus. Mouse hover and keyboard arrows move the same selection, and the
-// row is highlighted visually, so what you see highlighted is always what
-// Enter/e/p will act on.
+// The selection is React state keyed by the record's id, never DOM focus. Two
+// consequences matter:
+//   * every action key (Enter, e, p) acts on the row that is highlighted, no
+//     matter where the focus happens to be, and
+//   * a refetch that still contains that record keeps the highlight, so
+//     searching or reloading does not lose your place. A record that is gone
+//     drops the selection by itself.
 //
-// Typing is guarded by react-hotkeys-hook itself (hotkeys are skipped
-// while the event target is an input/textarea/select); the guard below
-// adds the antd cases the library cannot know about.
+// The action keys bind only when the page supplies the matching callback, and
+// the '?' overlay is built from the same decision — no dead keys in the help.
 
-// True while an antd overlay owns the keyboard (modal, popconfirm,
-// dropdown, date picker). Closed popups stay in the DOM but carry a
-// -hidden class, so :not(-hidden) is what makes this correct.
-const overlayOpen = () =>
-  !!document.querySelector(
-    '.ant-modal-wrap,' +
-    '.ant-popover:not(.ant-popover-hidden),' +
-    '.ant-select-dropdown:not(.ant-select-dropdown-hidden),' +
-    '.ant-picker-dropdown:not(.ant-picker-dropdown-hidden),' +
-    '.ant-dropdown:not(.ant-dropdown-hidden)'
-  );
+const defaultRowKey = (record) => record?._id ?? record?.id ?? record?.key;
 
-// List shortcuts fire only when the page is idle: no overlay owns the
-// keyboard and no button or link has focus (their native Enter/Space must
-// win, otherwise pressing Enter on a focused Delete button would also
-// navigate the row).
-const shortcutGuard = (e) => {
-  const t = e.target;
-  if (t && t.closest && t.closest('button, a, [role="button"], [role="link"]')) return false;
-  if (overlayOpen()) return false;
-  return true;
-};
-
-// The current page's shortcut manifest, read by the '?' help overlay.
-// Set by useListCursor on mount, cleared on unmount.
-let pageShortcuts = [];
-export const getPageShortcuts = () => pageShortcuts;
+const escapeForSelector = (value) =>
+  typeof CSS !== 'undefined' && CSS.escape ? CSS.escape(value) : String(value).replace(/"/g, '\\"');
 
 export default function useListCursor({
   items = [],
+  noun = 'row',
+  pageLabel,
+  getRowKey = defaultRowKey,
   onOpen,
   onEdit,
   onDownload,
   onCreate,
-  shortcuts = [],
-  resetKey = '',
+  onCommitSearch,
 }) {
-  const [selected, setSelected] = useState(-1);
+  const [selectedKey, setSelectedKey] = useState(null);
 
-  // Keep the '?' help overlay in sync with this page's shortcuts.
-  useEffect(() => {
-    pageShortcuts = shortcuts;
-    return () => {
-      pageShortcuts = [];
-    };
-  }, [shortcuts]);
+  // Record ids compare as strings: they arrive as ObjectIds, numbers or
+  // strings depending on the endpoint, and the DOM only ever holds strings.
+  const keyOf = useCallback((record) => String(getRowKey(record)), [getRowKey]);
 
-  // Reset the selection whenever the result set changes identity (new
-  // search, filter or page), so a shortcut never silently acts on a row
-  // the user has not seen.
-  // keepNextReset: set right after committing a search, so the reset that
-  // follows the commit does not clear the "select first row" it triggers.
-  const keepNextReset = useRef(false);
+  // The rows the table is actually showing, in visual order. antd paginates
+  // and sorts the data itself, so the incoming array is not the list the user
+  // is moving through: without this, j walked past the last rendered row and
+  // the highlight vanished into a page the user could not see. Falls back to
+  // the incoming array when nothing is rendered (the mobile card lists).
+  const visibleKeys = useCallback(() => {
+    const rendered = Array.from(document.querySelectorAll('tr[data-row-key]'))
+      .map((row) => row.getAttribute('data-row-key'));
+    return rendered.length ? rendered : items.map(keyOf);
+  }, [items, keyOf]);
+
+  // Set when the user leaves the search box downwards: the rows on screen may
+  // belong to a search that has not been committed yet, so after the next
+  // result set arrives the first row is selected again. Typing, or pressing a
+  // navigation key, clears it.
+  const pendingFirstRow = useRef(false);
+
+  const selectedIndex = selectedKey == null
+    ? -1
+    : items.findIndex((record) => keyOf(record) === selectedKey);
+  const selectedRecord = selectedIndex >= 0 ? items[selectedIndex] : null;
+
+  // Keep the '?' overlay in sync with what this page actually binds.
+  const canOpen = !!onOpen;
+  const canEdit = !!onEdit;
+  const canDownload = !!onDownload;
+  const canCreate = !!onCreate;
+
+  const groups = useMemo(
+    () => listShortcutGroups({ noun, canOpen, canEdit, canDownload, canCreate }),
+    [noun, canOpen, canEdit, canDownload, canCreate]
+  );
+
   useEffect(() => {
-    if (keepNextReset.current) {
-      keepNextReset.current = false;
+    setPageShortcuts({ pageLabel: pageLabel || noun, groups });
+    return () => setPageShortcuts({ pageLabel: '', groups: [] });
+  }, [groups, pageLabel, noun]);
+
+  // Results arrive as a fresh array on every fetch, so this is "the list
+  // changed". Honour a pending jump, then drop a selection whose row is gone.
+  useEffect(() => {
+    if (pendingFirstRow.current) {
+      pendingFirstRow.current = false;
+      const keys = visibleKeys();
+      setSelectedKey(keys.length ? keys[0] : null);
       return;
     }
-    setSelected(-1);
-  }, [resetKey]);
-
-  // Clamp when the list shrinks (delete, narrower results).
-  useEffect(() => {
-    setSelected((prev) => {
-      if (prev < items.length) return prev;
-      return items.length ? items.length - 1 : -1;
+    setSelectedKey((previous) => {
+      if (previous == null) return previous;
+      return items.some((record) => keyOf(record) === previous) ? previous : null;
     });
-  }, [items.length]);
+    // getRowKey and visibleKeys are deliberately not dependencies: pages pass
+    // inline functions, and this effect is about the arrival of new results.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items]);
 
-  // Keyboard moves scroll the selected row into view. Mouse moves don't
-  // need it: the row under the cursor is already visible, so this is a
-  // no-op there (block: 'nearest').
+  // Following the selection with the viewport is what makes arrow keys usable
+  // on a 20-row page. Keyboard moves land here; the row is already visible
+  // when the pointer is what moved, so block: 'nearest' does nothing there.
   useEffect(() => {
-    if (selected < 0) return;
-    document.querySelector('tr.row-active')?.scrollIntoView({ block: 'nearest' });
-  }, [selected]);
+    if (selectedKey == null) return;
+    const row = document.querySelector(`tr[data-row-key="${escapeForSelector(selectedKey)}"]`);
+    if (row) row.scrollIntoView({ block: 'nearest' });
+  }, [selectedKey]);
 
-  const move = useCallback(
-    (delta) => {
-      setSelected((prev) => {
-        if (items.length === 0) return -1;
-        if (prev < 0) return 0;
-        return Math.min(Math.max(prev + delta, 0), items.length - 1);
-      });
-    },
-    [items.length]
-  );
-
-  const selectedRecord =
-    selected >= 0 && selected < items.length ? items[selected] : null;
-
-  // Focus the page's search box ('/'). The data-page-search marker is
-  // spread through to the raw input by antd/rc-input, so the marker IS
-  // the input.
-  const focusSearch = useCallback(() => {
-    const marker = document.querySelector('[data-page-search]');
-    if (!marker) return;
-    const input = marker.tagName === 'INPUT' ? marker : marker.querySelector('input');
-    if (!input) return;
-    input.focus();
-    if (typeof input.select === 'function') input.select();
+  const clearSelection = useCallback(() => {
+    pendingFirstRow.current = false;
+    setSelectedKey(null);
   }, []);
 
-  // Shortcuts are global on the page and guarded by shortcutGuard.
-  // Callbacks do their own preventDefault: the library applies the
-  // preventDefault OPTION before the enabled guard, which would eat
-  // native Enter/Space on the buttons we deliberately ignore.
-  useHotkeys('ArrowDown,j', (e) => {
-    e.preventDefault();
-    move(1);
-  }, { enabled: shortcutGuard });
-
-  useHotkeys('ArrowUp,k', (e) => {
-    e.preventDefault();
-    move(-1);
-  }, { enabled: shortcutGuard });
-
-  useHotkeys('Enter', (e) => {
-    if (!selectedRecord) return;
-    e.preventDefault();
-    onOpen?.(selectedRecord);
-  }, { enabled: shortcutGuard });
-
-  useHotkeys('e', (e) => {
-    if (!selectedRecord) return;
-    e.preventDefault();
-    onEdit?.(selectedRecord);
-  }, { enabled: shortcutGuard });
-
-  useHotkeys('p', (e) => {
-    if (!selectedRecord) return;
-    e.preventDefault();
-    onDownload?.(selectedRecord);
-  }, { enabled: shortcutGuard });
-
-  useHotkeys('n', (e) => {
-    if (!onCreate) return;
-    e.preventDefault();
-    onCreate();
-  }, { enabled: shortcutGuard });
-
-  // '/' is a produced character (Shift on some layouts): match the
-  // produced key and ignore modifier state, per the library docs.
-  useHotkeys('/', (e) => {
-    e.preventDefault();
-    focusSearch();
-  }, { enabled: shortcutGuard, useKey: true, ignoreModifiers: true });
-
-  useHotkeys('Escape', (e) => {
-    if (selected < 0) return;
-    e.preventDefault();
-    setSelected(-1);
-  }, { enabled: shortcutGuard });
-
-  // ArrowDown from the search box: leave typing mode and select the first
-  // row. `committing` is true when the caller just changed the search
-  // state, so the reset that follows the commit keeps this selection.
-  const moveFromSearch = useCallback(
-    (e, committing = false) => {
-      if (committing) keepNextReset.current = true;
-      setSelected(items.length ? 0 : -1);
-      e.currentTarget.blur();
+  // From nothing selected, both directions select the first row: the point of
+  // pressing j on a fresh list is "start here", not "do nothing".
+  const move = useCallback(
+    (delta) => {
+      pendingFirstRow.current = false;
+      const keys = visibleKeys();
+      if (!keys.length) {
+        setSelectedKey(null);
+        return;
+      }
+      const from = selectedKey == null ? -1 : keys.indexOf(selectedKey);
+      const next = from < 0 ? 0 : Math.min(Math.max(from + delta, 0), keys.length - 1);
+      setSelectedKey(keys[next]);
     },
-    [items.length]
+    [visibleKeys, selectedKey]
   );
 
-  // Highlight helper for antd Table's rowClassName.
+  const jumpTo = useCallback(
+    (edge) => {
+      pendingFirstRow.current = false;
+      const keys = visibleKeys();
+      if (!keys.length) return;
+      setSelectedKey(edge === 'last' ? keys[keys.length - 1] : keys[0]);
+    },
+    [visibleKeys]
+  );
+
+  // '/' — the marker is spread onto the raw input by antd, so the marker IS
+  // the field. Returns false when the page has no search box, which leaves
+  // the key alone instead of swallowing it.
+  const focusSearch = useCallback(() => {
+    const marker = document.querySelector('[data-page-search]');
+    const input = !marker ? null : marker.tagName === 'INPUT' ? marker : marker.querySelector('input');
+    if (!input) return false;
+    input.focus();
+    if (typeof input.select === 'function') input.select();
+    return true;
+  }, []);
+
+  // Keys pressed inside the search box. The global handlers are disabled while
+  // typing, so these three moves are handled locally.
+  const searchKeyDown = useCallback(
+    (event) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        event.currentTarget.blur();
+        clearSelection();
+        return;
+      }
+      if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        // Pages that debounce their search commit it here, so the first row
+        // selected below belongs to the query the user just typed.
+        onCommitSearch?.();
+        pendingFirstRow.current = true;
+        const keys = visibleKeys();
+        setSelectedKey(keys.length ? keys[0] : null);
+        event.currentTarget.blur();
+      }
+    },
+    [visibleKeys, clearSelection, onCommitSearch]
+  );
+
+  useHotkeys('ArrowDown,j', (event) => {
+    event.preventDefault();
+    move(1);
+  }, { enabled: shortcutsAllowed });
+
+  useHotkeys('ArrowUp,k', (event) => {
+    event.preventDefault();
+    move(-1);
+  }, { enabled: shortcutsAllowed });
+
+  useHotkeys('Home', (event) => {
+    event.preventDefault();
+    jumpTo('first');
+  }, { enabled: shortcutsAllowed });
+
+  useHotkeys('End', (event) => {
+    event.preventDefault();
+    jumpTo('last');
+  }, { enabled: shortcutsAllowed });
+
+  useHotkeys('Enter', (event) => {
+    if (!selectedRecord) return;
+    event.preventDefault();
+    onOpen(selectedRecord);
+  }, { enabled: (event) => canOpen && shortcutsAllowedExceptOnControls(event) });
+
+  useHotkeys('e', (event) => {
+    if (!selectedRecord) return;
+    event.preventDefault();
+    onEdit(selectedRecord);
+  }, { enabled: (event) => canEdit && shortcutsAllowed(event) });
+
+  useHotkeys('p', (event) => {
+    if (!selectedRecord) return;
+    event.preventDefault();
+    onDownload(selectedRecord);
+  }, { enabled: (event) => canDownload && shortcutsAllowed(event) });
+
+  useHotkeys('n', (event) => {
+    event.preventDefault();
+    onCreate();
+  }, { enabled: (event) => canCreate && shortcutsAllowed(event) });
+
+  // '/' and '?' are produced characters (Shift on most layouts), so they are
+  // matched on the produced key with modifiers ignored.
+  useHotkeys('/', (event) => {
+    if (focusSearch()) event.preventDefault();
+  }, { enabled: shortcutsAllowed, useKey: true, ignoreModifiers: true });
+
+  useHotkeys('Escape', (event) => {
+    if (selectedKey == null) return;
+    event.preventDefault();
+    clearSelection();
+  }, { enabled: shortcutsAllowed });
+
+  // antd Table's rowClassName.
   const rowClassName = useCallback(
-    (record, index) => (index === selected ? 'row-active' : ''),
-    [selected]
+    (record) => (keyOf(record) === selectedKey ? 'row-active' : ''),
+    [keyOf, selectedKey]
   );
 
-  return { selected, selectedRecord, setSelected, move, moveFromSearch, focusSearch, rowClassName };
+  return {
+    selectedIndex,
+    selectedKey,
+    selectedRecord,
+    rowClassName,
+    searchKeyDown,
+    focusSearch,
+    clearSelection,
+    move,
+    jumpTo,
+  };
 }

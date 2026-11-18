@@ -4,6 +4,7 @@ import { PlusOutlined, DeleteOutlined, DownloadOutlined, EyeOutlined, SearchOutl
 import { useNavigate } from 'react-router-dom';
 import apiClient from '../../config/apiClient';
 import moment from 'moment';
+import useListCursor from '../../hooks/useListCursor';
 
 const { Option } = Select;
 
@@ -19,6 +20,19 @@ const WarrantyClaimList = () => {
   const [filters, setFilters] = useState({
     search: '',
     status: ''
+  });
+
+  // Keyboard-driven usage, same model as the other lists: j/k move the
+  // selection, Enter opens the claim, e edits it, p downloads the PDF,
+  // n starts a new claim, / finds the search box.
+  const cursor = useListCursor({
+    items: claims,
+    noun: 'warranty claim',
+    pageLabel: 'Warranty claims',
+    onOpen: (claim) => { navigate(`/warranty-claims/${claim._id}`) },
+    onEdit: (claim) => { navigate(`/warranty-claims/${claim._id}/edit`) },
+    onDownload: (claim) => { handleDownloadPDF(claim._id, claim.warrantyNumber) },
+    onCreate: () => { navigate('/warranty-claims/new') },
   });
 
   useEffect(() => {
@@ -214,8 +228,10 @@ const WarrantyClaimList = () => {
           placeholder="Search warranty claims..."
           value={filters.search}
           onChange={(e) => handleFilterChange('search', e.target.value)}
+          onKeyDown={cursor.searchKeyDown}
           prefix={<SearchOutlined />}
           allowClear
+          data-page-search
         />
         <Select
           placeholder="Filter by status"
@@ -245,6 +261,7 @@ const WarrantyClaimList = () => {
           onChange={handleTableChange}
           rowKey="_id"
           scroll={{ x: 900 }}
+          rowClassName={cursor.rowClassName}
         />
       </div>
 
